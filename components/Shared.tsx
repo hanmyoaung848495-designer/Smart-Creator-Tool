@@ -1,0 +1,204 @@
+
+import React from 'react';
+import { UserProfile, UserSession } from '../types';
+
+export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+  <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${className}`}>
+    {children}
+  </div>
+);
+
+export const UsageCounter: React.FC<{ user?: UserProfile; limits: { app: number; own: number } }> = ({ user, limits }) => {
+  if (!user) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-4 text-[10px] font-bold uppercase tracking-widest text-gray-400 bg-gray-50 px-4 py-2 rounded-xl mb-4">
+      <div className="flex items-center gap-1.5">
+        <span className="text-indigo-600">App API:</span>
+        <span className="text-gray-900">{user.usage.appApiUsedToday} / {limits.app}</span>
+      </div>
+      <div className="w-px h-3 bg-gray-200" />
+      <div className="flex items-center gap-1.5">
+        <span className="text-indigo-600">Own API:</span>
+        <span className="text-gray-900">{user.usage.ownApiUsedToday} / {limits.own}</span>
+      </div>
+      <div className="w-px h-3 bg-gray-200" />
+      <div className="flex items-center gap-1.5">
+        <span className="text-indigo-600">Credits:</span>
+        <span className="text-gray-900">{user.credits}</span>
+      </div>
+    </div>
+  );
+};
+
+export const ApiKeyManager: React.FC<{
+  session: UserSession;
+  onUpdate: (updates: Partial<UserSession>) => void;
+}> = ({ session, onUpdate }) => {
+  return (
+    <div className="mb-6 p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 flex flex-col sm:flex-row items-center gap-4">
+      <div className="flex items-center gap-3 shrink-0">
+        <label className="text-xs font-bold text-indigo-900 uppercase tracking-widest">API Engine:</label>
+        <div className="flex bg-white rounded-lg p-1 shadow-sm border border-indigo-100">
+          <button
+            onClick={() => onUpdate({ useCustomKey: false })}
+            className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!session.useCustomKey ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-indigo-600'}`}
+          >
+            System
+          </button>
+          <button
+            onClick={() => onUpdate({ useCustomKey: true })}
+            className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${session.useCustomKey ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-indigo-600'}`}
+          >
+            Own Key
+          </button>
+        </div>
+      </div>
+      
+      {session.useCustomKey && (
+        <input
+          type="password"
+          placeholder="Paste your Gemini API Key here..."
+          value={session.customApiKey || ''}
+          onChange={(e) => onUpdate({ customApiKey: e.target.value })}
+          className="flex-grow px-4 py-2 text-xs rounded-xl border border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+        />
+      )}
+    </div>
+  );
+};
+
+export const ProgressBar: React.FC<{ progress: number; label?: string; color?: string }> = ({ progress, label, color = "bg-indigo-600" }) => (
+  <div className="w-full">
+    {(label || progress > 0) && (
+      <div className="flex justify-between mb-1.5 px-1">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">{label}</span>
+        <span className="text-xs font-bold text-indigo-600">{Math.round(progress)}%</span>
+      </div>
+    )}
+    <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+      <div 
+        className={`h-full ${color} transition-all duration-300 ease-out rounded-full`} 
+        style={{ width: `${progress}%` }}
+      />
+    </div>
+  </div>
+);
+
+export const Button: React.FC<{
+  onClick?: () => void;
+  children: React.ReactNode;
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  className?: string;
+  disabled?: boolean;
+  type?: 'button' | 'submit';
+}> = ({ onClick, children, variant = 'primary', className, disabled, type = 'button' }) => {
+  const baseStyle = "px-6 py-2.5 rounded-xl font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
+  const variants = {
+    primary: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100",
+    secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200",
+    danger: "bg-red-500 text-white hover:bg-red-600",
+    ghost: "bg-transparent text-gray-500 hover:bg-gray-100"
+  };
+  return (
+    <button type={type} onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`} disabled={disabled}>
+      {children}
+    </button>
+  );
+};
+
+export const Input: React.FC<{
+  label?: string;
+  type?: string;
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  className?: string;
+}> = ({ label, type = 'text', value, onChange, placeholder, className }) => (
+  <div className={`flex flex-col gap-1.5 ${className}`}>
+    {label && <label className="text-sm font-semibold text-gray-700">{label}</label>}
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+    />
+  </div>
+);
+
+export const TextArea: React.FC<{
+  label?: string;
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  rows?: number;
+}> = ({ label, value, onChange, placeholder, rows = 4 }) => (
+  <div className="flex flex-col gap-1.5">
+    {label && <label className="text-sm font-semibold text-gray-700">{label}</label>}
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      rows={rows}
+      className="px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none"
+    />
+  </div>
+);
+
+export const Select: React.FC<{
+  label?: string;
+  value: string;
+  onChange: (val: string) => void;
+  options: { label: string; value: string }[];
+}> = ({ label, value, onChange, options }) => (
+  <div className="flex flex-col gap-1.5">
+    {label && <label className="text-sm font-semibold text-gray-700">{label}</label>}
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white"
+    >
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </select>
+  </div>
+);
+
+export const ResultBox: React.FC<{
+  title: string;
+  content: string;
+  onCopy: () => void;
+  onDownload?: () => void;
+  loading?: boolean;
+}> = ({ title, content, onCopy, onDownload, loading }) => {
+  if (loading) return (
+    <div className="mt-8 p-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-4">
+      <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+      <p className="text-gray-500 animate-pulse font-medium">Processing your request...</p>
+    </div>
+  );
+
+  if (!content) return null;
+
+  return (
+    <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-bold text-gray-800">{title}</h3>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={onCopy} className="text-sm px-4 py-1.5">
+            📋 Copy
+          </Button>
+          {onDownload && (
+            <Button variant="primary" onClick={onDownload} className="text-sm px-4 py-1.5">
+              💾 Download
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-auto max-h-[500px] whitespace-pre-wrap text-gray-700 leading-relaxed">
+        {content}
+      </div>
+    </div>
+  );
+};
