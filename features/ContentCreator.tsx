@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserSession, StoredResult, FeatureType, ProcessingTask } from '../types';
-import { Card, Button, Select, ResultBox, UsageCounter, ApiKeyManager } from '../components/Shared';
+import { Card, Button, Select, ResultBox, UsageCounter } from '../components/Shared';
 import { createContent } from '../services/gemini';
 import PersistentResults from '../components/PersistentResults';
 
@@ -66,8 +66,6 @@ const ContentCreator: React.FC<Props> = ({
         <Button variant="ghost" onClick={onBack}>⬅️ Back</Button>
         <h2 className="text-3xl font-bold text-gray-900">AI Content Creator</h2>
       </div>
-
-      <ApiKeyManager session={session} onUpdate={onUpdateSession} />
 
       <UsageCounter 
         user={session.user} 

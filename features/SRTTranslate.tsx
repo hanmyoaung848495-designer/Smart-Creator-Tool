@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
-import { Card, Button, Select, ResultBox, ApiKeyManager, ProgressBar } from '../components/Shared';
+import { Card, Button, Select, ResultBox, ProgressBar } from '../components/Shared';
 import { translateSRT } from '../services/gemini';
 import PersistentResults from '../components/PersistentResults';
 
@@ -75,8 +75,6 @@ const SRTTranslate: React.FC<Props> = ({
         <Button variant="ghost" onClick={onBack}>⬅️ Back</Button>
         <h2 className="text-3xl font-bold text-gray-900">SRT Translate</h2>
       </div>
-
-      <ApiKeyManager session={session} onUpdate={onUpdateSession} />
 
       <Card className="p-8">
         {activeTask ? (

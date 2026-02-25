@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FeatureType, AdminSettings, UserSession, ActivityRecord, StoredResult, ProcessingTask } from './types';
 import { FEATURES, DEFAULT_ADMIN_SETTINGS } from './constants';
-import { Card, Button, ProgressBar } from './components/Shared';
+import { Card, Button, ProgressBar, ApiKeyManager, Modal } from './components/Shared';
 import Transcribe from './features/Transcribe';
 import Translate from './features/Translate';
 import SRTTranslate from './features/SRTTranslate';
@@ -10,7 +10,7 @@ import SubGenerator from './features/SubGenerator';
 import ScriptWriter from './features/ScriptWriter';
 import VideoGenerator from './features/VideoGenerator';
 import ContentCreator from './features/ContentCreator';
-import VoiceClone from './features/VoiceClone';
+import TextToSRT from './features/TextToSRT';
 import Account from './features/Account';
 import Tutorial from './features/Tutorial';
 import Premium from './features/Premium';
@@ -39,6 +39,7 @@ const App: React.FC = () => {
 
   const [tasks, setTasks] = useState<ProcessingTask[]>([]);
   const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('smart_creator_onboarded'));
+  const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
 
   useEffect(() => {
     localStorage.setItem('smart_creator_session', JSON.stringify(session));
@@ -59,6 +60,12 @@ const App: React.FC = () => {
 
   const deleteResult = useCallback((id: string) => {
     setResults(prev => prev.filter(r => r.id !== id));
+  }, []);
+
+  const clearResultsByType = useCallback((type: FeatureType) => {
+    if (confirm(`Clear all ${type.replace('-', ' ')} history forever?`)) {
+      setResults(prev => prev.filter(r => r.type !== type));
+    }
   }, []);
 
   const copyResult = useCallback((content: string) => {
@@ -148,6 +155,7 @@ const App: React.FC = () => {
       onUpdateSession: handleUpdateSession,
       results,
       onDeleteResult: deleteResult,
+      onClearResults: clearResultsByType,
       onCopyResult: copyResult,
       onDownloadResult: downloadResult,
       tasks: tasks,
@@ -155,7 +163,7 @@ const App: React.FC = () => {
     };
 
     switch (activeFeature) {
-      case 'home': return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} />;
+      case 'home': return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} />;
       case 'transcribe': return <Transcribe {...commonProps} />;
       case 'translate': return <Translate {...commonProps} />;
       case 'srt-translate': return <SRTTranslate {...commonProps} />;
@@ -163,7 +171,7 @@ const App: React.FC = () => {
       case 'script-writer': return <ScriptWriter {...commonProps} />;
       case 'video-generator': return <VideoGenerator {...commonProps} />;
       case 'content-creator': return <ContentCreator {...commonProps} categories={settings.customCategories} />;
-      case 'voice-clone': return <VoiceClone {...commonProps} />;
+      case 'text-to-srt': return <TextToSRT {...commonProps} />;
       case 'account': return <Account onBack={() => setActiveFeature('home')} session={session} onUpdateSession={handleUpdateSession} />;
       case 'premium': return <Premium onBack={() => setActiveFeature('home')} settings={settings} session={session} onUpdateSettings={() => {}} />;
       default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} />;
@@ -176,7 +184,35 @@ const App: React.FC = () => {
       
       <TaskOverlay tasks={tasks} onDismiss={removeTask} onRetry={removeTask} />
 
-      <div className="bg-indigo-600 text-white py-2 overflow-hidden whitespace-nowrap text-sm font-medium">
+      <Modal 
+        isOpen={modalType !== null} 
+        onClose={() => setModalType(null)} 
+        title={modalType === 'privacy' ? 'Privacy Policy' : 'Terms of Service'}
+      >
+        {modalType === 'privacy' ? (
+          <div className="space-y-4">
+            <p>Your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your information when you use Smart Creator Tools.</p>
+            <h4 className="font-bold text-gray-900">1. Information Collection</h4>
+            <p>We collect information you provide directly to us, such as when you create an account or use our AI tools. This may include your name, email address, and the content you process through our services.</p>
+            <h4 className="font-bold text-gray-900">2. Use of Information</h4>
+            <p>We use the information we collect to provide, maintain, and improve our services, and to communicate with you about updates and promotions.</p>
+            <h4 className="font-bold text-gray-900">3. Data Security</h4>
+            <p>We implement industry-standard security measures to protect your data from unauthorized access, disclosure, or destruction.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p>By using Smart Creator Tools, you agree to the following terms and conditions.</p>
+            <h4 className="font-bold text-gray-900">1. Acceptance of Terms</h4>
+            <p>By accessing or using our services, you agree to be bound by these Terms of Service and all applicable laws and regulations.</p>
+            <h4 className="font-bold text-gray-900">2. Use License</h4>
+            <p>Permission is granted to use our AI tools for personal or commercial creative projects, subject to the limitations of your subscription plan.</p>
+            <h4 className="font-bold text-gray-900">3. Prohibited Conduct</h4>
+            <p>You agree not to use our services for any illegal purposes or to generate content that violates the rights of others.</p>
+          </div>
+        )}
+      </Modal>
+
+      <div className="bg-indigo-600 text-white py-2 overflow-hidden whitespace-nowrap text-sm font-medium shadow-sm">
         <div className="marquee">
           <div className="marquee-content">
             <span>{settings.marqueeText}</span>
@@ -189,7 +225,7 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveFeature('home')}>
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl italic">S</div>
+              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-indigo-200 shadow-md">S</div>
               <span className="font-bold text-xl tracking-tight text-gray-900">{settings.appLogo}</span>
             </div>
           </div>
@@ -198,14 +234,14 @@ const App: React.FC = () => {
             {activeTasks.length > 0 && (
               <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 rounded-full animate-pulse border border-amber-100">
                 <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                <span className="text-[10px] font-bold text-amber-700 uppercase">{activeTasks.length} Active Task{activeTasks.length > 1 ? 's' : ''}</span>
+                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">{activeTasks.length} Task{activeTasks.length > 1 ? 's' : ''}</span>
               </div>
             )}
             <button onClick={() => setActiveFeature('account')} className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-gray-50 transition-colors">
               {session.user ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold">{session.user.name[0].toUpperCase()}</div>
-                  <span className="text-sm font-semibold text-gray-700">{session.user.name}</span>
+                  <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm">{session.user.name[0].toUpperCase()}</div>
+                  <span className="text-sm font-semibold text-gray-700 hidden sm:inline">{session.user.name}</span>
                 </div>
               ) : (
                 <span className="text-sm font-bold text-indigo-600">Sign In</span>
@@ -219,25 +255,83 @@ const App: React.FC = () => {
         {renderActiveFeature()}
       </main>
 
-      <footer className="bg-white border-t border-gray-100 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-400">
-          {settings.footerText}
+      <footer className="bg-white border-t border-gray-100 py-12 mt-auto">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[9px] sm:text-[11px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">
+            <button onClick={() => setModalType('privacy')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Privacy</button>
+            <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
+            <button onClick={() => setModalType('terms')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Terms</button>
+            <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
+            <a href="https://t.me/kcteamofficialbot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">
+              Contact
+            </a>
+          </div>
+          <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-300 px-4 leading-relaxed">
+            {settings.footerText}
+          </div>
         </div>
       </footer>
     </div>
   );
 };
 
-const Home: React.FC<{ onSelect: (f: FeatureType) => void; settings: AdminSettings; activeTasks: ProcessingTask[] }> = ({ onSelect, settings, activeTasks }) => (
+const Home: React.FC<{ 
+  onSelect: (f: FeatureType) => void; 
+  settings: AdminSettings; 
+  activeTasks: ProcessingTask[];
+  session: UserSession;
+  onUpdateSession: (updates: Partial<UserSession>) => void;
+}> = ({ onSelect, settings, activeTasks, session, onUpdateSession }) => (
   <div className="space-y-12">
-    <div className="text-center max-w-2xl mx-auto">
-      <h1 className="text-4xl font-extrabold text-gray-900 mb-4 tracking-tight leading-tight">{settings.welcomeMessage}</h1>
-      <p className="text-gray-500 text-lg">Powerful tools for the modern creator, processing in the background.</p>
+    <div className="text-center max-w-3xl mx-auto">
+      <h1 className="text-3xl md:text-5xl font-black mb-6 tracking-tighter leading-tight px-4 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928]"
+          style={{ 
+            filter: 'drop-shadow(2px 2px 0px #b8860b) drop-shadow(4px 4px 4px rgba(0,0,0,0.15))',
+          }}>
+        {settings.welcomeMessage}
+      </h1>
+      <p className="text-gray-400 text-sm md:text-base font-medium uppercase tracking-widest opacity-80">
+        Powerful tools for the modern creator, processing in the background.
+      </p>
+    </div>
+
+    <div className="max-w-4xl mx-auto">
+      <ApiKeyManager session={session} onUpdate={onUpdateSession} />
+    </div>
+
+    <div className="w-full overflow-hidden">
+      <div className="flex items-center justify-between px-4 mb-3">
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-pulse">← Swipe</span>
+        <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Available Tools</h3>
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-pulse">Swipe →</span>
+      </div>
+      <div className="flex items-center gap-3 overflow-x-auto pb-4 no-scrollbar scroll-smooth px-2">
+        {FEATURES.map((feature) => {
+          const isRunning = activeTasks.some(t => t.type === feature.id);
+          return (
+            <button
+              key={feature.id}
+              onClick={() => !isRunning && onSelect(feature.id)}
+              className={`flex-shrink-0 flex items-center gap-3 px-6 py-3 rounded-full border transition-all whitespace-nowrap shadow-sm ${
+                isRunning 
+                  ? 'bg-amber-50 border-amber-200 text-amber-700 opacity-75 cursor-wait' 
+                  : 'bg-white border-gray-100 text-gray-700 hover:border-indigo-600 hover:shadow-md active:scale-95'
+              }`}
+            >
+              <span className="text-2xl">{feature.icon}</span>
+              <div className="flex flex-col items-start">
+                <span className="text-sm font-bold leading-none">{feature.title}</span>
+                {isRunning && <span className="text-[8px] font-black uppercase tracking-tighter mt-1 animate-pulse">Processing...</span>}
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
 
     {activeTasks.length > 0 && (
       <div className="max-w-4xl mx-auto animate-in fade-in duration-500">
-        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
           <span className="w-2 h-2 bg-amber-500 rounded-full animate-ping"></span>
           Running Tasks
         </h3>
@@ -256,26 +350,6 @@ const Home: React.FC<{ onSelect: (f: FeatureType) => void; settings: AdminSettin
         </div>
       </div>
     )}
-
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      {FEATURES.map((feature) => {
-        const isRunning = activeTasks.some(t => t.type === feature.id);
-        return (
-          <Card key={feature.id} className={`group relative transition-all ${isRunning ? 'opacity-75 ring-2 ring-amber-400 shadow-md' : 'hover:ring-2 hover:ring-indigo-600 cursor-pointer'}`}>
-            <div className="p-8 h-full flex flex-col">
-              <div className="text-4xl mb-6">{feature.icon}</div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-              <p className="text-gray-500 text-sm mb-8 flex-grow">{feature.description}</p>
-              {isRunning ? (
-                <div className="bg-amber-100 text-amber-700 py-2.5 rounded-xl font-bold text-center text-sm animate-pulse">Processing...</div>
-              ) : (
-                <Button onClick={() => onSelect(feature.id)} className="w-full">Open Tool</Button>
-              )}
-            </div>
-          </Card>
-        );
-      })}
-    </div>
   </div>
 );
 

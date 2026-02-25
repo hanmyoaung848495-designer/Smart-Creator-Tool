@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
-import { Card, Button, Input, Select, ResultBox, ProgressBar, ApiKeyManager } from '../components/Shared';
+import { Card, Button, Input, Select, ResultBox, ProgressBar } from '../components/Shared';
 import { writeScript } from '../services/gemini';
 import PersistentResults from '../components/PersistentResults';
 
@@ -65,8 +65,6 @@ const ScriptWriter: React.FC<Props> = ({
         <Button variant="ghost" onClick={onBack}>⬅️ Back</Button>
         <h2 className="text-3xl font-bold text-gray-900">AI Script Writer</h2>
       </div>
-
-      <ApiKeyManager session={session} onUpdate={onUpdateSession} />
 
       <Card className="p-8">
         {activeTask ? (

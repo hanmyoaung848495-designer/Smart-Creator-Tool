@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
-import { Card, Button, TextArea, Select, ResultBox, ProgressBar, ApiKeyManager } from '../components/Shared';
+import { Card, Button, TextArea, Select, ResultBox, ProgressBar } from '../components/Shared';
 import { translateText } from '../services/gemini';
 import PersistentResults from '../components/PersistentResults';
 
@@ -25,13 +25,14 @@ interface Props {
   onUpdateSession: (updates: Partial<UserSession>) => void;
   results: StoredResult[];
   onDeleteResult: (id: string) => void;
+  onClearResults: (type: FeatureType) => void;
   onCopyResult: (content: string) => void;
   onDownloadResult: (result: StoredResult) => void;
 }
 
 const Translate: React.FC<Props> = ({ 
   onBack, session, tasks, onSaveResult, onStartTask, onUpdateSession,
-  results, onDeleteResult, onCopyResult, onDownloadResult
+  results, onDeleteResult, onClearResults, onCopyResult, onDownloadResult
 }) => {
   const [text, setText] = useState('');
   const [targetLang, setTargetLang] = useState('English');
@@ -66,15 +67,13 @@ const Translate: React.FC<Props> = ({
         <h2 className="text-3xl font-bold text-gray-900">Translate</h2>
       </div>
 
-      <ApiKeyManager session={session} onUpdate={onUpdateSession} />
-
       <Card className="p-8">
         {activeTask ? (
           <div className="flex flex-col items-center py-12 gap-6">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
             <div className="text-center">
               <h3 className="text-xl font-bold text-gray-900 mb-2">Translation in Progress</h3>
-              <p className="text-gray-500">Processing in the background...</p>
+              <p className="text-gray-500 text-sm italic">Processing in the background...</p>
             </div>
             <div className="w-full max-w-md">
               <ProgressBar progress={activeTask.progress} label={activeTask.status} />
@@ -103,7 +102,7 @@ const Translate: React.FC<Props> = ({
                 variant="primary" 
                 onClick={handleTranslate} 
                 disabled={!text}
-                className="py-2.5 w-full sm:w-auto"
+                className="py-2.5 w-full sm:w-auto text-xs font-bold uppercase tracking-widest"
               >
                 Translate Now
               </Button>
@@ -115,6 +114,7 @@ const Translate: React.FC<Props> = ({
           title="Translation Result" 
           content={result} 
           onCopy={() => onCopyResult(result)}
+          onClear={() => setResult('')}
         />
       </Card>
 
@@ -122,6 +122,7 @@ const Translate: React.FC<Props> = ({
         results={results} 
         activeType="translate" 
         onDelete={onDeleteResult}
+        onClearAll={() => onClearResults('translate')}
         onCopy={onCopyResult}
         onDownload={onDownloadResult}
       />

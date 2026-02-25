@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
-import { Card, Button, TextArea, Select, ProgressBar, ApiKeyManager } from '../components/Shared';
+import { Card, Button, TextArea, Select, ProgressBar } from '../components/Shared';
 import { generateVideo } from '../services/gemini';
 import PersistentResults from '../components/PersistentResults';
 
@@ -60,8 +60,6 @@ const VideoGenerator: React.FC<Props> = ({
         <Button variant="ghost" onClick={onBack}>⬅️ Back</Button>
         <h2 className="text-3xl font-bold text-gray-900">AI Video Generator</h2>
       </div>
-
-      <ApiKeyManager session={session} onUpdate={onUpdateSession} />
 
       <Card className="p-8">
         {activeTask ? (

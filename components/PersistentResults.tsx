@@ -7,14 +7,14 @@ interface Props {
   results: StoredResult[];
   activeType?: FeatureType;
   onDelete: (id: string) => void;
+  onClearAll?: () => void;
   onCopy: (content: string) => void;
   onDownload: (result: StoredResult) => void;
 }
 
-const PersistentResults: React.FC<Props> = ({ results, activeType, onDelete, onCopy, onDownload }) => {
+const PersistentResults: React.FC<Props> = ({ results, activeType, onDelete, onClearAll, onCopy, onDownload }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Filter results by feature type if provided
   const filteredResults = activeType 
     ? results.filter(r => r.type === activeType) 
     : results;
@@ -23,73 +23,80 @@ const PersistentResults: React.FC<Props> = ({ results, activeType, onDelete, onC
 
   return (
     <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-      <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <span>🕒</span> Recent {activeType ? 'Results' : 'Activity'}
-        </h3>
-        <span className="text-sm text-gray-400 font-medium bg-gray-100 px-3 py-1 rounded-full">
-          {filteredResults.length} entries stored locally
-        </span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 pb-4 gap-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <span>🕒</span> Recent {activeType ? 'Results' : 'Activity'}
+          </h3>
+          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-gray-100 px-2 py-0.5 rounded-md">
+            {filteredResults.length} Items
+          </span>
+        </div>
+        
+        {onClearAll && (
+          <Button 
+            variant="ghost" 
+            onClick={onClearAll} 
+            className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50"
+          >
+            🗑️ Clear All History
+          </Button>
+        )}
       </div>
 
       <div className="space-y-4">
         {filteredResults.map((result) => (
-          <Card key={result.id} className="border border-gray-100 hover:border-indigo-200 transition-all shadow-sm">
+          <Card key={result.id} className="border border-gray-100 hover:border-indigo-100 transition-all shadow-sm">
             <div className="p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-xl">
                     {result.type === 'transcribe' ? '🎙️' : 
                      result.type === 'translate' ? '🌐' : 
                      result.type === 'video-generator' ? '🎥' : 
-                     result.type === 'srt-translate' ? '🎞️' : '📝'}
+                     result.type === 'srt-translate' ? '🎞️' : 
+                     result.type === 'text-to-srt' ? '📄' : '📝'}
                   </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 leading-tight">{result.title}</h4>
-                    <p className="text-xs text-gray-400 font-medium">
-                      {new Date(result.timestamp).toLocaleString()} • <span className="uppercase text-[10px] tracking-widest text-indigo-500">{result.type.replace('-', ' ')}</span>
+                  <div className="truncate max-w-[200px] sm:max-w-md">
+                    <h4 className="font-bold text-gray-900 leading-tight truncate">{result.title}</h4>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                      {new Date(result.timestamp).toLocaleString()} • <span className="text-indigo-500">{result.type.replace('-', ' ')}</span>
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" onClick={() => onCopy(result.content)} className="text-sm px-3 py-1.5 h-9">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="ghost" onClick={() => onCopy(result.content)} className="text-[10px] font-bold h-8 px-3 uppercase">
                     📋 Copy
                   </Button>
-                  <Button variant="secondary" onClick={() => onDownload(result)} className="text-sm px-3 py-1.5 h-9">
+                  <Button variant="secondary" onClick={() => onDownload(result)} className="text-[10px] font-bold h-8 px-3 uppercase">
                     💾 Save
                   </Button>
                   <Button 
                     variant="ghost" 
                     onClick={() => setExpandedId(expandedId === result.id ? null : result.id)} 
-                    className="text-sm px-3 py-1.5 h-9"
+                    className="text-[10px] font-bold h-8 px-3 uppercase"
                   >
                     {expandedId === result.id ? '🔼 Hide' : '🔽 View'}
                   </Button>
                   <Button 
-                    variant="danger" 
+                    variant="ghost" 
                     onClick={() => {
-                      if(confirm('Are you sure you want to delete this result?')) {
+                      if(confirm('Delete this record?')) {
                         onDelete(result.id);
                       }
                     }} 
-                    className="text-sm px-3 py-1.5 h-9 bg-red-50 text-red-600 hover:bg-red-100 shadow-none border-0"
+                    className="text-[10px] font-bold h-8 px-3 uppercase text-red-500 hover:bg-red-50"
                   >
-                    🗑️
+                    🗑️ Delete
                   </Button>
                 </div>
               </div>
 
               {expandedId === result.id && (
-                <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100 overflow-auto max-h-[300px] text-sm text-gray-600 whitespace-pre-wrap leading-relaxed animate-in slide-in-from-top-2 duration-300">
+                <div className="mt-4 p-4 bg-slate-900 text-slate-300 rounded-xl font-mono text-xs overflow-auto max-h-[300px] leading-relaxed animate-in slide-in-from-top-2">
                   {result.content}
                 </div>
-              )}
-              
-              {expandedId !== result.id && (
-                <p className="text-sm text-gray-500 line-clamp-2 italic px-2">
-                  {result.content.substring(0, 150)}...
-                </p>
               )}
             </div>
           </Card>

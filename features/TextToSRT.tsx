@@ -1,0 +1,163 @@
+
+import React, { useState } from 'react';
+import { FeatureType, StoredResult, UserSession, ProcessingTask } from '../types';
+import { Card, Button, TextArea, Input } from '../components/Shared';
+import PersistentResults from '../components/PersistentResults';
+
+interface Props {
+  session: UserSession;
+  onSaveResult: (result: Omit<StoredResult, 'id' | 'timestamp'>) => void;
+  onStartTask: (type: FeatureType, title: string, runAction: (taskId: string) => Promise<any>) => void;
+  results: StoredResult[];
+  onDeleteResult: (id: string) => void;
+  onClearResults: (type: FeatureType) => void;
+  onCopyResult: (content: string) => void;
+  onDownloadResult: (result: StoredResult) => void;
+  onBack: () => void;
+}
+
+const TextToSRT: React.FC<Props> = ({
+  onSaveResult,
+  results,
+  onDeleteResult,
+  onClearResults,
+  onCopyResult,
+  onDownloadResult,
+  onBack
+}) => {
+  const [text, setText] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [touched, setTouched] = useState(false);
+
+  const parseToSRT = (input: string) => {
+    const lines = input.split('\n').filter(l => l.trim());
+    let srtContent = '';
+    let index = 1;
+
+    for (const line of lines) {
+      const match1 = line.match(/(\d{2}:\d{2}:\d{2})\s*-\s*(\d{2}:\d{2}:\d{2}):\s*(.*)/);
+      const match2 = line.match(/(\d{2}:\d{2}:\d{2})\s*-->\s*(\d{2}:\d{2}:\d{2})\s*(.*)/);
+
+      const match = match1 || match2;
+      if (match) {
+        const start = match[1];
+        const end = match[2];
+        const text = match[3];
+        
+        srtContent += `${index}\n${start},000 --> ${end},000\n${text}\n\n`;
+        index++;
+      }
+    }
+    return srtContent;
+  };
+
+  const handleGenerate = () => {
+    setTouched(true);
+    if (!fileName.trim()) {
+      return;
+    }
+    if (!text.trim()) {
+      alert('ကျေးဇူးပြု၍ စာသားထည့်ပါ');
+      return;
+    }
+
+    const srtOutput = parseToSRT(text);
+    if (!srtOutput) {
+      alert('မှန်ကန်သော Format ဖြင့်ထည့်သွင်းပေးပါ (ဥပမာ - 00:00:05 - 00:00:10: Text)');
+      return;
+    }
+
+    const finalFileName = fileName.trim();
+    
+    onSaveResult({
+      type: 'text-to-srt',
+      title: finalFileName,
+      content: srtOutput,
+      fileName: `${finalFileName}.srt`,
+      mimeType: 'text/plain'
+    });
+
+    setText('');
+    setFileName('');
+    setTouched(false);
+    alert('SRT File အဖြစ်ပြောင်းလဲပြီးပါပြီ');
+  };
+
+  const handleDownload = (result: StoredResult) => {
+    onDownloadResult(result);
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between">
+        <button 
+          onClick={onBack} 
+          className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
+        >
+          ← Back to Tools
+        </button>
+        <div className="px-4 py-1.5 bg-indigo-50 rounded-full border border-indigo-100">
+          <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">No API Key Required</span>
+        </div>
+      </div>
+
+      <div className="text-center space-y-4">
+        <h2 className="text-2xl md:text-4xl font-black leading-tight tracking-tighter" 
+            style={{ 
+              color: '#FFD700', 
+              textShadow: '2px 2px 0px #b8860b, 4px 4px 0px rgba(0,0,0,0.1)',
+              WebkitTextStroke: '1px #b8860b'
+            }}>
+          Geminiကကူးလာတဲ့စာသားတွေကိုအောက်မှာထည့်ပြီး Generateကိုနှိပ်ပါ
+        </h2>
+      </div>
+
+      <Card className="p-6 md:p-8 max-w-4xl mx-auto shadow-xl border-indigo-50">
+        <div className="space-y-6">
+          <div className="flex flex-col gap-1.5">
+            <label className={`text-sm font-bold transition-colors ${(!fileName.trim() && touched) ? 'text-red-500' : 'text-blue-600'}`}>
+              ဖိုင်နာမည်ထည့်ပါ
+            </label>
+            <Input
+              placeholder="(ဥပမာ - subtitle_ep1)"
+              value={fileName}
+              onChange={(val) => {
+                setFileName(val);
+                setTouched(true);
+              }}
+              className="w-full"
+            />
+          </div>
+
+          <TextArea
+            placeholder={`00:00:05 - 00:00:10: Text here\n00:00:05 --> 00:00:10 Text here\n\nပေးထားတဲ့ ဥပမာတွေအတိုင်းထည့်ပေးပါ`}
+            value={text}
+            onChange={setText}
+            rows={12}
+          />
+
+          <div className="flex justify-center">
+            <Button 
+              onClick={handleGenerate} 
+              className="w-full md:w-auto min-w-[200px] h-[46px] text-sm font-bold uppercase tracking-widest"
+              disabled={!fileName.trim() || !text.trim()}
+            >
+              🚀 Generate SRT File
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <PersistentResults
+        results={results}
+        activeType="text-to-srt"
+        onDelete={onDeleteResult}
+        onClearAll={() => onClearResults('text-to-srt')}
+        onCopy={onCopyResult}
+        onDownload={handleDownload}
+      />
+    </div>
+  );
+};
+
+export default TextToSRT;

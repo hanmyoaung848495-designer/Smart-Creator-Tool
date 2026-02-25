@@ -24,7 +24,7 @@ export const FEATURES: FeatureCardData[] = [
   {
     id: 'sub-generator',
     title: 'Sub Generator',
-    description: 'Automatically generate SRT subtitle files for your media.',
+    description: 'Automatically generate or manually create SRT files.',
     icon: '📝'
   },
   {
@@ -46,18 +46,17 @@ export const FEATURES: FeatureCardData[] = [
     icon: '🚀'
   },
   {
-    id: 'voice-clone',
-    title: 'Voice Clone',
-    description: 'Clone any voice and use it for AI narration.',
-    icon: '👥',
-    premiumOnly: true
+    id: 'text-to-srt',
+    title: 'Text To SRT',
+    description: 'Convert Gemini output text into downloadable SRT subtitle files.',
+    icon: '📄'
   }
 ];
 
 export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   appLogo: 'SmartCreator',
   welcomeMessage: 'Empower your creativity with world-class AI tools.',
-  marqueeText: '🔥 New: AI Video Generator is now live! | 💎 Upgrade to Premium for unlimited processing | 🌐 Global translation support added',
+  marqueeText: 'သူငယ်ချင်းတို့မင်္ဂလာပါ! Contentတွေလုပ်ရတာအဆင်ပြေအောင် စမ်းထားတဲ့ Websiteလေးဖြစ်ပါတယ်။ သုံးမယ်ဆိုရင် Own Keyကိုနှိပ်ပြီး API keyထည့်သုံးလို့ရပါတယ်။ Text to SRT လေးကတော့ API keyမလိုဘဲသုံးလို့ရပါတယ်။',
   footerText: '© 2024 Smart Creator Tools. All rights reserved.',
   premiumEnabled: true,
   usageLimits: {

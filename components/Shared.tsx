@@ -96,7 +96,7 @@ export const Button: React.FC<{
   const variants = {
     primary: "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100",
     secondary: "bg-gray-100 text-gray-700 hover:bg-gray-200",
-    danger: "bg-red-500 text-white hover:bg-red-600",
+    danger: "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-100",
     ghost: "bg-transparent text-gray-500 hover:bg-gray-100"
   };
   return (
@@ -170,8 +170,9 @@ export const ResultBox: React.FC<{
   content: string;
   onCopy: () => void;
   onDownload?: () => void;
+  onClear?: () => void;
   loading?: boolean;
-}> = ({ title, content, onCopy, onDownload, loading }) => {
+}> = ({ title, content, onCopy, onDownload, onClear, loading }) => {
   if (loading) return (
     <div className="mt-8 p-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-4">
       <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
@@ -186,18 +187,50 @@ export const ResultBox: React.FC<{
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-bold text-gray-800">{title}</h3>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={onCopy} className="text-sm px-4 py-1.5">
+          <Button variant="secondary" onClick={onCopy} className="text-xs px-3 py-1.5">
             📋 Copy
           </Button>
           {onDownload && (
-            <Button variant="primary" onClick={onDownload} className="text-sm px-4 py-1.5">
+            <Button variant="primary" onClick={onDownload} className="text-xs px-3 py-1.5">
               💾 Download
+            </Button>
+          )}
+          {onClear && (
+            <Button variant="ghost" onClick={onClear} className="text-xs px-3 py-1.5 text-red-500 hover:bg-red-50">
+              🗑️ Clear
             </Button>
           )}
         </div>
       </div>
-      <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-auto max-h-[500px] whitespace-pre-wrap text-gray-700 leading-relaxed">
+      <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-auto max-h-[500px] whitespace-pre-wrap text-gray-700 leading-relaxed text-sm">
         {content}
+      </div>
+    </div>
+  );
+};
+
+export const Modal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}> = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <span className="text-2xl leading-none">&times;</span>
+          </button>
+        </div>
+        <div className="p-8 overflow-y-auto text-gray-600 leading-relaxed text-sm">
+          {children}
+        </div>
+        <div className="p-6 border-t border-gray-100 flex justify-end">
+          <Button onClick={onClose} className="text-xs font-bold uppercase tracking-widest">Close</Button>
+        </div>
       </div>
     </div>
   );
