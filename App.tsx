@@ -290,7 +290,7 @@ const Home: React.FC<{
           }}>
         {settings.welcomeMessage}
       </h1>
-      <p className="text-gray-400 text-sm md:text-base font-medium uppercase tracking-widest opacity-80">
+      <p className="text-slate-900 text-sm md:text-base font-bold uppercase tracking-[0.15em]">
         Powerful tools for the modern creator, processing in the background.
       </p>
     </div>

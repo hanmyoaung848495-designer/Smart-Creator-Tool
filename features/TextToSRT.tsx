@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { FeatureType, StoredResult, UserSession, ProcessingTask } from '../types';
-import { Card, Button, TextArea, Input } from '../components/Shared';
+import { Card, Button, TextArea, Input, Modal } from '../components/Shared';
 import PersistentResults from '../components/PersistentResults';
 
 interface Props {
@@ -28,23 +28,59 @@ const TextToSRT: React.FC<Props> = ({
   const [text, setText] = useState('');
   const [fileName, setFileName] = useState('');
   const [touched, setTouched] = useState(false);
+  const [showError, setShowError] = useState(false);
+
+  const formatTime = (timeStr: string) => {
+    const [main, ms] = timeStr.split(/[.,]/);
+    const parts = main.split(':');
+    let hh = '00', mm = '00', ss = '00';
+    
+    if (parts.length === 3) {
+      [hh, mm, ss] = parts;
+    } else if (parts.length === 2) {
+      [mm, ss] = parts;
+    } else if (parts.length === 1) {
+      ss = parts[0];
+    }
+
+    const formattedMain = `${hh.padStart(2, '0')}:${mm.padStart(2, '0')}:${ss.padStart(2, '0')}`;
+    const formattedMs = (ms || '000').padEnd(3, '0').slice(0, 3);
+    return `${formattedMain},${formattedMs}`;
+  };
 
   const parseToSRT = (input: string) => {
-    const lines = input.split('\n').filter(l => l.trim());
+    const lines = input.split('\n').map(l => l.trim());
     let srtContent = '';
     let index = 1;
 
-    for (const line of lines) {
-      const match1 = line.match(/(\d{2}:\d{2}:\d{2})\s*-\s*(\d{2}:\d{2}:\d{2}):\s*(.*)/);
-      const match2 = line.match(/(\d{2}:\d{2}:\d{2})\s*-->\s*(\d{2}:\d{2}:\d{2})\s*(.*)/);
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line || line.match(/^\d+$/)) continue; // Skip empty lines and index numbers
 
-      const match = match1 || match2;
+      // Support various timestamp formats including those with commas/dots
+      const timePattern = /(\d{1,2}:\d{1,2}(?::\d{1,2})?(?:[.,]\d{1,3})?)/;
+      const tsMatch = line.match(new RegExp(`${timePattern.source}\\s*(?:-->|[-–—])\\s*${timePattern.source}\\s*:?\\s*(.*)`));
+      const bracketMatch = line.match(new RegExp(`\\[${timePattern.source}\\s*[-–—]\\s*${timePattern.source}\\]\\s*(.*)`));
+
+      const match = tsMatch || bracketMatch;
       if (match) {
-        const start = match[1];
-        const end = match[2];
-        const text = match[3];
+        const start = formatTime(match[1]);
+        const end = formatTime(match[2]);
+        let content = match[3]?.trim();
+
+        // If no text content on the same line, check the next line (Standard SRT format)
+        if (!content && i + 1 < lines.length) {
+          const nextLine = lines[i + 1];
+          // If next line is not a timestamp or a number, it's likely the text
+          if (nextLine && !nextLine.match(/^\d+$/) && !nextLine.match(/\d{1,2}:\d{1,2}/)) {
+            content = nextLine;
+            i++; // Skip the next line as we've used it
+          }
+        }
+
+        if (!content) content = '...';
         
-        srtContent += `${index}\n${start},000 --> ${end},000\n${text}\n\n`;
+        srtContent += `${index}\n${start} --> ${end}\n${content}\n\n`;
         index++;
       }
     }
@@ -63,7 +99,7 @@ const TextToSRT: React.FC<Props> = ({
 
     const srtOutput = parseToSRT(text);
     if (!srtOutput) {
-      alert('မှန်ကန်သော Format ဖြင့်ထည့်သွင်းပေးပါ (ဥပမာ - 00:00:05 - 00:00:10: Text)');
+      setShowError(true);
       return;
     }
 
@@ -89,6 +125,26 @@ const TextToSRT: React.FC<Props> = ({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      <Modal 
+        isOpen={showError} 
+        onClose={() => setShowError(false)} 
+        title="Format မှားယွင်းနေပါသည်"
+      >
+        <div className="space-y-4">
+          <p className="text-red-500 font-bold">ထည့်သွင်းလိုက်သော စာသားသည် သတ်မှတ်ထားသော Format နှင့် မကိုက်ညီပါ။</p>
+          <div className="bg-gray-50 p-4 rounded-xl space-y-2">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">မှန်ကန်သော ပုံစံများ -</p>
+            <ul className="text-sm space-y-1 text-gray-600 font-mono">
+              <li>00:00:05 - 00:00:10: စာသား</li>
+              <li>00:00:05 - 00:00:10 စာသား</li>
+              <li>[00:00:05 - 00:00:10] စာသား</li>
+              <li>00:05 - 00:10 စာသား</li>
+            </ul>
+          </div>
+          <p className="text-sm text-gray-500 italic">မှတ်ချက်: အချိန်အပိုင်းအခြားနှင့် စာသားကြားတွင် space သို့မဟုတ် colon (:) ပါရှိရပါမည်။</p>
+        </div>
+      </Modal>
+
       <div className="flex items-center justify-between">
         <button 
           onClick={onBack} 
