@@ -55,7 +55,7 @@ export const FEATURES: FeatureCardData[] = [
 
 export const DEFAULT_ADMIN_SETTINGS: AdminSettings = {
   appLogo: 'SmartCreator',
-  welcomeMessage: 'Empower your creativity with world-class AI tools.',
+  welcomeMessage: 'ဒေါ်လာစားများအားလုံးမင်္ဂလာပါ',
   marqueeText: 'သူငယ်ချင်းတို့မင်္ဂလာပါ! Contentတွေလုပ်ရတာအဆင်ပြေအောင် စမ်းထားတဲ့ Websiteလေးဖြစ်ပါတယ်။ သုံးမယ်ဆိုရင် Own Keyကိုနှိပ်ပြီး API keyထည့်သုံးလို့ရပါတယ်။ Text to SRT လေးကတော့ API keyမလိုဘဲသုံးလို့ရပါတယ်။',
   footerText: '© 2024 Smart Creator Tools. All rights reserved.',
   premiumEnabled: true,

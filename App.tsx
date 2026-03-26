@@ -12,15 +12,36 @@ import TextToSRT from './features/TextToSRT';
 import Teleprompter from './features/Teleprompter';
 import AIVoice from './features/AIVoice';
 import Tutorial from './features/Tutorial';
+import APIGuide from './features/APIGuide';
 import Premium from './features/Premium';
+import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import TaskOverlay from './components/TaskOverlay';
-import { Menu, X, BookOpen, User, Crown, Home as HomeIcon } from 'lucide-react';
+import { Menu, X, BookOpen, User, Crown, Home as HomeIcon, Zap, Send, Sun, Moon } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<FeatureType>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [settings] = useState<AdminSettings>(DEFAULT_ADMIN_SETTINGS);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+  const [settings] = useState<AdminSettings>({
+    ...DEFAULT_ADMIN_SETTINGS,
+    welcomeMessage: "သူငယ်ချင်းတို့မင်္ဂလာပါ!",
+    footerText: "Contentတွေလုပ်ရတာအဆင်ပြေအောင် စမ်းထားတဲ့ Websiteလေးဖြစ်ပါတယ်။ သုံးမယ်ဆိုရင် Own Keyကိုနှိပ်ပြီး API keyထည့်သုံးလို့ရပါတယ်။ Text to SRT လေးကတော့ API keyမလိုဘဲသုံးလို့ရပါတယ်။"
+  });
+  
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
   const [session, setSession] = useState<UserSession>(() => {
     const saved = localStorage.getItem('smart_creator_session');
     if (saved) {
@@ -178,6 +199,7 @@ const App: React.FC = () => {
       case 'text-to-srt': return <TextToSRT {...commonProps} />;
       case 'teleprompter': return <Teleprompter onBack={() => setActiveFeature('home')} />;
       case 'ai-voice': return <AIVoice {...commonProps} />;
+      case 'api-guide': return <APIGuide onBack={() => setActiveFeature('home')} />;
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
       case 'premium': return <Premium onBack={() => setActiveFeature('home')} settings={settings} session={session} onUpdateSettings={() => {}} />;
       default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} />;
@@ -192,7 +214,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50/50">
+    <div className="min-h-screen flex flex-col bg-slate-50/50 dark:bg-gray-900 dark:text-gray-100">
       {showTutorial && <Tutorial onBack={() => { setShowTutorial(false); localStorage.setItem('smart_creator_onboarded', 'true'); }} />}
       
       <TaskOverlay tasks={tasks} onDismiss={removeTask} onRetry={removeTask} />
@@ -201,29 +223,48 @@ const App: React.FC = () => {
       {isMenuOpen && (
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm animate-in fade-in duration-300" onClick={toggleMenu}>
           <div 
-            className="absolute right-0 top-0 bottom-0 w-72 bg-white shadow-2xl p-6 animate-in slide-in-from-right duration-300"
+            className="absolute right-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-800 shadow-2xl p-6 animate-in slide-in-from-right duration-300"
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-8">
-              <h3 className="font-bold text-gray-900 uppercase tracking-widest text-xs">Menu</h3>
-              <button onClick={toggleMenu} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <X size={20} className="text-gray-500" />
-              </button>
+              <h3 className="font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest text-xs">Menu</h3>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                  {isDarkMode ? <Sun size={20} className="text-yellow-500" /> : <Moon size={20} className="text-gray-500" />}
+                </button>
+                <button onClick={toggleMenu} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+                  <X size={20} className="text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
             </div>
 
             <div className="space-y-2">
               <button 
                 onClick={() => navigateTo('home')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeFeature === 'home' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-600 hover:bg-gray-50'}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeFeature === 'home' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
               >
-                <HomeIcon size={18} /> Home
+                <HomeIcon size={18} className="text-blue-500" /> Home
               </button>
               <button 
                 onClick={() => navigateTo('tutorial')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeFeature === 'tutorial' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-600 hover:bg-gray-50'}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeFeature === 'tutorial' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
               >
-                <BookOpen size={18} /> Tutorial
+                <BookOpen size={18} className="text-emerald-500" /> Tutorial
               </button>
+              <button 
+                onClick={() => navigateTo('api-guide')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeFeature === 'api-guide' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+              >
+                <Zap size={18} className="text-amber-500" /> API Guide
+              </button>
+              <a 
+                href="https://t.me/kcteamofficialbot" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+              >
+                <Send size={18} className="text-sky-500" /> Contact
+              </a>
             </div>
 
             <div className="absolute bottom-8 left-6 right-6">
@@ -246,7 +287,7 @@ const App: React.FC = () => {
           <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-3xl mb-4 mx-auto">
             👋
           </div>
-          <p className="text-gray-700 leading-relaxed text-center font-medium">
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-center font-medium">
             {settings.marqueeText}
           </p>
           <div className="pt-4">
@@ -263,56 +304,64 @@ const App: React.FC = () => {
         title={modalType === 'privacy' ? 'Privacy Policy' : 'Terms of Service'}
       >
         {modalType === 'privacy' ? (
-          <div className="space-y-4">
-            <p>Your privacy is important to us. This Privacy Policy explains how we collect, use, and protect your information when you use Smart Creator Tools.</p>
-            <h4 className="font-bold text-gray-900">1. Information Collection</h4>
-            <p>We collect information you provide directly to us, such as when you create an account or use our AI tools. This may include your name, email address, and the content you process through our services.</p>
-            <h4 className="font-bold text-gray-900">2. Use of Information</h4>
-            <p>We use the information we collect to provide, maintain, and improve our services, and to communicate with you about updates and promotions.</p>
-            <h4 className="font-bold text-gray-900">3. Data Security</h4>
-            <p>We implement industry-standard security measures to protect your data from unauthorized access, disclosure, or destruction.</p>
+          <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
+            <p>Your privacy is paramount to us. Smart Creator Tools is designed as a bridge between you and Google AI Studio.</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">1. No Data Storage</h4>
+            <p>We do not store, log, or retain any of the data you process through our tools. Your content is processed directly between your browser and Google AI Studio.</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">2. Intermediary Role</h4>
+            <p>This website acts solely as an intermediary interface to facilitate your interaction with Google AI Studio. We do not have access to your private data or API keys.</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">3. Security</h4>
+            <p>Since we do not store data, the risk of data breaches on our end is non-existent. We recommend you keep your API keys secure and never share them.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            <p>By using Smart Creator Tools, you agree to the following terms and conditions.</p>
-            <h4 className="font-bold text-gray-900">1. Acceptance of Terms</h4>
-            <p>By accessing or using our services, you agree to be bound by these Terms of Service and all applicable laws and regulations.</p>
-            <h4 className="font-bold text-gray-900">2. Use License</h4>
-            <p>Permission is granted to use our AI tools for personal or commercial creative projects, subject to the limitations of your subscription plan.</p>
-            <h4 className="font-bold text-gray-900">3. Prohibited Conduct</h4>
-            <p>You agree not to use our services for any illegal purposes or to generate content that violates the rights of others.</p>
+          <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
+            <p>By using Smart Creator Tools, you agree to these terms.</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">1. Usage</h4>
+            <p>You are responsible for the content you generate and ensure it complies with Google's AI policies and applicable laws.</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">2. API Keys</h4>
+            <p>You are responsible for the management and security of your own API keys. We are not liable for any unauthorized use of your keys.</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">3. Disclaimer</h4>
+            <p>This service is provided "as is" for creative purposes. We do not guarantee uninterrupted access or specific results.</p>
           </div>
         )}
       </Modal>
 
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-8">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveFeature('home')}>
-              <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-indigo-200 shadow-md">S</div>
-              <span className="font-bold text-xl tracking-tight text-gray-900">{settings.appLogo}</span>
+            <div className="flex flex-col items-start">
+              <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveFeature('home')}>
+                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-indigo-200 shadow-md">$</div>
+                <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-gray-100">{settings.appLogo}</span>
+              </div>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             {activeTasks.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 rounded-full animate-pulse border border-amber-100">
+              <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 rounded-full animate-pulse border border-amber-100 dark:border-amber-800">
                 <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">{activeTasks.length} Task{activeTasks.length > 1 ? 's' : ''}</span>
+                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{activeTasks.length} Task{activeTasks.length > 1 ? 's' : ''}</span>
               </div>
             )}
-            <button onClick={toggleMenu} className="p-2 hover:bg-gray-50 rounded-full transition-colors">
-              <Menu size={24} className="text-gray-700" />
+            <button onClick={toggleMenu} className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-full transition-colors">
+              <Menu size={24} className="text-gray-700 dark:text-gray-300" />
             </button>
           </div>
         </div>
       </header>
 
+      <div className="max-w-7xl mx-auto px-4 w-full relative h-0">
+        <div className="absolute top-2 left-4 z-40">
+          <MusicPlayer />
+        </div>
+      </div>
+
       <main className="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
         {renderActiveFeature()}
       </main>
 
-      <footer className="bg-white border-t border-gray-100 py-12 mt-auto">
+      <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-12 mt-auto">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[9px] sm:text-[11px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">
             <button onClick={() => setModalType('privacy')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Privacy</button>
@@ -323,8 +372,8 @@ const App: React.FC = () => {
               Contact
             </a>
           </div>
-          <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-300 px-4 leading-relaxed">
-            {settings.footerText}
+          <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-300 px-4 leading-relaxed flex items-center justify-center gap-2">
+            <span>© 2026 Smart Creator Tools. All rights reserved by KC Team. With best wishes.</span>
           </div>
         </div>
       </footer>
@@ -347,8 +396,8 @@ const Home: React.FC<{
           }}>
         {settings.welcomeMessage}
       </h1>
-      <p className="text-slate-900 text-sm md:text-base font-bold uppercase tracking-[0.15em]">
-        Powerful tools for the modern creator, processing in the background.
+      <p className="text-slate-900 dark:text-gray-300 text-sm md:text-base font-bold uppercase tracking-[0.15em]">
+        အသက်ရှုတိုင်းငွေဝင်ပါစေ
       </p>
     </div>
 
@@ -375,7 +424,7 @@ const Home: React.FC<{
             >
               <span className="text-2xl shrink-0">{feature.icon}</span>
               <div className="flex flex-col items-start min-w-0">
-                <span className="text-xs font-bold leading-tight truncate w-full text-left">{feature.title}</span>
+                <span className="text-xs font-bold leading-tight text-left">{feature.title}</span>
                 {isRunning && <span className="text-[8px] font-black uppercase tracking-tighter mt-1 animate-pulse">Processing...</span>}
               </div>
             </button>

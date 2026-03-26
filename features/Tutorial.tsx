@@ -44,6 +44,12 @@ const TUTORIALS: TutorialItem[] = [
   {
     title: "Teleprompter (တယ်လီပရွန်တာ)",
     description: "စကားပြောစာသားများကို အနှေးအမြန်ထိန်းညှိပြီး ဖတ်ရှုနိုင်ပါသည်။ စာသားအရွယ်အစားနှင့် အနှေးအမြန်ကို စိတ်ကြိုက်ချိန်ညှိနိုင်ပြီး History တွင်လည်း သိမ်းဆည်းထားနိုင်ပါသည်။",
+  },
+  {
+    title: "AI Voice (AIအသံထုတ်ရန်)",
+    description: "Google AI Studioကိုသွားစရာမလိုပဲ အသံထုတ်လို့ပိုပြီးလွယ်အောင်စမ်းသပ်ထားခြင်းဖြစ်ပါတယ်။အဆင်ပြေရင် Contact မှာ Reviewလေးတွေလာပြောပေးပါဦး",
+    videoId: "sGHe7nhThwo",
+    timestamp: "30"
   }
 ];
 
@@ -113,7 +119,14 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
       <div className="mt-16 text-center pb-12">
         <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-4">Need more help?</p>
-        <Button variant="outline" className="rounded-full px-8">Contact Support</Button>
+        <a 
+          href="https://t.me/kcteamofficialbot" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center rounded-full px-8 py-3 border border-gray-200 font-bold text-gray-600 hover:bg-gray-50 transition-all"
+        >
+          Contact Support
+        </a>
       </div>
     </div>
   );

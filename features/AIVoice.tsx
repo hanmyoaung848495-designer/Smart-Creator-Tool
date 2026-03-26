@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { Card, Button, TextArea, Input, Select, ProgressBar } from '../components/Shared';
-import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2 } from 'lucide-react';
+import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2, X } from 'lucide-react';
 import { FeatureType, ProcessingTask, UserSession } from '../types';
 
 interface VoiceHistory {
@@ -35,6 +35,11 @@ const MODELS = [
 
 const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }) => {
   const [mode, setMode] = useState<'single' | 'multi'>('single');
+  const [isDialogMode, setIsDialogMode] = useState(false);
+  const [dialogBlocks, setDialogBlocks] = useState<{ id: string; speaker: 'Speaker 1' | 'Speaker 2'; text: string }[]>([
+    { id: '1', speaker: 'Speaker 1', text: '' },
+    { id: '2', speaker: 'Speaker 2', text: '' }
+  ]);
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-pro-preview-tts');
   const [voice1, setVoice1] = useState('Kore');
   const [voice2, setVoice2] = useState('Puck');
@@ -46,6 +51,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const [isPreviewing, setIsPreviewing] = useState<string | null>(null);
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
+  const [pickingVoiceFor, setPickingVoiceFor] = useState<'voice1' | 'voice2' | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -82,7 +89,11 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
   const activeTask = tasks.find(t => t.type === 'ai-voice' && t.status !== 'completed' && t.status !== 'failed');
 
   const handleRun = async () => {
-    if (!text.trim()) {
+    const isTextEmpty = mode === 'multi' && isDialogMode 
+      ? dialogBlocks.every(b => !b.text.trim())
+      : !text.trim();
+
+    if (isTextEmpty) {
       alert('Please enter some text!');
       return;
     }
@@ -93,7 +104,10 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
       return;
     }
 
-    const title = text.slice(0, 30) + (text.length > 30 ? '...' : '');
+    const displayTitle = mode === 'multi' && isDialogMode 
+      ? dialogBlocks.find(b => b.text.trim())?.text.slice(0, 30) || 'Multi-speaker Dialog'
+      : text.slice(0, 30);
+    const title = displayTitle + (displayTitle.length >= 30 ? '...' : '');
     
     onStartTask('ai-voice', title, async (taskId) => {
       const ai = new GoogleGenAI({ apiKey });
@@ -119,7 +133,13 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
         };
       }
 
-      const prompt = styleInstruction + "\n\n" + text;
+      let prompt = '';
+      if (mode === 'multi' && isDialogMode) {
+        prompt = styleInstruction + "\n\n" + dialogBlocks.map(b => `${b.speaker}: ${b.text}`).join('\n');
+      } else {
+        prompt = styleInstruction + "\n\n" + text;
+      }
+
       const response = await ai.models.generateContent({
         model: selectedModel,
         contents: [{ parts: [{ text: prompt }] }],
@@ -155,6 +175,13 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
       playAudio(url);
 
       return newItem;
+    }).catch(err => {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+        setIsQuotaModalOpen(true);
+      } else {
+        alert('Generation failed: ' + errMsg);
+      }
     });
   };
 
@@ -238,6 +265,24 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
     saveHistory(history.filter(h => h.id !== id));
   };
 
+  const addDialogBlock = () => {
+    setDialogBlocks([...dialogBlocks, { 
+      id: Math.random().toString(36).substr(2, 9), 
+      speaker: dialogBlocks.length % 2 === 0 ? 'Speaker 1' : 'Speaker 2', 
+      text: '' 
+    }]);
+  };
+
+  const updateDialogBlock = (id: string, updates: Partial<{ speaker: 'Speaker 1' | 'Speaker 2'; text: string }>) => {
+    setDialogBlocks(dialogBlocks.map(b => b.id === id ? { ...b, ...updates } : b));
+  };
+
+  const removeDialogBlock = (id: string) => {
+    if (dialogBlocks.length > 1) {
+      setDialogBlocks(dialogBlocks.filter(b => b.id !== id));
+    }
+  };
+
   const previewVoice = async (voiceName: string) => {
     const apiKey = session.useCustomKey ? session.customApiKey : process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -267,6 +312,12 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
       }
     } catch (err) {
       console.error('Preview failed:', err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+        setIsQuotaModalOpen(true);
+      } else {
+        alert('Preview failed: ' + errMsg);
+      }
     } finally {
       setIsPreviewing(null);
     }
@@ -278,8 +329,100 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const VoiceSelector = ({ value, onChange, label, id }: { value: string; onChange: (v: string) => void; label: string; id: 'voice1' | 'voice2' }) => (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</label>
+      <button 
+        onClick={() => setPickingVoiceFor(id)}
+        className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-indigo-300 transition-all shadow-sm group"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
+            <Mic size={16} />
+          </div>
+          <span className="font-bold text-gray-700">{value}</span>
+        </div>
+        <div className="text-indigo-600 text-xs font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">Change →</div>
+      </button>
+    </div>
+  );
+
   return (
     <div className="max-w-4xl mx-auto w-full px-4 py-6 space-y-6">
+      {/* Quota Modal */}
+      {isQuotaModalOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2rem] p-8 shadow-2xl w-full max-w-md text-center relative animate-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setIsQuotaModalOpen(false)}
+              className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+            >
+              <X size={20} />
+            </button>
+            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <StopCircle size={40} />
+            </div>
+            <h3 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Quota ပြည့်သွားပါပြီ</h3>
+            <p className="text-gray-600 leading-relaxed font-medium">
+              လူကြီးမင်းထည့်ထားသော APIမှာ Quotaပြည့်သွားပါသဖြင့်အသုံးပြု၍မရတော့ပါ။ ခဏစောင့်ပြီးမှ ပြန်လည်ကြိုးစားပေးပါ သို့မဟုတ် အခြား API Key တစ်ခုကို အသုံးပြုပေးပါ။
+            </p>
+            <Button 
+              onClick={() => setIsQuotaModalOpen(false)}
+              className="w-full mt-8 py-4 rounded-2xl font-black uppercase tracking-widest"
+            >
+              နားလည်ပါပြီ
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Voice Picker Modal */}
+      {pickingVoiceFor && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg max-h-[70vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest">Select Voice</h3>
+              <button 
+                onClick={() => setPickingVoiceFor(null)}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <span className="text-2xl leading-none">&times;</span>
+              </button>
+            </div>
+            <div className="flex-grow overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-indigo-200">
+              {VOICES.map(voice => {
+                const isSelected = (pickingVoiceFor === 'voice1' ? voice1 : voice2) === voice;
+                return (
+                  <div 
+                    key={voice}
+                    onClick={() => {
+                      if (pickingVoiceFor === 'voice1') setVoice1(voice);
+                      else setVoice2(voice);
+                      setPickingVoiceFor(null);
+                    }}
+                    className={`flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all group ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'hover:bg-gray-50 text-gray-700'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-indigo-600'}`} />
+                      <span className="font-bold">{voice}</span>
+                    </div>
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        previewVoice(voice);
+                      }}
+                      disabled={isPreviewing !== null}
+                      className={`p-2 rounded-xl transition-colors ${isSelected ? 'text-white bg-white/20 hover:bg-white/30' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'}`}
+                    >
+                      {isPreviewing === voice ? <Loader2 size={18} className="animate-spin" /> : <Volume2 size={18} />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
           <ArrowLeft size={20} /> Back
@@ -317,50 +460,20 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
 
         {/* Voice Selectors */}
         <div className={`grid gap-6 ${mode === 'multi' ? 'md:grid-cols-2' : ''}`}>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              {mode === 'multi' ? 'Speaker 1 Voice' : 'Select Voice'}
-            </label>
-            <div className="flex gap-2">
-              <div className="flex-grow">
-                <Select
-                  value={voice1}
-                  onChange={setVoice1}
-                  options={VOICES.map(v => ({ label: v, value: v }))}
-                />
-              </div>
-              <Button 
-                variant="secondary" 
-                onClick={() => previewVoice(voice1)}
-                disabled={isPreviewing !== null}
-                className="shrink-0"
-              >
-                {isPreviewing === voice1 ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
-              </Button>
-            </div>
-          </div>
+          <VoiceSelector 
+            label={mode === 'multi' ? 'Speaker 1 Voice' : 'Select Voice'}
+            value={voice1}
+            onChange={setVoice1}
+            id="voice1"
+          />
 
           {mode === 'multi' && (
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Speaker 2 Voice</label>
-              <div className="flex gap-2">
-                <div className="flex-grow">
-                  <Select
-                    value={voice2}
-                    onChange={setVoice2}
-                    options={VOICES.map(v => ({ label: v, value: v }))}
-                  />
-                </div>
-                <Button 
-                  variant="secondary" 
-                  onClick={() => previewVoice(voice2)}
-                  disabled={isPreviewing !== null}
-                  className="shrink-0"
-                >
-                  {isPreviewing === voice2 ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
-                </Button>
-              </div>
-            </div>
+            <VoiceSelector 
+              label="Speaker 2 Voice"
+              value={voice2}
+              onChange={setVoice2}
+              id="voice2"
+            />
           )}
         </div>
 
@@ -371,13 +484,70 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
             onChange={setStyleInstruction}
             placeholder="e.g. Read aloud in a warm and friendly tone: "
           />
-          <TextArea
-            label="Text to Speak"
-            value={text}
-            onChange={setText}
-            placeholder="Enter the text you want the AI to read..."
-            rows={6}
-          />
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Text to Speak</label>
+              {mode === 'multi' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Dialog Mode</span>
+                  <button 
+                    onClick={() => setIsDialogMode(!isDialogMode)}
+                    className={`w-10 h-5 rounded-full transition-colors relative ${isDialogMode ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                  >
+                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isDialogMode ? 'left-6' : 'left-1'}`} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {mode === 'multi' && isDialogMode ? (
+              <div className="space-y-3">
+                {dialogBlocks.map((block, index) => (
+                  <div key={block.id} className="flex flex-col gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-center justify-between">
+                      <div className="w-full max-w-[160px]">
+                        <Select
+                          value={block.speaker}
+                          onChange={(val) => updateDialogBlock(block.id, { speaker: val as any })}
+                          options={[
+                            { label: 'Speaker 1', value: 'Speaker 1' },
+                            { label: 'Speaker 2', value: 'Speaker 2' }
+                          ]}
+                        />
+                      </div>
+                      <button 
+                        onClick={() => removeDialogBlock(block.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                    <TextArea
+                      value={block.text}
+                      onChange={(val) => updateDialogBlock(block.id, { text: val })}
+                      placeholder={`What Speaker ${block.speaker === 'Speaker 1' ? '1' : '2'} says...`}
+                      rows={2}
+                    />
+                  </div>
+                ))}
+                <Button 
+                  variant="secondary" 
+                  onClick={addDialogBlock}
+                  className="w-full py-3 border-dashed border-2 border-gray-200 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50"
+                >
+                  + Add Speaker Line
+                </Button>
+              </div>
+            ) : (
+              <TextArea
+                value={text}
+                onChange={setText}
+                placeholder="Enter the text you want the AI to read..."
+                rows={6}
+              />
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-4">

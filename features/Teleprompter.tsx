@@ -307,30 +307,30 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
       {/* Main Prompter Section */}
       <div className="flex-grow flex flex-col min-h-0">
-        <div className="relative flex-grow rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl border-4 md:border-8 border-zinc-900 bg-black group flex flex-col">
+        <div className="relative flex-grow rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl border-4 md:border-8 border-zinc-200 dark:border-zinc-900 bg-white dark:bg-black group flex flex-col">
           
           {/* Controls Overlay */}
           <div className="absolute top-0 left-0 right-0 z-20 flex flex-col gap-2 p-6 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300">
             <div className="flex items-center gap-4 w-full">
               <div className="flex items-center gap-3 flex-grow">
-                <Type size={14} className="text-white/40 shrink-0" />
+                <Type size={14} className="text-zinc-500 dark:text-white/40 shrink-0" />
                 <input 
                   type="range" min="20" max="120" value={fontSize} 
                   onChange={(e) => setFontSize(parseInt(e.target.value))}
-                  className="flex-grow h-1 accent-white bg-white/30 rounded-lg appearance-none cursor-pointer"
+                  className="flex-grow h-1 accent-indigo-600 dark:accent-white bg-zinc-200 dark:bg-white/30 rounded-lg appearance-none cursor-pointer"
                 />
-                <span className="text-white/40 text-[10px] font-black w-14 text-right uppercase tracking-tighter">Size: {fontSize}</span>
+                <span className="text-zinc-600 dark:text-white/40 text-[10px] font-black w-14 text-right uppercase tracking-tighter">Size: {fontSize}</span>
               </div>
             </div>
             <div className="flex items-center gap-4 w-full">
               <div className="flex items-center gap-3 flex-grow">
-                <Zap size={14} className="text-white/40 shrink-0" />
+                <Zap size={14} className="text-zinc-500 dark:text-white/40 shrink-0" />
                 <input 
                   type="range" min="1" max="20" value={speed} 
                   onChange={(e) => setSpeed(parseInt(e.target.value))}
-                  className="flex-grow h-1 accent-white bg-white/30 rounded-lg appearance-none cursor-pointer"
+                  className="flex-grow h-1 accent-indigo-600 dark:accent-white bg-zinc-200 dark:bg-white/30 rounded-lg appearance-none cursor-pointer"
                 />
-                <span className="text-white/40 text-[10px] font-black w-14 text-right uppercase tracking-tighter">Speed: {speed}</span>
+                <span className="text-zinc-600 dark:text-white/40 text-[10px] font-black w-14 text-right uppercase tracking-tighter">Speed: {speed}</span>
               </div>
             </div>
           </div>
@@ -339,14 +339,14 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             {!isEditing && (
               <button 
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="p-2 bg-black/60 backdrop-blur-md text-white hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
+                className="p-2 bg-white/80 dark:bg-black/60 backdrop-blur-md text-zinc-900 dark:text-white hover:bg-zinc-100 dark:hover:bg-white/10 rounded-xl border border-zinc-200 dark:border-white/10 transition-colors"
               >
                 {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
               </button>
             )}
             <button 
               onClick={resetScroll}
-              className="p-2 bg-black/60 backdrop-blur-md text-white hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
+              className="p-2 bg-white/80 dark:bg-black/60 backdrop-blur-md text-zinc-900 dark:text-white hover:bg-zinc-100 dark:hover:bg-white/10 rounded-xl border border-zinc-200 dark:border-white/10 transition-colors"
             >
               <RotateCcw size={16} />
             </button>
@@ -359,7 +359,7 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Paste your script here..."
-                className="w-full h-full bg-black text-white p-6 md:p-10 focus:outline-none resize-none font-bold leading-relaxed custom-scrollbar"
+                className="w-full h-full bg-white dark:bg-black text-zinc-900 dark:text-white p-6 md:p-10 focus:outline-none resize-none font-bold leading-relaxed custom-scrollbar"
                 style={{ fontSize: `${fontSize}px` }}
               />
             ) : (
@@ -372,17 +372,15 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   }
                 }}
                 className="flex-grow overflow-y-auto px-6 md:px-10 py-[50vh] scroll-smooth no-scrollbar cursor-ns-resize"
-                style={{ backgroundColor: '#000' }}
               >
                 <div 
                   className="max-w-4xl mx-auto text-center leading-relaxed font-bold transition-all duration-300"
                   style={{ 
                     fontSize: `${fontSize}px`, 
-                    color: '#fff',
-                    textShadow: '0 2px 10px rgba(0,0,0,0.5)'
+                    color: 'currentColor',
                   }}
                 >
-                  {text || <span className="text-zinc-700 italic">Enter your script to start...</span>}
+                  {text || <span className="text-zinc-400 dark:text-zinc-700 italic">Enter your script to start...</span>}
                 </div>
               </div>
             )}
@@ -416,7 +414,7 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <>
                   <button 
                     onClick={pauseRecording}
-                    className={`w-10 h-10 ${isPaused ? 'bg-blue-600' : 'bg-zinc-800'} text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all`}
+                    className={`w-10 h-10 ${isPaused ? 'bg-blue-600' : 'bg-zinc-800 dark:bg-zinc-700'} text-white rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-all`}
                   >
                     <Pause size={20} fill="currentColor" />
                   </button>
@@ -433,7 +431,7 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
           {/* Audio Playback UI */}
           {audioUrl && !isRecording && (
-            <div className="absolute bottom-3 left-3 right-3 z-30 bg-zinc-900/90 backdrop-blur-md p-3 rounded-xl border border-white/10 flex items-center gap-3 shadow-2xl animate-in slide-in-from-bottom-4">
+            <div className="absolute bottom-3 left-3 right-3 z-30 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md p-3 rounded-xl border border-zinc-200 dark:border-white/10 flex items-center gap-3 shadow-2xl animate-in slide-in-from-bottom-4">
               <button 
                 onClick={handleAudioPlayPause}
                 className="w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0"
@@ -445,16 +443,16 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   type="range" 
                   min="0" max="100" value={isNaN(audioProgress) ? 0 : audioProgress} 
                   onChange={handleAudioSeek}
-                  className="w-full h-1 accent-indigo-500 bg-zinc-700 rounded-lg appearance-none cursor-pointer"
+                  className="w-full h-1 accent-indigo-600 dark:accent-indigo-500 bg-zinc-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer"
                 />
-                <div className="flex justify-between text-[8px] text-zinc-400 font-mono">
+                <div className="flex justify-between text-[8px] text-zinc-500 dark:text-zinc-400 font-mono">
                   <span>{formatTime(Math.floor(((isNaN(audioProgress) ? 0 : audioProgress) / 100) * (isNaN(audioDuration) ? 0 : audioDuration)))}</span>
                   <span>{formatTime(Math.floor(isNaN(audioDuration) ? 0 : audioDuration))}</span>
                 </div>
               </div>
               <button 
                 onClick={() => setAudioUrl(null)}
-                className="p-1.5 text-zinc-500 hover:text-white transition-colors"
+                className="p-1.5 text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
               >
                 <RotateCcw size={14} />
               </button>
@@ -462,7 +460,7 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           )}
 
           {/* Progress Bar */}
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800">
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-200 dark:bg-zinc-800">
             <div 
               className="h-full bg-indigo-600 transition-all duration-100"
               style={{ 
