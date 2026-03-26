@@ -6,7 +6,7 @@ export const FEATURES: FeatureCardData[] = [
   {
     id: 'transcribe',
     title: 'Transcribe',
-    description: 'Convert audio and video speech into high-quality text.',
+    description: 'Generate engaging speaking scripts from audio, video, or links.',
     icon: '🎙️'
   },
   {
@@ -23,8 +23,8 @@ export const FEATURES: FeatureCardData[] = [
   },
   {
     id: 'sub-generator',
-    title: 'Sub Generator',
-    description: 'Automatically generate or manually create SRT files.',
+    title: 'SRT Generator',
+    description: 'Automatically generate SRT files from media with accurate timestamps.',
     icon: '📝'
   },
   {
@@ -34,22 +34,16 @@ export const FEATURES: FeatureCardData[] = [
     icon: '🖋️'
   },
   {
-    id: 'video-generator',
-    title: 'AI Video Generator',
-    description: 'Bring your scripts to life with AI-generated visuals.',
-    icon: '🎥'
-  },
-  {
-    id: 'content-creator',
-    title: 'AI Content Creator',
-    description: 'One-click viral content for YouTube, TikTok, and Blogs.',
-    icon: '🚀'
-  },
-  {
     id: 'text-to-srt',
     title: 'Text To SRT',
     description: 'Convert Gemini output text into downloadable SRT subtitle files.',
     icon: '📄'
+  },
+  {
+    id: 'teleprompter',
+    title: 'Teleprompter',
+    description: 'စကားပြောစာသားများကို အနှေးအမြန်ထိန်းညှိပြီး ဖတ်ရှုနိုင်ပါသည်။',
+    icon: '📜'
   }
 ];
 

@@ -214,23 +214,28 @@ export const Modal: React.FC<{
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-}> = ({ isOpen, onClose, title, children }) => {
+  hideClose?: boolean;
+}> = ({ isOpen, onClose, title, children, hideClose }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
         <div className="flex items-center justify-between p-6 border-b border-gray-100">
           <h3 className="text-xl font-bold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <span className="text-2xl leading-none">&times;</span>
-          </button>
+          {!hideClose && (
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <span className="text-2xl leading-none">&times;</span>
+            </button>
+          )}
         </div>
         <div className="p-8 overflow-y-auto text-gray-600 leading-relaxed text-sm">
           {children}
         </div>
-        <div className="p-6 border-t border-gray-100 flex justify-end">
-          <Button onClick={onClose} className="text-xs font-bold uppercase tracking-widest">Close</Button>
-        </div>
+        {!hideClose && (
+          <div className="p-6 border-t border-gray-100 flex justify-end">
+            <Button onClick={onClose} className="text-xs font-bold uppercase tracking-widest">Close</Button>
+          </div>
+        )}
       </div>
     </div>
   );

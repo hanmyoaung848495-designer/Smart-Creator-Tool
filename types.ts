@@ -7,11 +7,10 @@ export type FeatureType =
   | 'sub-generator' 
   | 'text-to-srt'
   | 'script-writer' 
+  | 'teleprompter'
   | 'video-generator' 
   | 'content-creator'
-  | 'text-to-srt'
   | 'admin'
-  | 'account'
   | 'tutorial'
   | 'premium';
 

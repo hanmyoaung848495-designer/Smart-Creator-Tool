@@ -43,7 +43,7 @@ const Transcribe: React.FC<Props> = ({
     if (!file || activeTask) return;
     const apiKey = session.useCustomKey ? session.customApiKey : undefined;
     
-    onStartTask('transcribe', `Transcribing ${file.name}`, async (taskId) => {
+    onStartTask('transcribe', `Generating Script for ${file.name}`, async (taskId) => {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async () => {
@@ -53,9 +53,9 @@ const Transcribe: React.FC<Props> = ({
             setResult(res);
             onSaveResult({
               type: 'transcribe',
-              title: `Transcription: ${file.name}`,
+              title: `Script: ${file.name}`,
               content: res,
-              fileName: `transcription_${file.name}.txt`
+              fileName: `script_${file.name}.txt`
             });
             resolve(res);
           } catch (err) { reject(err); }
@@ -70,7 +70,7 @@ const Transcribe: React.FC<Props> = ({
     if (!ytUrl || activeTask) return;
     const apiKey = session.useCustomKey ? session.customApiKey : undefined;
     
-    onStartTask('transcribe', `Video Transcription AI: ${ytUrl.substring(0, 30)}...`, async () => {
+    onStartTask('transcribe', `Video Script AI: ${ytUrl.substring(0, 30)}...`, async () => {
       const resData = await transcribeYoutubeLink(ytUrl, apiKey, translateBurmese);
       let content = resData.text;
       if (resData.sources && resData.sources.length > 0) {
@@ -79,9 +79,9 @@ const Transcribe: React.FC<Props> = ({
       setResult(content);
       onSaveResult({
         type: 'transcribe',
-        title: `Video Transcription AI: ${ytUrl}`,
+        title: `Video Script AI: ${ytUrl}`,
         content: content,
-        fileName: `video_transcription.txt`
+        fileName: `video_script.txt`
       });
       return content;
     });
@@ -106,7 +106,7 @@ const Transcribe: React.FC<Props> = ({
             onClick={() => setActiveTab('youtube')}
             className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] transition-all ${activeTab === 'youtube' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            📺 YouTube Transcriber
+            📺 Video Link Script
           </button>
         </div>
 
@@ -114,8 +114,8 @@ const Transcribe: React.FC<Props> = ({
           <div className="flex flex-col items-center py-12 gap-6">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Analyzing Video...</h3>
-              <p className="text-gray-500 text-sm italic">Our specialized AI is listening and formatting your transcription.</p>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Analyzing Content...</h3>
+              <p className="text-gray-500 text-sm italic">Our specialized AI is listening and crafting your engaging script.</p>
             </div>
             <div className="w-full max-w-md">
               <ProgressBar progress={activeTask.progress} label={activeTask.status} />
@@ -131,7 +131,7 @@ const Transcribe: React.FC<Props> = ({
                   <p className="text-gray-700 font-bold">{file ? file.name : "Click or drag to upload audio/video"}</p>
                 </div>
                 <Button variant="primary" onClick={processFileUpload} disabled={!file} className="w-full py-4 text-xs font-bold uppercase tracking-widest">
-                  Start File Transcription
+                  Generate Script from File
                 </Button>
               </div>
             ) : (
@@ -146,8 +146,8 @@ const Transcribe: React.FC<Props> = ({
                   
                   <div className="mt-6 flex items-center justify-between p-4 bg-white rounded-xl border border-indigo-100 shadow-sm">
                     <div>
-                      <p className="text-xs font-bold text-indigo-900 uppercase tracking-widest">Translate to Burmese</p>
-                      <p className="text-[10px] text-gray-400 uppercase tracking-tighter">Converts the entire transcript output</p>
+                      <p className="text-xs font-bold text-indigo-900 uppercase tracking-widest">Translate Script to Burmese</p>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-tighter">Converts the entire script output</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input 
@@ -161,11 +161,11 @@ const Transcribe: React.FC<Props> = ({
                   </div>
 
                   <p className="mt-4 text-[10px] text-indigo-400 font-bold uppercase tracking-widest italic">
-                    AI will transcribe every word with timestamps and speaker labels.
+                    AI will analyze the video and generate an attractive speaking script.
                   </p>
                 </div>
                 <Button variant="primary" onClick={processYoutubeLink} disabled={!ytUrl} className="w-full py-4 text-xs font-bold uppercase tracking-widest">
-                  Analyze & Transcribe Link
+                  Analyze & Generate Script
                 </Button>
               </div>
             )}
@@ -173,13 +173,13 @@ const Transcribe: React.FC<Props> = ({
         )}
 
         <ResultBox 
-          title="Transcription Result" 
+          title="Generated Script" 
           content={result} 
           onCopy={() => onCopyResult(result)}
           onClear={() => setResult('')}
           onDownload={() => onDownloadResult({
             id: 'temp', type: 'transcribe', timestamp: Date.now(),
-            title: 'Download Result', content: result, fileName: 'transcription.txt'
+            title: 'Download Script', content: result, fileName: 'script.txt'
           })}
         />
       </Card>

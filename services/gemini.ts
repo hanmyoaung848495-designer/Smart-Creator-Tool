@@ -12,32 +12,32 @@ export const transcribeMedia = async (fileBase64: string, mimeType: string, apiK
     contents: {
       parts: [
         { inlineData: { data: fileBase64, mimeType } },
-        { text: "Please transcribe the speech in this media file into accurate text. Output only the transcription." }
+        { text: "Please listen to and watch this media file carefully. Your task is to generate an interesting, engaging, and attractive speaking script (စကားပြော script) based on the content. Do not just provide a raw transcription; instead, create a script that is well-structured and compelling for an audience. Output the script in the same language as the media, unless it's Burmese, in which case keep it in Burmese." }
       ]
     }
   });
-  return response.text || "Failed to transcribe.";
+  return response.text || "Failed to generate script.";
 };
 
 export const transcribeYoutubeLink = async (url: string, apiKey?: string, translateToBurmese?: boolean): Promise<{text: string, sources: any[]}> => {
   const ai = getAIClient(apiKey);
   
-  const systemPrompt = `You are a specialized Video Transcription AI. Your task is to process video links from platforms like YouTube, TikTok, and Facebook.
+  const systemPrompt = `You are a specialized AI Content Script Writer. Your task is to process video links from platforms like YouTube, TikTok, and Facebook.
   
   Instructions:
-  1. Analyze: Access the content of the provided link: ${url}
-  2. Transcribe: Convert every spoken word into accurate text.
-  3. Format: Organize the output with timestamps (e.g., [00:00]) and identify different speakers (e.g., Speaker 1, Speaker 2) if possible.
-  4. Language: Provide the transcript in the original language of the video. 
-  ${translateToBurmese ? "CRITICAL: The user has requested a translation. Please translate the entire output into Burmese while keeping the timestamp format intact." : ""}
+  1. Analyze: Access and understand the content of the provided link: ${url}
+  2. Generate Script: Instead of a raw transcript, create an interesting, engaging, and attractive speaking script (စကားပြော script) based on the video's content.
+  3. Structure: Organize the script with clear sections, speaker labels if applicable, and engaging transitions.
+  4. Language: Provide the script in the original language of the video. 
+  ${translateToBurmese ? "CRITICAL: The user has requested a translation. Please translate the entire generated script into Burmese while maintaining its engaging and attractive tone." : ""}
   
-  If a direct transcript is unavailable via search tools, provide a high-fidelity, timestamped scene-by-scene breakdown of exactly what is being discussed.`;
+  If the content is inaccessible, provide a high-fidelity summary and a reconstructed script based on available metadata and search results.`;
 
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: systemPrompt,
     config: {
-      tools: [{ googleSearch: {} }]
+      tools: [{ googleSearch: {} }, { urlContext: {} }]
     }
   });
   
@@ -99,11 +99,17 @@ export const convertTextToSRT = async (text: string, apiKey?: string): Promise<s
   return response.text || "Failed to convert text to SRT.";
 };
 
-export const writeScript = async (topic: string, tone: string, lang: string, apiKey?: string): Promise<string> => {
+export const writeScript = async (topic: string, style: string, length: string, lang: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
+  const lengthInstruction = length === 'short' ? '1 to 3 pages/paragraphs' : '5 to 15 pages/paragraphs';
   const response = await ai.models.generateContent({
     model: 'gemini-3-pro-preview',
-    contents: `Write a high-quality ${tone} video script about "${topic}" in the language: ${lang}. Include scene descriptions and speaker labels.`
+    contents: `Write a high-quality ${style} video script about "${topic}" in the language: ${lang}. 
+    Length: Approximately ${lengthInstruction}. 
+    Style: ${style}.
+    The script should be interesting, engaging, and well-structured.
+    Include scene descriptions and speaker labels.
+    If the language is Burmese, ensure it's natural and attractive (စကားပြော script).`
   });
   return response.text || "Failed to generate script.";
 };

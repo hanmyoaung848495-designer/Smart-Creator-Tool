@@ -1,68 +1,120 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button, Card } from '../components/Shared';
+import { ArrowLeft, Play, Info } from 'lucide-react';
 
-const STEPS = [
+interface TutorialItem {
+  title: string;
+  description: string;
+  videoId?: string;
+  timestamp?: string;
+}
+
+const TUTORIALS: TutorialItem[] = [
   {
-    title: "Welcome to Smart Creator Tools!",
-    description: "The all-in-one hub for modern content creators. Let's take a 30-second tour of how to amplify your workflow.",
-    icon: "✨"
+    title: "Transcribe (အသံဖိုင်မှ စာသားပြောင်းခြင်း)",
+    description: "ဗီဒီယို သို့မဟုတ် အသံဖိုင်များမှ စကားပြောများကို စာသားအဖြစ် အလိုအလျောက် ပြောင်းလဲပေးပါသည်။ YouTube Link များမှလည်း တိုက်ရိုက် ပြောင်းလဲနိုင်ပါသည်။",
+    videoId: "Xdd9xScgNPM",
+    timestamp: "30"
   },
   {
-    title: "Transcribe & Subtitles",
-    description: "Upload any video or audio file. Our AI converts speech to text instantly. You can then generate SRT files for perfect captions.",
-    icon: "🎙️"
+    title: "SRT Generator (SRT ဖိုင်ထုတ်ပေးခြင်း)",
+    description: "ဗီဒီယိုနှင့် အသံဖိုင်များမှ အချိန်အတိအကျပါဝင်သော SRT Subtitle ဖိုင်များကို အလိုအလျောက် ထုတ်ပေးပါသည်။",
+    videoId: "bKoi0NHV338",
+    timestamp: "0"
   },
   {
-    title: "Translate Globally",
-    description: "Take your content to international audiences. Translate text or even entire subtitle files while keeping the timing perfect.",
-    icon: "🌐"
+    title: "Text To SRT (စာသားမှ SRT ပြောင်းခြင်း)",
+    description: "အချိန်မှတ် (Timestamp) ပါဝင်သော စာသားများကို SRT ဖိုင်အဖြစ်သို့ လွယ်ကူလျင်မြန်စွာ ပြောင်းလဲပေးပါသည်။ API Key မလိုဘဲ အသုံးပြုနိုင်ပါသည်။",
+    videoId: "sGHe7nhThwo",
+    timestamp: "30"
   },
   {
-    title: "AI Generation",
-    description: "Stuck on ideas? Use the AI Script Writer or Content Creator to generate viral hooks, blogs, and even full videos from text prompts.",
-    icon: "🚀"
+    title: "AI Script Writer (AI ဖြင့် ဇာတ်ညွှန်းရေးခြင်း)",
+    description: "သင်ပေးလိုက်သော ခေါင်းစဉ်အပေါ် မူတည်၍ စိတ်ဝင်စားဖွယ်ကောင်းသော Script များကို AI က ရေးသားပေးမည် ဖြစ်ပါသည်။ Style နှင့် Length ကိုလည်း စိတ်ကြိုက် ရွေးချယ်နိုင်ပါသည်။",
+    videoId: "5D66YbnUO1s",
+    timestamp: "10"
   },
   {
-    title: "Your Workspace",
-    description: "Create an account to track your activity history and save your preferences. Use your own API key for unlimited power!",
-    icon: "👤"
+    title: "Translator (ဘာသာပြန်ဆိုခြင်း)",
+    description: "စာသားများ သို့မဟုတ် SRT ဖိုင်များကို အချိန်မှတ်များ မလွဲချော်စေဘဲ အခြားဘာသာစကားများသို့ တိကျစွာ ဘာသာပြန်ပေးပါသည်။",
+    videoId: "epA3sSWCLx4",
+    timestamp: "30"
+  },
+  {
+    title: "Teleprompter (တယ်လီပရွန်တာ)",
+    description: "စကားပြောစာသားများကို အနှေးအမြန်ထိန်းညှိပြီး ဖတ်ရှုနိုင်ပါသည်။ စာသားအရွယ်အစားနှင့် အနှေးအမြန်ကို စိတ်ကြိုက်ချိန်ညှိနိုင်ပြီး History တွင်လည်း သိမ်းဆည်းထားနိုင်ပါသည်။",
   }
 ];
 
-const Tutorial: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
-  const [step, setStep] = useState(0);
-
-  const next = () => {
-    if (step < STEPS.length - 1) setStep(step + 1);
-    else onComplete();
-  };
+const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string }> = ({ videoId, timestamp }) => {
+  const start = timestamp ? parseInt(timestamp) : 0;
+  // Modest branding and hiding controls as much as possible to make it look custom
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?start=${start}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&color=white`;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <Card className="max-w-md w-full p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-        <div className="text-center">
-          <div className="text-6xl mb-6">{STEPS[step].icon}</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">{STEPS[step].title}</h2>
-          <p className="text-gray-600 leading-relaxed mb-8">
-            {STEPS[step].description}
-          </p>
-          
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex gap-1.5">
-              {STEPS.map((_, i) => (
-                <div key={i} className={`h-1.5 w-6 rounded-full transition-all ${i === step ? 'bg-indigo-600' : 'bg-gray-200'}`} />
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={onComplete} className="text-xs">Skip</Button>
-              <Button onClick={next} className="min-w-[100px]">
-                {step === STEPS.length - 1 ? "Get Started" : "Next"}
-              </Button>
-            </div>
-          </div>
+    <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-100 mb-4 shadow-inner group">
+      <iframe
+        src={embedUrl}
+        className="absolute inset-0 w-full h-full border-0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+        title="Tutorial Video"
+      />
+      {/* Overlay to catch initial clicks if needed or just for styling */}
+      <div className="absolute inset-0 pointer-events-none border-4 border-white/10 rounded-2xl"></div>
+    </div>
+  );
+};
+
+const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  return (
+    <div className="max-w-4xl mx-auto w-full px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center justify-between mb-12">
+        <div>
+          <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Tutorial</h1>
+          <p className="text-gray-500 font-medium">အသုံးပြုပုံ လမ်းညွှန်ချက်များ</p>
         </div>
-      </Card>
+        <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
+          <ArrowLeft size={18} /> Back to Home
+        </Button>
+      </div>
+
+      <div className="grid gap-8">
+        {TUTORIALS.map((item, index) => (
+          <Card key={index} className="p-0 overflow-hidden border-none shadow-xl shadow-indigo-500/5 bg-white">
+            <div className="p-8">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-200">
+                  <span className="font-black text-lg">{index + 1}</span>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h2>
+                  <div className="h-1 w-12 bg-indigo-600 rounded-full"></div>
+                </div>
+              </div>
+
+              {item.videoId && (
+                <YouTubeEmbed videoId={item.videoId} timestamp={item.timestamp} />
+              )}
+
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                <div className="flex gap-3">
+                  <Info size={18} className="text-indigo-600 shrink-0 mt-1" />
+                  <p className="text-gray-700 leading-relaxed font-medium">
+                    {item.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <div className="mt-16 text-center pb-12">
+        <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-4">Need more help?</p>
+        <Button variant="outline" className="rounded-full px-8">Contact Support</Button>
+      </div>
     </div>
   );
 };

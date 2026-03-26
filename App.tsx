@@ -8,28 +8,32 @@ import Translate from './features/Translate';
 import SRTTranslate from './features/SRTTranslate';
 import SubGenerator from './features/SubGenerator';
 import ScriptWriter from './features/ScriptWriter';
-import VideoGenerator from './features/VideoGenerator';
-import ContentCreator from './features/ContentCreator';
 import TextToSRT from './features/TextToSRT';
-import Account from './features/Account';
+import Teleprompter from './features/Teleprompter';
 import Tutorial from './features/Tutorial';
 import Premium from './features/Premium';
 import PersistentResults from './components/PersistentResults';
 import TaskOverlay from './components/TaskOverlay';
+import { Menu, X, BookOpen, User, Crown, Home as HomeIcon } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<FeatureType>('home');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [settings] = useState<AdminSettings>(DEFAULT_ADMIN_SETTINGS);
   const [session, setSession] = useState<UserSession>(() => {
     const saved = localStorage.getItem('smart_creator_session');
     if (saved) {
       const parsed = JSON.parse(saved);
+      // Force 'Own Key' as default for users who were on the old 'System' default
+      if (parsed.useCustomKey === false && !parsed.customApiKey) {
+        parsed.useCustomKey = true;
+      }
       if (parsed.user && !parsed.user.usage) {
         parsed.user.usage = { appApiUsedToday: 0, ownApiUsedToday: 0, lastResetDate: new Date().toDateString() };
       }
       return parsed;
     }
-    return { role: 'free', useCustomKey: false, customApiKey: '' };
+    return { role: 'free', useCustomKey: true, customApiKey: '' };
   });
   
   const [results, setResults] = useState<StoredResult[]>(() => {
@@ -40,6 +44,7 @@ const App: React.FC = () => {
   const [tasks, setTasks] = useState<ProcessingTask[]>([]);
   const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('smart_creator_onboarded'));
   const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(true);
 
   useEffect(() => {
     localStorage.setItem('smart_creator_session', JSON.stringify(session));
@@ -169,20 +174,86 @@ const App: React.FC = () => {
       case 'srt-translate': return <SRTTranslate {...commonProps} />;
       case 'sub-generator': return <SubGenerator {...commonProps} />;
       case 'script-writer': return <ScriptWriter {...commonProps} />;
-      case 'video-generator': return <VideoGenerator {...commonProps} />;
-      case 'content-creator': return <ContentCreator {...commonProps} categories={settings.customCategories} />;
       case 'text-to-srt': return <TextToSRT {...commonProps} />;
-      case 'account': return <Account onBack={() => setActiveFeature('home')} session={session} onUpdateSession={handleUpdateSession} />;
+      case 'teleprompter': return <Teleprompter onBack={() => setActiveFeature('home')} />;
+      case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
       case 'premium': return <Premium onBack={() => setActiveFeature('home')} settings={settings} session={session} onUpdateSettings={() => {}} />;
-      default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} />;
+      default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} />;
     }
+  };
+
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  const navigateTo = (feature: FeatureType) => {
+    setActiveFeature(feature);
+    setIsMenuOpen(false);
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50">
-      {showTutorial && <Tutorial onComplete={() => { setShowTutorial(false); localStorage.setItem('smart_creator_onboarded', 'true'); }} />}
+      {showTutorial && <Tutorial onBack={() => { setShowTutorial(false); localStorage.setItem('smart_creator_onboarded', 'true'); }} />}
       
       <TaskOverlay tasks={tasks} onDismiss={removeTask} onRetry={removeTask} />
+
+      {/* Side Menu Overlay */}
+      {isMenuOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm animate-in fade-in duration-300" onClick={toggleMenu}>
+          <div 
+            className="absolute right-0 top-0 bottom-0 w-72 bg-white shadow-2xl p-6 animate-in slide-in-from-right duration-300"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="font-bold text-gray-900 uppercase tracking-widest text-xs">Menu</h3>
+              <button onClick={toggleMenu} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              <button 
+                onClick={() => navigateTo('home')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeFeature === 'home' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                <HomeIcon size={18} /> Home
+              </button>
+              <button 
+                onClick={() => navigateTo('tutorial')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeFeature === 'tutorial' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                <BookOpen size={18} /> Tutorial
+              </button>
+            </div>
+
+            <div className="absolute bottom-8 left-6 right-6">
+              <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                <p className="text-[10px] font-black text-indigo-900 uppercase tracking-widest mb-1">Version 1.0.4</p>
+                <p className="text-[10px] text-indigo-400 italic">Smart Creator Tools</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Modal
+        isOpen={showWelcomePopup}
+        onClose={() => setShowWelcomePopup(false)}
+        title="Welcome to Smart Creator"
+        hideClose={true}
+      >
+        <div className="space-y-4 py-2">
+          <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-3xl mb-4 mx-auto">
+            👋
+          </div>
+          <p className="text-gray-700 leading-relaxed text-center font-medium">
+            {settings.marqueeText}
+          </p>
+          <div className="pt-4">
+            <Button onClick={() => setShowWelcomePopup(false)} className="w-full py-3">
+              စတင်အသုံးပြုမည်
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal 
         isOpen={modalType !== null} 
@@ -212,15 +283,6 @@ const App: React.FC = () => {
         )}
       </Modal>
 
-      <div className="bg-indigo-600 text-white py-2 overflow-hidden whitespace-nowrap text-sm font-medium shadow-sm">
-        <div className="marquee">
-          <div className="marquee-content">
-            <span>{settings.marqueeText}</span>
-            <span>{settings.marqueeText}</span>
-          </div>
-        </div>
-      </div>
-
       <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-8">
@@ -237,15 +299,8 @@ const App: React.FC = () => {
                 <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">{activeTasks.length} Task{activeTasks.length > 1 ? 's' : ''}</span>
               </div>
             )}
-            <button onClick={() => setActiveFeature('account')} className="flex items-center gap-2 px-3 py-1.5 rounded-full hover:bg-gray-50 transition-colors">
-              {session.user ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 bg-indigo-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm">{session.user.name[0].toUpperCase()}</div>
-                  <span className="text-sm font-semibold text-gray-700 hidden sm:inline">{session.user.name}</span>
-                </div>
-              ) : (
-                <span className="text-sm font-bold text-indigo-600">Sign In</span>
-              )}
+            <button onClick={toggleMenu} className="p-2 hover:bg-gray-50 rounded-full transition-colors">
+              <Menu size={24} className="text-gray-700" />
             </button>
           </div>
         </div>
@@ -299,28 +354,26 @@ const Home: React.FC<{
       <ApiKeyManager session={session} onUpdate={onUpdateSession} />
     </div>
 
-    <div className="w-full overflow-hidden">
-      <div className="flex items-center justify-between px-4 mb-3">
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-pulse">← Swipe</span>
+    <div className="w-full">
+      <div className="flex items-center justify-between px-4 mb-6">
         <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Available Tools</h3>
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest animate-pulse">Swipe →</span>
       </div>
-      <div className="flex items-center gap-3 overflow-x-auto pb-4 no-scrollbar scroll-smooth px-2">
+      <div className="grid grid-cols-2 gap-4 px-4">
         {FEATURES.map((feature) => {
           const isRunning = activeTasks.some(t => t.type === feature.id);
           return (
             <button
               key={feature.id}
               onClick={() => !isRunning && onSelect(feature.id)}
-              className={`flex-shrink-0 flex items-center gap-3 px-6 py-3 rounded-full border transition-all whitespace-nowrap shadow-sm ${
+              className={`flex items-center gap-3 p-4 rounded-2xl border transition-all shadow-sm ${
                 isRunning 
                   ? 'bg-amber-50 border-amber-200 text-amber-700 opacity-75 cursor-wait' 
                   : 'bg-white border-gray-100 text-gray-700 hover:border-indigo-600 hover:shadow-md active:scale-95'
               }`}
             >
-              <span className="text-2xl">{feature.icon}</span>
-              <div className="flex flex-col items-start">
-                <span className="text-sm font-bold leading-none">{feature.title}</span>
+              <span className="text-2xl shrink-0">{feature.icon}</span>
+              <div className="flex flex-col items-start min-w-0">
+                <span className="text-xs font-bold leading-tight truncate w-full text-left">{feature.title}</span>
                 {isRunning && <span className="text-[8px] font-black uppercase tracking-tighter mt-1 animate-pulse">Processing...</span>}
               </div>
             </button>

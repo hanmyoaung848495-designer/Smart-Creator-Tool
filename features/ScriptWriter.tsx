@@ -34,7 +34,9 @@ const ScriptWriter: React.FC<Props> = ({
   results, onDeleteResult, onCopyResult, onDownloadResult
 }) => {
   const [topic, setTopic] = useState('');
-  const [tone, setTone] = useState('creative');
+  const [style, setStyle] = useState('creative');
+  const [customStyle, setCustomStyle] = useState('');
+  const [length, setLength] = useState('short');
   const [lang, setLang] = useState('English');
   const [result, setResult] = useState('');
 
@@ -42,12 +44,15 @@ const ScriptWriter: React.FC<Props> = ({
     tasks.find(t => t.type === 'script-writer' && t.status !== 'completed' && t.status !== 'failed'),
   [tasks]);
 
+  const finalStyle = style === 'custom' ? customStyle : style;
+
   const handleGenerate = async () => {
     if (!topic || activeTask) return;
+    if (style === 'custom' && !customStyle) return;
     const apiKey = session.useCustomKey ? session.customApiKey : undefined;
     
     onStartTask('script-writer', `Writing Script: ${topic}`, async () => {
-      const res = await writeScript(topic, tone, lang, apiKey);
+      const res = await writeScript(topic, finalStyle, length, lang, apiKey);
       setResult(res);
       onSaveResult({
         type: 'script-writer',
@@ -81,18 +86,31 @@ const ScriptWriter: React.FC<Props> = ({
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="md:col-span-2">
-              <Input label="Script Topic" value={topic} onChange={setTopic} placeholder="e.g. A journey through the hidden temples of Bagan" />
+              <Input label="Script Topic / Title" value={topic} onChange={setTopic} placeholder="e.g. A journey through the hidden temples of Bagan" />
             </div>
             <Select 
-              label="Tone" 
-              value={tone} 
-              onChange={setTone} 
+              label="Style" 
+              value={style} 
+              onChange={setStyle} 
               options={[
                 { label: 'Creative', value: 'creative' },
-                { label: 'Formal', value: 'formal' },
-                { label: 'Educational', value: 'educational' },
-                { label: 'Funny', value: 'funny' },
+                { label: 'Emotional', value: 'emotional' },
+                { label: 'Horror', value: 'horror' },
                 { label: 'Professional', value: 'professional' },
+                { label: 'Funny', value: 'funny' },
+                { label: 'Custom', value: 'custom' },
+              ]} 
+            />
+            {style === 'custom' && (
+              <Input label="Custom Style" value={customStyle} onChange={setCustomStyle} placeholder="e.g. Action-packed, Mystery, Sci-fi" />
+            )}
+            <Select 
+              label="Length" 
+              value={length} 
+              onChange={setLength} 
+              options={[
+                { label: 'Short (1-3 pages)', value: 'short' },
+                { label: 'Long (5-15 pages)', value: 'long' },
               ]} 
             />
             <Select 
@@ -102,7 +120,7 @@ const ScriptWriter: React.FC<Props> = ({
               options={LANGUAGES} 
             />
             <div className="md:col-span-2">
-              <Button onClick={handleGenerate} disabled={!topic} className="w-full py-4">
+              <Button onClick={handleGenerate} disabled={!topic || (style === 'custom' && !customStyle)} className="w-full py-4">
                 Generate Full Script
               </Button>
             </div>
