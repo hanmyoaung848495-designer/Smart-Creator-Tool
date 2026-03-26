@@ -10,6 +10,7 @@ import SubGenerator from './features/SubGenerator';
 import ScriptWriter from './features/ScriptWriter';
 import TextToSRT from './features/TextToSRT';
 import Teleprompter from './features/Teleprompter';
+import AIVoice from './features/AIVoice';
 import Tutorial from './features/Tutorial';
 import Premium from './features/Premium';
 import PersistentResults from './components/PersistentResults';
@@ -176,6 +177,7 @@ const App: React.FC = () => {
       case 'script-writer': return <ScriptWriter {...commonProps} />;
       case 'text-to-srt': return <TextToSRT {...commonProps} />;
       case 'teleprompter': return <Teleprompter onBack={() => setActiveFeature('home')} />;
+      case 'ai-voice': return <AIVoice {...commonProps} />;
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
       case 'premium': return <Premium onBack={() => setActiveFeature('home')} settings={settings} session={session} onUpdateSettings={() => {}} />;
       default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} />;

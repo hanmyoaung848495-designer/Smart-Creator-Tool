@@ -8,6 +8,7 @@ export type FeatureType =
   | 'text-to-srt'
   | 'script-writer' 
   | 'teleprompter'
+  | 'ai-voice'
   | 'video-generator' 
   | 'content-creator'
   | 'admin'

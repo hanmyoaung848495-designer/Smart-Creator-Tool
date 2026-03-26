@@ -93,7 +93,8 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         const url = URL.createObjectURL(audioBlob);
         setAudioUrl(url);
 
@@ -225,15 +226,13 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const animate = (time: number) => {
     if (lastTimeRef.current !== null) {
       const deltaTime = time - lastTimeRef.current;
-      const pixelsPerSecond = speed * 20; // Adjusted for better feel
+      // Use a ref for speed to ensure the animation loop always has the latest value without restarting
+      const pixelsPerSecond = speedRef.current * 20; 
       const move = (pixelsPerSecond * deltaTime) / 1000;
       
       if (scrollRef.current) {
         scrollPosRef.current += move;
         scrollRef.current.scrollTop = scrollPosRef.current;
-        
-        // Update progress bar state less frequently or just use the ref value if possible
-        // For now, let's update it to keep the progress bar moving
         setScrollPos(scrollPosRef.current);
 
         if (scrollPosRef.current >= scrollRef.current.scrollHeight - scrollRef.current.clientHeight) {
@@ -246,8 +245,17 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     requestRef.current = requestAnimationFrame(animate);
   };
 
+  const speedRef = useRef(speed);
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
+
   useEffect(() => {
     if (isPlaying) {
+      // Sync scrollPosRef with actual scrollTop when starting
+      if (scrollRef.current) {
+        scrollPosRef.current = scrollRef.current.scrollTop;
+      }
       requestRef.current = requestAnimationFrame(animate);
     } else {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
@@ -256,7 +264,7 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [isPlaying, speed]);
+  }, [isPlaying]);
 
   const resetScroll = () => {
     setIsPlaying(false);
@@ -327,7 +335,15 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
           </div>
 
-          <div className="absolute top-3 right-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute top-3 right-3 z-20 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            {!isEditing && (
+              <button 
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="p-2 bg-black/60 backdrop-blur-md text-white hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
+              >
+                {isPlaying ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+              </button>
+            )}
             <button 
               onClick={resetScroll}
               className="p-2 bg-black/60 backdrop-blur-md text-white hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
@@ -349,7 +365,13 @@ const Teleprompter: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             ) : (
               <div 
                 ref={scrollRef}
-                className="flex-grow overflow-y-auto px-6 md:px-10 py-[35vh] scroll-smooth no-scrollbar cursor-ns-resize"
+                onScroll={() => {
+                  if (!isPlaying && scrollRef.current) {
+                    scrollPosRef.current = scrollRef.current.scrollTop;
+                    setScrollPos(scrollRef.current.scrollTop);
+                  }
+                }}
+                className="flex-grow overflow-y-auto px-6 md:px-10 py-[50vh] scroll-smooth no-scrollbar cursor-ns-resize"
                 style={{ backgroundColor: '#000' }}
               >
                 <div 

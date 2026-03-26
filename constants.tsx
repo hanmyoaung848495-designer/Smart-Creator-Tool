@@ -44,6 +44,12 @@ export const FEATURES: FeatureCardData[] = [
     title: 'Teleprompter',
     description: 'စကားပြောစာသားများကို အနှေးအမြန်ထိန်းညှိပြီး ဖတ်ရှုနိုင်ပါသည်။',
     icon: '📜'
+  },
+  {
+    id: 'ai-voice',
+    title: 'AI Voice',
+    description: 'Generate high-quality AI voices from your text.',
+    icon: '🗣️'
   }
 ];
 

@@ -2,7 +2,7 @@
 import { GoogleGenAI } from "@google/genai";
 
 const getAIClient = (apiKey?: string) => {
-  return new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
+  return new GoogleGenAI({ apiKey: apiKey || process.env.GEMINI_API_KEY || '' });
 };
 
 export const transcribeMedia = async (fileBase64: string, mimeType: string, apiKey?: string): Promise<string> => {
