@@ -78,24 +78,24 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     <div className="max-w-4xl mx-auto w-full px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between mb-12">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight mb-2">Tutorial</h1>
-          <p className="text-gray-500 font-medium">အသုံးပြုပုံ လမ်းညွှန်ချက်များ</p>
+          <h1 className="text-4xl font-black text-gray-900 dark:text-gray-100 tracking-tight mb-2">Tutorial</h1>
+          <p className="text-gray-500 dark:text-gray-400 font-medium">အသုံးပြုပုံ လမ်းညွှန်ချက်များ</p>
         </div>
-        <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
+        <Button variant="ghost" onClick={onBack} className="flex items-center gap-2 dark:text-gray-300">
           <ArrowLeft size={18} /> Back to Home
         </Button>
       </div>
 
       <div className="grid gap-8">
         {TUTORIALS.map((item, index) => (
-          <Card key={index} className="p-0 overflow-hidden border-none shadow-xl shadow-indigo-500/5 bg-white">
+          <Card key={index} className="p-0 overflow-hidden border-none shadow-xl shadow-indigo-500/5 bg-white dark:bg-gray-800">
             <div className="p-8">
               <div className="flex items-start gap-4 mb-6">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-200">
+                <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-200 dark:shadow-none">
                   <span className="font-black text-lg">{index + 1}</span>
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">{item.title}</h2>
                   <div className="h-1 w-12 bg-indigo-600 rounded-full"></div>
                 </div>
               </div>
@@ -104,10 +104,10 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <YouTubeEmbed videoId={item.videoId} timestamp={item.timestamp} />
               )}
 
-              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+              <div className="bg-slate-50 dark:bg-gray-700 rounded-2xl p-6 border border-slate-100 dark:border-gray-600">
                 <div className="flex gap-3">
-                  <Info size={18} className="text-indigo-600 shrink-0 mt-1" />
-                  <p className="text-gray-700 leading-relaxed font-medium">
+                  <Info size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
                     {item.description}
                   </p>
                 </div>
@@ -118,12 +118,12 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       </div>
 
       <div className="mt-16 text-center pb-12">
-        <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-4">Need more help?</p>
+        <p className="text-gray-400 dark:text-gray-500 text-sm font-bold uppercase tracking-widest mb-4">Need more help?</p>
         <a 
           href="https://t.me/kcteamofficialbot" 
           target="_blank" 
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center rounded-full px-8 py-3 border border-gray-200 font-bold text-gray-600 hover:bg-gray-50 transition-all"
+          className="inline-flex items-center justify-center rounded-full px-8 py-3 border border-gray-200 dark:border-gray-600 font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
         >
           Contact Support
         </a>
