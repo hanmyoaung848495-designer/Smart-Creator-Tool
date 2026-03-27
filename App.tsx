@@ -30,7 +30,7 @@ const App: React.FC = () => {
   const [settings] = useState<AdminSettings>({
     ...DEFAULT_ADMIN_SETTINGS,
     welcomeMessage: "သူငယ်ချင်းတို့မင်္ဂလာပါ!",
-    footerText: "Contentတွေလုပ်ရတာအဆင်ပြေအောင် စမ်းထားတဲ့ Websiteလေးဖြစ်ပါတယ်။ သုံးမယ်ဆိုရင် Own Keyကိုနှိပ်ပြီး API keyထည့်သုံးလို့ရပါတယ်။ Text to SRT လေးကတော့ API keyမလိုဘဲသုံးလို့ရပါတယ်။"
+    footerText: "Contentတွေလုပ်ရတာအဆင်ပြေအောင် စမ်းသပ်ဖန်တီးထားတဲ့ Web APPလေးဖြစ်ပါတယ်။ သုံးမယ်ဆိုရင် Own Keyကိုနှိပ်ပြီး API KEYထည့်သုံးလို့ရပါတယ်။ Text to SRT နဲ့ Teleprompter ကတော့ API keyမလိုဘဲသုံးလို့ရပါတယ်။",
   });
   
   useEffect(() => {
