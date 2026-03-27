@@ -117,3 +117,16 @@ export interface SRTBlock {
   endTime: string;
   text: string;
 }
+
+export interface Recording {
+  id: string;
+  url: string;
+  timestamp: number;
+  duration: number;
+}
+
+export interface ScriptVersion {
+  id: string;
+  text: string;
+  timestamp: number;
+}

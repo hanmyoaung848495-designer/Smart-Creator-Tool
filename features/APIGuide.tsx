@@ -27,6 +27,7 @@ const APIGuide: React.FC<Props> = ({ onBack }) => {
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            loading="lazy"
           ></iframe>
         </div>
         <div className="p-4 bg-indigo-50/50 dark:bg-gray-700">

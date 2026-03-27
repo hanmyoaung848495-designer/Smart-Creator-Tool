@@ -5,6 +5,27 @@ const getAIClient = (apiKey?: string) => {
   return new GoogleGenAI({ apiKey: apiKey || process.env.GEMINI_API_KEY || '' });
 };
 
+export const generateScript = async (topic: string, apiKey?: string): Promise<string> => {
+  const ai = getAIClient(apiKey);
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: `Write a high-quality video script about "${topic}". 
+    The script should be interesting, engaging, and well-structured.
+    Include scene descriptions and speaker labels.
+    If the language is Burmese, ensure it's natural and attractive (စကားပြော script).`
+  });
+  return response.text || "Failed to generate script.";
+};
+
+export const refineScript = async (script: string, apiKey?: string): Promise<string> => {
+  const ai = getAIClient(apiKey);
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: `Refine and improve the following video script to make it more engaging, professional, and attractive: \n\n${script}`
+  });
+  return response.text || "Failed to refine script.";
+};
+
 export const transcribeMedia = async (fileBase64: string, mimeType: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
   const response = await ai.models.generateContent({

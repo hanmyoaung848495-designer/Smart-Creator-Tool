@@ -17,11 +17,13 @@ interface Props {
   onClearResults: (type: FeatureType) => void;
   onCopyResult: (content: string) => void;
   onDownloadResult: (result: StoredResult) => void;
+  onRequireApiKey: () => void;
 }
 
 const Transcribe: React.FC<Props> = ({ 
   onBack, session, tasks, onSaveResult, onStartTask, onUpdateSession,
-  results, onDeleteResult, onClearResults, onCopyResult, onDownloadResult
+  results, onDeleteResult, onClearResults, onCopyResult, onDownloadResult,
+  onRequireApiKey
 }) => {
   const [activeTab, setActiveTab] = useState<'upload' | 'youtube'>('upload');
   const [file, setFile] = useState<File | null>(null);
@@ -33,6 +35,14 @@ const Transcribe: React.FC<Props> = ({
     tasks.find(t => t.type === 'transcribe' && t.status !== 'completed' && t.status !== 'failed'),
   [tasks]);
 
+  const checkApiKey = () => {
+    if (session.useCustomKey && (!session.customApiKey || session.customApiKey.trim() === '')) {
+      onRequireApiKey();
+      return false;
+    }
+    return true;
+  };
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       setFile(e.target.files[0]);
@@ -41,6 +51,7 @@ const Transcribe: React.FC<Props> = ({
 
   const processFileUpload = async () => {
     if (!file || activeTask) return;
+    if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : undefined;
     
     onStartTask('transcribe', `Generating Script for ${file.name}`, async (taskId) => {
@@ -68,6 +79,7 @@ const Transcribe: React.FC<Props> = ({
 
   const processYoutubeLink = async () => {
     if (!ytUrl || activeTask) return;
+    if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : undefined;
     
     onStartTask('transcribe', `Video Script AI: ${ytUrl.substring(0, 30)}...`, async () => {

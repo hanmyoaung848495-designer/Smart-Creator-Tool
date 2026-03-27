@@ -16,6 +16,7 @@ interface Props {
   onDeleteResult: (id: string) => void;
   onCopyResult: (content: string) => void;
   onDownloadResult: (result: StoredResult) => void;
+  onRequireApiKey: () => void;
 }
 
 const LANGUAGES = [
@@ -31,7 +32,8 @@ const LANGUAGES = [
 
 const SRTTranslate: React.FC<Props> = ({ 
   onBack, session, tasks, onSaveResult, onStartTask, onUpdateSession,
-  results, onDeleteResult, onCopyResult, onDownloadResult
+  results, onDeleteResult, onCopyResult, onDownloadResult,
+  onRequireApiKey
 }) => {
   const [srtFile, setSrtFile] = useState<File | null>(null);
   const [srtContent, setSrtContent] = useState('');
@@ -41,6 +43,14 @@ const SRTTranslate: React.FC<Props> = ({
   const activeTask = useMemo(() => 
     tasks.find(t => t.type === 'srt-translate' && t.status !== 'completed' && t.status !== 'failed'),
   [tasks]);
+
+  const checkApiKey = () => {
+    if (session.useCustomKey && (!session.customApiKey || session.customApiKey.trim() === '')) {
+      onRequireApiKey();
+      return false;
+    }
+    return true;
+  };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -54,6 +64,7 @@ const SRTTranslate: React.FC<Props> = ({
 
   const handleTranslate = async () => {
     if (!srtContent || activeTask) return;
+    if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : undefined;
     
     onStartTask('srt-translate', `Translating Subtitles: ${srtFile?.name}`, async () => {

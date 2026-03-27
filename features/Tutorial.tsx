@@ -43,7 +43,9 @@ const TUTORIALS: TutorialItem[] = [
   },
   {
     title: "Teleprompter (တယ်လီပရွန်တာ)",
-    description: "စကားပြောစာသားများကို အနှေးအမြန်ထိန်းညှိပြီး ဖတ်ရှုနိုင်ပါသည်။ စာသားအရွယ်အစားနှင့် အနှေးအမြန်ကို စိတ်ကြိုက်ချိန်ညှိနိုင်ပြီး History တွင်လည်း သိမ်းဆည်းထားနိုင်ပါသည်။",
+    description: "TelePromp AI is your professional teleprompter and recording studio.\n\nYou can use the controls at the bottom to adjust your reading speed and font size.\n\nTry the AI Script Generator by clicking the sparkle icon to create a new script in seconds.\n\nHover your mouse over this text to pause the scrolling automatically.",
+    videoId: "-3FIdZrEnFE",
+    timestamp: "2"
   },
   {
     title: "AI Voice (AIအသံထုတ်ရန်)",
@@ -66,6 +68,7 @@ const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string }> = ({ video
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
         title="Tutorial Video"
+        loading="lazy"
       />
       {/* Overlay to catch initial clicks if needed or just for styling */}
       <div className="absolute inset-0 pointer-events-none border-4 border-white/10 rounded-2xl"></div>
@@ -104,14 +107,14 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <YouTubeEmbed videoId={item.videoId} timestamp={item.timestamp} />
               )}
 
-              <div className="bg-slate-50 dark:bg-gray-700 rounded-2xl p-6 border border-slate-100 dark:border-gray-600">
-                <div className="flex gap-3">
-                  <Info size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
-                    {item.description}
-                  </p>
+                <div className="bg-slate-50 dark:bg-gray-700 rounded-2xl p-6 border border-slate-100 dark:border-gray-600">
+                  <div className="flex gap-3">
+                    <Info size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
+                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed font-medium whitespace-pre-wrap">
+                      {item.description}
+                    </div>
+                  </div>
                 </div>
-              </div>
             </div>
           </Card>
         ))}

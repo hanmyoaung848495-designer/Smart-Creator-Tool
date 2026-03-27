@@ -27,11 +27,13 @@ interface Props {
   onDeleteResult: (id: string) => void;
   onCopyResult: (content: string) => void;
   onDownloadResult: (result: StoredResult) => void;
+  onRequireApiKey: () => void;
 }
 
 const ScriptWriter: React.FC<Props> = ({ 
   onBack, session, tasks, onSaveResult, onStartTask, onUpdateSession,
-  results, onDeleteResult, onCopyResult, onDownloadResult
+  results, onDeleteResult, onCopyResult, onDownloadResult,
+  onRequireApiKey
 }) => {
   const [topic, setTopic] = useState('');
   const [style, setStyle] = useState('creative');
@@ -46,9 +48,18 @@ const ScriptWriter: React.FC<Props> = ({
 
   const finalStyle = style === 'custom' ? customStyle : style;
 
+  const checkApiKey = () => {
+    if (session.useCustomKey && (!session.customApiKey || session.customApiKey.trim() === '')) {
+      onRequireApiKey();
+      return false;
+    }
+    return true;
+  };
+
   const handleGenerate = async () => {
     if (!topic || activeTask) return;
     if (style === 'custom' && !customStyle) return;
+    if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : undefined;
     
     onStartTask('script-writer', `Writing Script: ${topic}`, async () => {

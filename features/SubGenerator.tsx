@@ -17,11 +17,13 @@ interface Props {
   onCopyResult: (content: string) => void;
   onDownloadResult: (result: StoredResult) => void;
   onClearResults: (type: FeatureType) => void;
+  onRequireApiKey: () => void;
 }
 
 const SubGenerator: React.FC<Props> = ({ 
   onBack, session, tasks, onSaveResult, onStartTask, onUpdateSession,
-  results, onDeleteResult, onCopyResult, onDownloadResult, onClearResults
+  results, onDeleteResult, onCopyResult, onDownloadResult, onClearResults,
+  onRequireApiKey
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [localProgress, setLocalProgress] = useState(0);
@@ -30,8 +32,17 @@ const SubGenerator: React.FC<Props> = ({
     tasks.find(t => t.type === 'sub-generator' && t.status !== 'completed' && t.status !== 'failed'),
   [tasks]);
 
+  const checkApiKey = () => {
+    if (session.useCustomKey && (!session.customApiKey || session.customApiKey.trim() === '')) {
+      onRequireApiKey();
+      return false;
+    }
+    return true;
+  };
+
   const processMedia = async () => {
     if (!file || activeTask) return;
+    if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : undefined;
     
     onStartTask('sub-generator', `Generating SRT for ${file.name}`, async (taskId) => {

@@ -9,7 +9,7 @@ import SRTTranslate from './features/SRTTranslate';
 import SubGenerator from './features/SubGenerator';
 import ScriptWriter from './features/ScriptWriter';
 import TextToSRT from './features/TextToSRT';
-import Teleprompter from './features/Teleprompter';
+import TeleprompterFeature from './features/Teleprompter';
 import AIVoice from './features/AIVoice';
 import Tutorial from './features/Tutorial';
 import APIGuide from './features/APIGuide';
@@ -67,6 +67,16 @@ const App: React.FC = () => {
   const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('smart_creator_onboarded'));
   const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
+  const [showApiKeyPopup, setShowApiKeyPopup] = useState(false);
+
+  useEffect(() => {
+    if (showWelcomePopup) {
+      const timer = setTimeout(() => {
+        setShowWelcomePopup(false);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [showWelcomePopup]);
 
   useEffect(() => {
     localStorage.setItem('smart_creator_session', JSON.stringify(session));
@@ -186,7 +196,8 @@ const App: React.FC = () => {
       onCopyResult: copyResult,
       onDownloadResult: downloadResult,
       tasks: tasks,
-      onBack: () => setActiveFeature('home') 
+      onBack: () => setActiveFeature('home'),
+      onRequireApiKey: () => setShowApiKeyPopup(true)
     };
 
     switch (activeFeature) {
@@ -197,7 +208,7 @@ const App: React.FC = () => {
       case 'sub-generator': return <SubGenerator {...commonProps} />;
       case 'script-writer': return <ScriptWriter {...commonProps} />;
       case 'text-to-srt': return <TextToSRT {...commonProps} />;
-      case 'teleprompter': return <Teleprompter onBack={() => setActiveFeature('home')} />;
+      case 'teleprompter': return <TeleprompterFeature onBack={() => setActiveFeature('home')} session={session} onRequireApiKey={() => setShowApiKeyPopup(true)} />;
       case 'ai-voice': return <AIVoice {...commonProps} />;
       case 'api-guide': return <APIGuide onBack={() => setActiveFeature('home')} />;
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
@@ -298,6 +309,21 @@ const App: React.FC = () => {
         </div>
       </Modal>
 
+      <Modal
+        isOpen={showApiKeyPopup}
+        onClose={() => setShowApiKeyPopup(false)}
+        title="API Key Required"
+      >
+        <div className="space-y-4 py-2">
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-center">
+            You need to provide your own Gemini API key to use this tool. Please go to the Home page and add your API key in the "Own Key" section.
+          </p>
+          <Button onClick={() => { setShowApiKeyPopup(false); setActiveFeature('home'); }} className="w-full py-3">
+            Go to Home
+          </Button>
+        </div>
+      </Modal>
+      
       <Modal 
         isOpen={modalType !== null} 
         onClose={() => setModalType(null)} 
@@ -331,7 +357,11 @@ const App: React.FC = () => {
           <div className="flex items-center gap-8">
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveFeature('home')}>
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold text-xl italic shadow-indigo-200 shadow-md">$</div>
+                <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800">
+                  <div className="w-full h-full bg-[#FF0000] rounded-lg flex items-center justify-center">
+                    <span className="font-black text-sm text-[#FFD700] leading-none">$</span>
+                  </div>
+                </div>
                 <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-gray-100">{settings.appLogo}</span>
               </div>
             </div>
@@ -361,22 +391,24 @@ const App: React.FC = () => {
         {renderActiveFeature()}
       </main>
 
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-12 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[9px] sm:text-[11px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">
-            <button onClick={() => setModalType('privacy')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Privacy</button>
-            <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
-            <button onClick={() => setModalType('terms')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Terms</button>
-            <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
-            <a href="https://t.me/kcteamofficialbot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">
-              Contact
-            </a>
+      {activeFeature !== 'teleprompter' && (
+        <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-12 mt-auto">
+          <div className="max-w-7xl mx-auto px-6 text-center">
+            <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[9px] sm:text-[11px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">
+              <button onClick={() => setModalType('privacy')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Privacy</button>
+              <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
+              <button onClick={() => setModalType('terms')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Terms</button>
+              <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
+              <a href="https://t.me/kcteamofficialbot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">
+                Contact
+              </a>
+            </div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-300 px-4 leading-relaxed flex items-center justify-center gap-2">
+              <span>© 2026 Smart Creator Tools. All rights reserved by KC Team. With best wishes.</span>
+            </div>
           </div>
-          <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-300 px-4 leading-relaxed flex items-center justify-center gap-2">
-            <span>© 2026 Smart Creator Tools. All rights reserved by KC Team. With best wishes.</span>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 };
@@ -390,13 +422,13 @@ const Home: React.FC<{
 }> = ({ onSelect, settings, activeTasks, session, onUpdateSession }) => (
   <div className="space-y-12">
     <div className="text-center max-w-3xl mx-auto">
-      <h1 className="text-3xl md:text-5xl font-black mb-6 tracking-tighter leading-tight px-4 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928]"
+      <h1 className="text-3xl md:text-5xl font-black mb-6 tracking-tighter leading-normal px-4 py-2 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928]"
           style={{ 
             filter: 'drop-shadow(2px 2px 0px #b8860b) drop-shadow(4px 4px 4px rgba(0,0,0,0.15))',
           }}>
         {settings.welcomeMessage}
       </h1>
-      <p className="text-slate-900 dark:text-gray-300 text-sm md:text-base font-bold uppercase tracking-[0.15em]">
+      <p className="text-slate-900 dark:text-gray-300 text-lg md:text-xl font-bold uppercase tracking-[0.15em]">
         အသက်ရှုတိုင်းငွေဝင်ပါစေ
       </p>
     </div>

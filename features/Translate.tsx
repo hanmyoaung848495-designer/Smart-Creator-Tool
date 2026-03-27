@@ -28,11 +28,13 @@ interface Props {
   onClearResults: (type: FeatureType) => void;
   onCopyResult: (content: string) => void;
   onDownloadResult: (result: StoredResult) => void;
+  onRequireApiKey: () => void;
 }
 
 const Translate: React.FC<Props> = ({ 
   onBack, session, tasks, onSaveResult, onStartTask, onUpdateSession,
-  results, onDeleteResult, onClearResults, onCopyResult, onDownloadResult
+  results, onDeleteResult, onClearResults, onCopyResult, onDownloadResult,
+  onRequireApiKey
 }) => {
   const [text, setText] = useState('');
   const [targetLang, setTargetLang] = useState('English');
@@ -42,9 +44,17 @@ const Translate: React.FC<Props> = ({
     tasks.find(t => t.type === 'translate' && t.status !== 'completed' && t.status !== 'failed'),
   [tasks]);
 
+  const checkApiKey = () => {
+    if (session.useCustomKey && (!session.customApiKey || session.customApiKey.trim() === '')) {
+      onRequireApiKey();
+      return false;
+    }
+    return true;
+  };
+
   const handleTranslate = async () => {
     if (!text || activeTask) return;
-    
+    if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : undefined;
     
     onStartTask('translate', `Translating to ${targetLang}`, async () => {

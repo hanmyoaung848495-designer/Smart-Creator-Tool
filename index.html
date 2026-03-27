@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-scrollbar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Creator Tools - AI Power for Creators</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32'><rect width='32' height='32' rx='8' fill='%234f46e5'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='20' fill='white'>$</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32'><rect width='32' height='32' rx='10' fill='white'/><rect x='4' y='4' width='24' height='24' rx='8' fill='%23FF0000'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-weight='bold' font-size='16' fill='%23FFD700'>$</text></svg>">
     <link rel="manifest" href="/manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -40,6 +40,24 @@
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
+        .subtle-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .subtle-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .subtle-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+        .subtle-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        .subtle-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+        }
     </style>
 <script type="importmap">
 {
@@ -55,7 +73,7 @@
 }
 </script>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 no-scrollbar">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>

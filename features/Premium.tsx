@@ -180,7 +180,7 @@ const Premium: React.FC<Props> = ({ onBack, settings, session, onUpdateSettings 
                 </div>
                 {paymentInfo.qrImage && (
                   <div className="text-center">
-                    <img src={paymentInfo.qrImage} alt="QR Code" className="w-48 h-48 mx-auto rounded-xl shadow-lg border-4 border-white" />
+                    <img src={paymentInfo.qrImage} alt="QR Code" className="w-48 h-48 mx-auto rounded-xl shadow-lg border-4 border-white" loading="lazy" />
                     <p className="text-xs text-gray-400 mt-2">Scan to Pay</p>
                   </div>
                 )}

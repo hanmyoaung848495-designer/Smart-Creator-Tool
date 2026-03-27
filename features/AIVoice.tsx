@@ -20,6 +20,7 @@ interface AIVoiceProps {
   onStartTask: (type: FeatureType, title: string, runAction: (taskId: string) => Promise<any>) => void;
   tasks: ProcessingTask[];
   onBack: () => void;
+  onRequireApiKey: () => void;
 }
 
 const VOICES = [
@@ -33,7 +34,7 @@ const MODELS = [
   { label: 'Gemini 2.5 Flash (Fast)', value: 'gemini-2.5-flash-preview-tts' }
 ];
 
-const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }) => {
+const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, onRequireApiKey }) => {
   const [mode, setMode] = useState<'single' | 'multi'>('single');
   const [isDialogMode, setIsDialogMode] = useState(false);
   const [dialogBlocks, setDialogBlocks] = useState<{ id: string; speaker: 'Speaker 1' | 'Speaker 2'; text: string }[]>([
@@ -88,6 +89,14 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
 
   const activeTask = tasks.find(t => t.type === 'ai-voice' && t.status !== 'completed' && t.status !== 'failed');
 
+  const checkApiKey = () => {
+    if (session.useCustomKey && (!session.customApiKey || session.customApiKey.trim() === '')) {
+      onRequireApiKey();
+      return false;
+    }
+    return true;
+  };
+
   const handleRun = async () => {
     const isTextEmpty = mode === 'multi' && isDialogMode 
       ? dialogBlocks.every(b => !b.text.trim())
@@ -98,11 +107,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
       return;
     }
 
+    if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      alert('API Key is missing. Please enter your Gemini API Key in the "Own Key" section or switch to "System" engine at the top of the home screen.');
-      return;
-    }
 
     const displayTitle = mode === 'multi' && isDialogMode 
       ? dialogBlocks.find(b => b.text.trim())?.text.slice(0, 30) || 'Multi-speaker Dialog'
@@ -284,11 +290,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack }
   };
 
   const previewVoice = async (voiceName: string) => {
+    if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      alert('API Key is missing. Please enter your Gemini API Key in the "Own Key" section or switch to "System" engine at the top of the home screen.');
-      return;
-    }
 
     setIsPreviewing(voiceName);
     try {
