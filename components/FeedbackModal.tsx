@@ -45,7 +45,8 @@ export const FeedbackModal: React.FC = () => {
         setError(data.error || 'ပို့ဆောင်မှု မအောင်မြင်ပါ');
       }
     } catch (err) {
-      setError('ကွန်ရက် အမှားအယွင်း ဖြစ်ပေါ်နေပါသည်');
+      console.error("Feedback error:", err);
+      setError(`ကွန်ရက် အမှားအယွင်း ဖြစ်ပေါ်နေပါသည်: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSending(false);
     }
