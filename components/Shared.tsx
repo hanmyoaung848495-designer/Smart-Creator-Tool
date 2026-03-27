@@ -230,24 +230,24 @@ export const Modal: React.FC<{
   hideClose?: boolean;
   hideBottomClose?: boolean;
   maxWidth?: string;
-  position?: 'center' | 'bottom';
-}> = ({ isOpen, onClose, title, children, hideClose, hideBottomClose, maxWidth = "max-w-2xl", position = 'center' }) => {
+  compact?: boolean;
+}> = ({ isOpen, onClose, title, children, hideClose, hideBottomClose, maxWidth = "max-w-2xl", compact }) => {
   if (!isOpen) return null;
   return (
-    <div className={`fixed inset-0 z-[100] flex flex-col ${position === 'center' ? 'items-center justify-center p-4' : 'items-center justify-end'} bg-black/50 backdrop-blur-sm animate-in fade-in duration-300`}>
-      <div className={`bg-white dark:bg-gray-800 ${position === 'center' ? 'rounded-3xl' : 'rounded-t-[2.5rem] rounded-b-none'} shadow-2xl w-full ${maxWidth} ${position === 'center' ? 'max-h-[80vh]' : 'max-h-[45vh]'} flex flex-col overflow-hidden animate-in ${position === 'center' ? 'zoom-in-95' : 'slide-in-from-bottom-full'} duration-500`}>
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{title}</h3>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+      <div className={`bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full ${maxWidth} max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300`}>
+        <div className={`flex items-center justify-between ${compact ? 'p-3 px-6' : 'p-6'} border-b border-gray-100 dark:border-gray-700`}>
+          <h3 className={`${compact ? 'text-xs uppercase tracking-widest' : 'text-xl'} font-bold text-gray-900 dark:text-gray-100`}>{title}</h3>
           {!hideClose && (
-            <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
-              <span className="text-2xl leading-none dark:text-gray-300">&times;</span>
+            <button onClick={onClose} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+              <span className={`${compact ? 'text-xl' : 'text-2xl'} leading-none dark:text-gray-300`}>&times;</span>
             </button>
           )}
         </div>
-        <div className="p-8 overflow-y-auto text-gray-600 dark:text-gray-300 leading-relaxed text-sm">
+        <div className={`${compact ? 'p-0' : 'p-8'} overflow-y-auto text-gray-600 dark:text-gray-300 leading-relaxed text-sm`}>
           {children}
         </div>
-        {!hideClose && !hideBottomClose && (
+        {!hideClose && !hideBottomClose && !compact && (
           <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
             <Button onClick={onClose} className="text-xs font-bold uppercase tracking-widest">Close</Button>
           </div>
@@ -259,10 +259,10 @@ export const Modal: React.FC<{
 
 export const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string }> = ({ videoId, timestamp }) => {
   const start = timestamp ? parseInt(timestamp) : 0;
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?start=${start}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&color=white`;
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?start=${start}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&color=white&autoplay=1`;
 
   return (
-    <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-100 shadow-inner group">
+    <div className="relative w-full aspect-video overflow-hidden bg-black shadow-inner group">
       <iframe
         src={embedUrl}
         className="absolute inset-0 w-full h-full border-0"
@@ -271,7 +271,6 @@ export const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string }> = (
         title="Tutorial Video"
         loading="lazy"
       />
-      <div className="absolute inset-0 pointer-events-none border-4 border-white/10 rounded-2xl"></div>
     </div>
   );
 };
@@ -298,13 +297,11 @@ export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; ico
       <Modal 
         isOpen={isOpen} 
         onClose={() => setIsOpen(false)} 
-        title="Tutorial Video"
-        maxWidth="max-w-3xl"
-        position="bottom"
+        title={label}
+        maxWidth="max-w-4xl"
+        compact={true}
       >
-        <div className="p-1">
-          <YouTubeEmbed videoId={videoId} timestamp={timestamp} />
-        </div>
+        <YouTubeEmbed videoId={videoId} timestamp={timestamp} />
       </Modal>
     </>
   );

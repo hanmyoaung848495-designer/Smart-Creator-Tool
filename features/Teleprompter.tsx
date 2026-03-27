@@ -32,6 +32,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
   const timerRef = useRef<number | null>(null);
 
   // Modals
+  const [showTeleprompterTutorial, setShowTeleprompterTutorial] = useState(false);
   const [activeModal, setActiveModal] = useState<'editor' | 'ai' | 'history' | 'versions' | null>(null);
   const [aiTopic, setAiTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -222,6 +223,43 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
 
   return (
     <div className="flex flex-col h-[calc(100vh-110px)] w-full bg-black text-white selection:bg-blue-500/30 relative rounded-3xl overflow-hidden shadow-2xl border border-neutral-800">
+      {/* Teleprompter Specific Tutorial Overlay */}
+      {showTeleprompterTutorial && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 md:p-12 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-neutral-900 border border-neutral-800 w-full max-w-4xl rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between p-3 px-6 border-b border-neutral-800 bg-neutral-900/50">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400">Teleprompter Tutorial</h3>
+              </div>
+              <button 
+                onClick={() => setShowTeleprompterTutorial(false)} 
+                className="p-1.5 hover:bg-neutral-800 rounded-full transition-colors text-neutral-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="aspect-video bg-black relative">
+              <iframe
+                src="https://www.youtube.com/embed/-3FIdZrEnFE?start=2&autoplay=1&modestbranding=1&rel=0"
+                className="absolute inset-0 w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="Teleprompter Tutorial"
+              />
+            </div>
+            <div className="p-3 bg-neutral-900/80 border-t border-neutral-800 flex justify-center">
+              <button 
+                onClick={() => setShowTeleprompterTutorial(false)}
+                className="px-8 py-1.5 bg-white text-black rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-neutral-200 transition-all"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Header UI */}
       <div className="z-30 flex flex-col p-4 bg-neutral-900/50 backdrop-blur-md border-b border-neutral-800 gap-4">
         <div className="flex items-center justify-between w-full">
@@ -233,7 +271,13 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
               <span className="text-sm font-black uppercase tracking-[0.2em] text-neutral-300">TelePromp <span className="text-blue-500">AI</span></span>
             </div>
-            <TutorialButton videoId="-3FIdZrEnFE" timestamp="2" iconOnly={true} />
+            <button 
+              onClick={() => setShowTeleprompterTutorial(true)}
+              className="p-2 text-blue-500 hover:bg-neutral-800 rounded-full transition-colors"
+              title="Teleprompter Tutorial"
+            >
+              <Play size={20} className="fill-current" />
+            </button>
           </div>
 
           {isRecording && (
