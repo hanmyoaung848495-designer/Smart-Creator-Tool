@@ -537,7 +537,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <main className={`flex-grow max-w-7xl mx-auto px-4 w-full ${activeFeature === 'teleprompter' ? 'py-0 pb-0' : 'py-8'}`}>
+      <main className={`flex-grow w-full ${activeFeature === 'teleprompter' ? 'max-w-none px-0 py-0' : 'max-w-7xl mx-auto px-4 py-8'}`}>
         {renderActiveFeature()}
       </main>
 

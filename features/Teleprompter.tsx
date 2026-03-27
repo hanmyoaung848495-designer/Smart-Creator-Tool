@@ -222,7 +222,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
   // --- End Inline Teleprompter Component Logic ---
 
   return (
-    <div className="flex flex-col h-[calc(100vh-110px)] w-full bg-black text-white selection:bg-blue-500/30 relative rounded-3xl overflow-hidden shadow-2xl border border-neutral-800">
+    <div className="flex flex-col h-[calc(100vh-70px)] w-full bg-black text-white selection:bg-blue-500/30 relative rounded-b-[50px] overflow-hidden shadow-2xl border-b border-neutral-800 mb-10">
       {/* Teleprompter Specific Tutorial Overlay */}
       {showTeleprompterTutorial && (
         <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 md:p-12 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
