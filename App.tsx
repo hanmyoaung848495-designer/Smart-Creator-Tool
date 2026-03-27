@@ -74,20 +74,33 @@ const App: React.FC = () => {
   const [loginError, setLoginError] = useState('');
   const [toastMessage, setToastMessage] = useState<{title: string, type: 'success' | 'error'} | null>(null);
 
-  const handleSystemLogin = () => {
-    const validId = import.meta.env.VITE_SYSTEM_ID;
-    const validPass = import.meta.env.VITE_SYSTEM_PASS;
+  const handleSystemLogin = async () => {
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: loginId, password: loginPass })
+      });
 
-    if (validId && validPass && loginId === validId && loginPass === validPass) {
-      handleUpdateSession({ useCustomKey: false, role: 'premium' });
-      setShowLoginModal(false);
-      setLoginId('');
-      setLoginPass('');
-      setLoginError('');
-      setToastMessage({ title: 'Login အောင်မြင်ပါတယ်။ System APIကိုသုံးလို့ရပါပြီ', type: 'success' });
-      setTimeout(() => setToastMessage(null), 3000);
-    } else {
-      setLoginError('Password or IDမှားနေပါတယ်');
+      if (response.ok) {
+        const { apiKey } = await response.json();
+        handleUpdateSession({ 
+          useCustomKey: true, 
+          customApiKey: apiKey,
+          role: 'premium' 
+        });
+        setShowLoginModal(false);
+        setLoginId('');
+        setLoginPass('');
+        setLoginError('');
+        setToastMessage({ title: 'Login အောင်မြင်ပါတယ်။ System APIကိုသုံးလို့ရပါပြီ', type: 'success' });
+        setTimeout(() => setToastMessage(null), 3000);
+      } else {
+        const { error } = await response.json();
+        setLoginError(error || 'Password or IDမှားနေပါတယ်');
+      }
+    } catch (error) {
+      setLoginError('Server နှင့် ချိတ်ဆက်၍မရပါ');
     }
   };
 
