@@ -426,14 +426,16 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           </div>
         </div>
       )}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
+      <div className="flex flex-col gap-2 mb-8">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" onClick={onBack} className="p-2 dark:text-gray-300 dark:hover:bg-gray-800">
             <ArrowLeft size={20} /> Back
           </Button>
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">AI Voice Generator</h2>
+        </div>
+        <div className="ml-14">
           <TutorialButton videoId="sGHe7nhThwo" timestamp="30" />
         </div>
-        <h1 className="text-2xl font-black text-gray-900 tracking-tighter">AI Voice Generator</h1>
       </div>
 
       <Card className="p-6 space-y-6">

@@ -87,7 +87,7 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     <div className="max-w-4xl mx-auto w-full px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between mb-12">
         <div>
-          <h1 className="text-4xl font-black text-gray-900 dark:text-gray-100 tracking-tight mb-2">Tutorial</h1>
+          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight mb-2">Tutorial</h1>
           <p className="text-gray-500 dark:text-gray-400 font-medium">အသုံးပြုပုံ လမ်းညွှန်ချက်များ</p>
         </div>
         <Button variant="ghost" onClick={onBack} className="flex items-center gap-2 dark:text-gray-300">

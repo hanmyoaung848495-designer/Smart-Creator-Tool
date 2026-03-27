@@ -101,10 +101,14 @@ const Transcribe: React.FC<Props> = ({
 
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-2">
-      <div className="flex items-center gap-4 mb-8">
-        <Button variant="ghost" onClick={onBack} className="p-2">⬅️ Back</Button>
-        <TutorialButton videoId="Xdd9xScgNPM" timestamp="30" />
-        <h2 className="text-3xl font-bold text-gray-900">Transcribe</h2>
+      <div className="flex flex-col gap-2 mb-8">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" onClick={onBack} className="p-2 dark:text-gray-300 dark:hover:bg-gray-800">⬅️ Back</Button>
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Transcribe</h2>
+        </div>
+        <div className="ml-14">
+          <TutorialButton videoId="Xdd9xScgNPM" timestamp="30" />
+        </div>
       </div>
 
       <Card className="p-8">

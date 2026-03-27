@@ -77,10 +77,14 @@ const ScriptWriter: React.FC<Props> = ({
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-8">
-        <Button variant="ghost" onClick={onBack}>⬅️ Back</Button>
-        <TutorialButton videoId="5D66YbnUO1s" timestamp="10" />
-        <h2 className="text-3xl font-bold text-gray-900">AI Script Writer</h2>
+      <div className="flex flex-col gap-2 mb-8">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" onClick={onBack} className="p-2 dark:text-gray-300 dark:hover:bg-gray-800">⬅️ Back</Button>
+          <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">AI Script Writer</h2>
+        </div>
+        <div className="ml-14">
+          <TutorialButton videoId="5D66YbnUO1s" timestamp="10" />
+        </div>
       </div>
 
       <Card className="p-8">

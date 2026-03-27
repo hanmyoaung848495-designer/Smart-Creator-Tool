@@ -542,9 +542,9 @@ const App: React.FC = () => {
       </main>
 
       {activeFeature !== 'teleprompter' && (
-        <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-12 mt-auto">
+        <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-5 mt-auto">
           <div className="max-w-7xl mx-auto px-6 text-center">
-            <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[9px] sm:text-[11px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">
+            <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[10px] sm:text-[13px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">
               <button onClick={() => setModalType('privacy')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Privacy</button>
               <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
               <button onClick={() => setModalType('terms')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Terms</button>

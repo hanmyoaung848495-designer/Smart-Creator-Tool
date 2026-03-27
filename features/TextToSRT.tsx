@@ -145,18 +145,18 @@ const TextToSRT: React.FC<Props> = ({
         </div>
       </Modal>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={onBack} 
-            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
-          >
-            ← Back to Tools
-          </button>
-          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" />
+      <div className="flex flex-col gap-2 mb-8">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={onBack} className="p-2 dark:text-gray-300 dark:hover:bg-gray-800">⬅️ Back</Button>
+            <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Text to SRT</h2>
+          </div>
+          <div className="px-4 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 rounded-full border border-indigo-100 dark:border-indigo-800">
+            <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.2em]">No API Key Required</span>
+          </div>
         </div>
-        <div className="px-4 py-1.5 bg-indigo-50 rounded-full border border-indigo-100">
-          <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">No API Key Required</span>
+        <div className="ml-14">
+          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" />
         </div>
       </div>
 

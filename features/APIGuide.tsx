@@ -14,7 +14,7 @@ const APIGuide: React.FC<Props> = ({ onBack }) => {
         <Button variant="ghost" onClick={onBack} className="p-2 dark:text-gray-300">
           <ArrowLeft size={20} />
         </Button>
-        <h2 className="text-2xl font-black text-gray-900 dark:text-gray-100 uppercase tracking-tight">API အသုံးပြုမှု လမ်းညွှန် (API Guide)</h2>
+        <h2 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tight">API အသုံးပြုမှု လမ်းညွှန် (API Guide)</h2>
       </div>
 
       {/* YouTube Video Player */}

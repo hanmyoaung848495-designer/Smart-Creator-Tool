@@ -263,6 +263,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
       {/* Top Header UI */}
       <div className="z-30 flex flex-col p-4 bg-neutral-900/50 backdrop-blur-md border-b border-neutral-800 gap-4">
         <div className="flex items-center justify-between w-full">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
             <Button variant="ghost" onClick={onBack} className="text-white hover:bg-neutral-800 p-2">
               <ArrowLeft size={20} />
@@ -271,14 +272,17 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
               <span className="text-sm font-black uppercase tracking-[0.2em] text-neutral-300">TelePromp <span className="text-blue-500">AI</span></span>
             </div>
+          </div>
+          <div className="ml-14">
             <button 
               onClick={() => setShowTeleprompterTutorial(true)}
-              className="p-2 text-blue-500 hover:bg-neutral-800 rounded-full transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 rounded-full transition-all text-[10px] font-black uppercase tracking-widest border border-blue-500/20"
               title="Teleprompter Tutorial"
             >
-              <Play size={20} className="fill-current" />
+              <Play size={12} className="fill-current" /> Tutorial
             </button>
           </div>
+        </div>
 
           {isRecording && (
             <div className="flex items-center gap-3 bg-red-600/20 border border-red-500/50 px-4 py-2 rounded-xl animate-in fade-in zoom-in duration-300">
