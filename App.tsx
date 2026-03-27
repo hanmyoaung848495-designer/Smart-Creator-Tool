@@ -13,11 +13,10 @@ import TeleprompterFeature from './features/Teleprompter';
 import AIVoice from './features/AIVoice';
 import Tutorial from './features/Tutorial';
 import APIGuide from './features/APIGuide';
-import Premium from './features/Premium';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import TaskOverlay from './components/TaskOverlay';
-import { Menu, X, BookOpen, User, Crown, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<FeatureType>('home');
@@ -235,7 +234,6 @@ const App: React.FC = () => {
       case 'ai-voice': return <AIVoice {...commonProps} />;
       case 'api-guide': return <APIGuide onBack={() => setActiveFeature('home')} />;
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
-      case 'premium': return <Premium onBack={() => setActiveFeature('home')} settings={settings} session={session} onUpdateSettings={() => {}} />;
       default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
     }
   };
@@ -405,18 +403,29 @@ const App: React.FC = () => {
       <Modal
         isOpen={showWelcomePopup}
         onClose={() => setShowWelcomePopup(false)}
-        title="Welcome to Smart Creator"
+        title="Welcome"
         hideClose={true}
+        maxWidth="max-w-xs"
       >
-        <div className="space-y-4 py-2">
-          <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center text-3xl mb-4 mx-auto">
-            👋
+        <div className="space-y-4 py-2 flex flex-col items-center">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center p-2.5 shadow-xl border border-gray-100 dark:border-gray-700 dark:bg-gray-800">
+            <div className="w-full h-full bg-[#FF0000] rounded-lg flex items-center justify-center">
+              <span className="font-black text-lg text-[#FFD700] leading-none">$</span>
+            </div>
           </div>
-          <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-center font-medium">
+          
+          <div className="text-center space-y-0.5">
+            <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">Smart Creator</h2>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Designed and Developed</p>
+            <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">By KC Team</p>
+          </div>
+
+          <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-center text-xs font-medium max-w-[240px]">
             {settings.marqueeText}
           </p>
-          <div className="pt-4">
-            <Button onClick={() => setShowWelcomePopup(false)} className="w-full py-3">
+          
+          <div className="w-full pt-2">
+            <Button onClick={() => setShowWelcomePopup(false)} className="w-full py-3 rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none text-xs">
               စတင်အသုံးပြုမည်
             </Button>
           </div>
@@ -515,7 +524,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <main className={`flex-grow max-w-7xl mx-auto px-4 w-full ${activeFeature === 'teleprompter' ? 'py-0 pb-4' : 'py-8'}`}>
+      <main className={`flex-grow max-w-7xl mx-auto px-4 w-full ${activeFeature === 'teleprompter' ? 'py-0 pb-0' : 'py-8'}`}>
         {renderActiveFeature()}
       </main>
 
@@ -551,12 +560,16 @@ const Home: React.FC<{
 }> = ({ onSelect, settings, activeTasks, session, onUpdateSession, onRequireLogin }) => (
   <div className="space-y-12">
     <div className="text-center max-w-3xl mx-auto">
-      <h1 className="text-3xl md:text-5xl font-black mb-6 tracking-tighter leading-normal px-4 py-2 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928]"
+      <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tighter leading-normal px-4 py-2 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928]"
           style={{ 
             filter: 'drop-shadow(2px 2px 0px #b8860b) drop-shadow(4px 4px 4px rgba(0,0,0,0.15))',
           }}>
         {settings.welcomeMessage}
       </h1>
+      <div className="mb-6 flex flex-col items-center">
+        <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Designed and Developed</p>
+        <p className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">By KC Team</p>
+      </div>
       <p className="text-slate-900 dark:text-gray-300 text-lg md:text-xl font-bold uppercase tracking-[0.15em]">
         အသက်ရှုတိုင်းငွေဝင်ပါစေ
       </p>

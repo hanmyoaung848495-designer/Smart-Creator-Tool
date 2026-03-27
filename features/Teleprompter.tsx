@@ -226,7 +226,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
       {/* Teleprompter Specific Tutorial Overlay */}
       {showTeleprompterTutorial && (
         <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 md:p-12 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-neutral-900 border border-neutral-800 w-full max-w-4xl rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+          <div className="bg-neutral-900 border border-neutral-800 w-full max-w-2xl rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
             <div className="flex items-center justify-between p-3 px-6 border-b border-neutral-800 bg-neutral-900/50">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
@@ -239,7 +239,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
                 <X size={20} />
               </button>
             </div>
-            <div className="aspect-video bg-black relative">
+            <div className="aspect-video bg-black relative flex items-center justify-center">
               <iframe
                 src="https://www.youtube.com/embed/-3FIdZrEnFE?start=2&autoplay=1&modestbranding=1&rel=0"
                 className="absolute inset-0 w-full h-full border-0"
@@ -343,7 +343,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
           onTouchStart={handleInteractionStart}
           onTouchEnd={handleInteractionEnd}
           onScroll={handleScroll}
-          className={`flex-1 overflow-y-auto no-scrollbar px-8 md:px-24 pt-[45vh] pb-[15vh] transition-opacity duration-300 relative z-10 ${
+          className={`flex-1 overflow-y-auto no-scrollbar px-8 md:px-24 pt-[45vh] pb-[2vh] transition-opacity duration-300 relative z-10 ${
             isHovering ? 'opacity-90' : 'opacity-100'
           }`}
         >
@@ -370,7 +370,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
       </div>
 
       {/* Controls Area */}
-      <div className="w-full bg-neutral-900 border-t border-neutral-800 p-3 md:p-4 flex flex-col gap-4 z-20 shadow-2xl mt-auto">
+      <div className="w-full bg-neutral-900 border-t border-neutral-800 p-2 md:p-3 flex flex-col gap-3 z-20 shadow-2xl mt-auto">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4 w-full md:w-auto flex-1">
             <div className="flex flex-col gap-1 min-w-[140px] flex-1">
@@ -419,7 +419,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
                 </button>
                 <input
                   type="range"
-                  min="24"
+                  min="20"
                   max="96"
                   step="4"
                   value={fontSize}

@@ -13,7 +13,6 @@ export type FeatureType =
   | 'content-creator'
   | 'admin'
   | 'tutorial'
-  | 'premium'
   | 'api-guide';
 
 export type TaskStatus = 'uploading' | 'processing' | 'completed' | 'failed';
