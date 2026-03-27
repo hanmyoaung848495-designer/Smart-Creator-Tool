@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { FeatureType, StoredResult, UserSession, ProcessingTask } from '../types';
-import { Card, Button, TextArea, Input, Modal } from '../components/Shared';
+import { Card, Button, TextArea, Input, Modal, TutorialButton } from '../components/Shared';
 import PersistentResults from '../components/PersistentResults';
 
 interface Props {
@@ -146,12 +146,15 @@ const TextToSRT: React.FC<Props> = ({
       </Modal>
 
       <div className="flex items-center justify-between">
-        <button 
-          onClick={onBack} 
-          className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
-        >
-          ← Back to Tools
-        </button>
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={onBack} 
+            className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-full font-bold text-xs uppercase tracking-widest hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
+          >
+            ← Back to Tools
+          </button>
+          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" />
+        </div>
         <div className="px-4 py-1.5 bg-indigo-50 rounded-full border border-indigo-100">
           <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">No API Key Required</span>
         </div>

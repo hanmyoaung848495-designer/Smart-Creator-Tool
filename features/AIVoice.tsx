@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
-import { Card, Button, TextArea, Input, Select, ProgressBar } from '../components/Shared';
+import { Card, Button, TextArea, Input, Select, ProgressBar, TutorialButton } from '../components/Shared';
 import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2, X } from 'lucide-react';
 import { FeatureType, ProcessingTask, UserSession } from '../types';
 
@@ -427,9 +427,12 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         </div>
       )}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
-          <ArrowLeft size={20} /> Back
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={onBack} className="flex items-center gap-2">
+            <ArrowLeft size={20} /> Back
+          </Button>
+          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" />
+        </div>
         <h1 className="text-2xl font-black text-gray-900 tracking-tighter">AI Voice Generator</h1>
       </div>
 

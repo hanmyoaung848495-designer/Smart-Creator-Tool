@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
-import { Card, Button, TextArea, Select, ResultBox, ProgressBar } from '../components/Shared';
+import { Card, Button, TextArea, Select, ResultBox, ProgressBar, TutorialButton } from '../components/Shared';
 import { translateText } from '../services/gemini';
 import PersistentResults from '../components/PersistentResults';
 
@@ -74,6 +74,7 @@ const Translate: React.FC<Props> = ({
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-2">
       <div className="flex items-center gap-4 mb-8">
         <Button variant="ghost" onClick={onBack} className="p-2">⬅️ Back</Button>
+        <TutorialButton videoId="epA3sSWCLx4" timestamp="30" />
         <h2 className="text-3xl font-bold text-gray-900">Translate</h2>
       </div>
 

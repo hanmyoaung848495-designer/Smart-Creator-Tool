@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { UserSession, FeatureType, StoredResult, ProcessingTask } from '../types';
-import { Card, Button, ProgressBar, TextArea, ResultBox } from '../components/Shared';
+import { Card, Button, ProgressBar, TextArea, ResultBox, TutorialButton } from '../components/Shared';
 import { generateSubtitles, convertTextToSRT } from '../services/gemini';
 import PersistentResults from '../components/PersistentResults';
 
@@ -74,6 +74,7 @@ const SubGenerator: React.FC<Props> = ({
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-2">
       <div className="flex items-center gap-4 mb-8">
         <Button variant="ghost" onClick={onBack} className="p-2">⬅️ Back</Button>
+        <TutorialButton videoId="bKoi0NHV338" timestamp="0" />
         <h2 className="text-3xl font-bold text-gray-900">SRT Generator</h2>
       </div>
 

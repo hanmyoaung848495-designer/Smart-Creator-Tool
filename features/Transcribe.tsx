@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { UserSession, FeatureType, StoredResult, ProcessingTask } from '../types';
-import { Card, Button, ProgressBar, Input, ResultBox } from '../components/Shared';
+import { Card, Button, ProgressBar, Input, ResultBox, TutorialButton } from '../components/Shared';
 import { transcribeMedia, transcribeYoutubeLink } from '../services/gemini';
 import PersistentResults from '../components/PersistentResults';
 
@@ -103,6 +103,7 @@ const Transcribe: React.FC<Props> = ({
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-2">
       <div className="flex items-center gap-4 mb-8">
         <Button variant="ghost" onClick={onBack} className="p-2">⬅️ Back</Button>
+        <TutorialButton videoId="Xdd9xScgNPM" timestamp="30" />
         <h2 className="text-3xl font-bold text-gray-900">Transcribe</h2>
       </div>
 

@@ -17,7 +17,7 @@ import Premium from './features/Premium';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import TaskOverlay from './components/TaskOverlay';
-import { Menu, X, BookOpen, User, Crown, Home as HomeIcon, Zap, Send, Sun, Moon } from 'lucide-react';
+import { Menu, X, BookOpen, User, Crown, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<FeatureType>('home');
@@ -68,6 +68,29 @@ const App: React.FC = () => {
   const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
   const [showApiKeyPopup, setShowApiKeyPopup] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginId, setLoginId] = useState('');
+  const [loginPass, setLoginPass] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [toastMessage, setToastMessage] = useState<{title: string, type: 'success' | 'error'} | null>(null);
+
+  const handleSystemLogin = () => {
+    const validId = import.meta.env.VITE_SYSTEM_ID;
+    const validPass = import.meta.env.VITE_SYSTEM_PASS;
+
+    if (validId && validPass && loginId === validId && loginPass === validPass) {
+      handleUpdateSession({ useCustomKey: false, role: 'premium' });
+      setShowLoginModal(false);
+      setLoginId('');
+      setLoginPass('');
+      setLoginError('');
+      setToastMessage({ title: 'Login အောင်မြင်ပါတယ်။ System APIကိုသုံးလို့ရပါပြီ', type: 'success' });
+      setTimeout(() => setToastMessage(null), 3000);
+    } else {
+      setLoginError('Password or IDမှားနေပါတယ်');
+    }
+  };
 
   useEffect(() => {
     if (showWelcomePopup) {
@@ -201,7 +224,7 @@ const App: React.FC = () => {
     };
 
     switch (activeFeature) {
-      case 'home': return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} />;
+      case 'home': return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
       case 'transcribe': return <Transcribe {...commonProps} />;
       case 'translate': return <Translate {...commonProps} />;
       case 'srt-translate': return <SRTTranslate {...commonProps} />;
@@ -213,7 +236,7 @@ const App: React.FC = () => {
       case 'api-guide': return <APIGuide onBack={() => setActiveFeature('home')} />;
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
       case 'premium': return <Premium onBack={() => setActiveFeature('home')} settings={settings} session={session} onUpdateSettings={() => {}} />;
-      default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} />;
+      default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
     }
   };
 
@@ -226,6 +249,14 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50 dark:bg-gray-900 dark:text-gray-100">
+      {toastMessage && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top fade-in duration-300">
+          <div className={`px-6 py-3 rounded-2xl shadow-lg border flex items-center gap-3 ${toastMessage.type === 'success' ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/50 dark:border-green-800 dark:text-green-100' : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/50 dark:border-red-800 dark:text-red-100'}`}>
+            {toastMessage.type === 'success' ? <CheckCircle size={20} className="text-green-500 dark:text-green-400"/> : <XCircle size={20} className="text-red-500 dark:text-red-400"/>}
+            <span className="font-bold text-sm">{toastMessage.title}</span>
+          </div>
+        </div>
+      )}
       {showTutorial && <Tutorial onBack={() => { setShowTutorial(false); localStorage.setItem('smart_creator_onboarded', 'true'); }} />}
       
       <TaskOverlay tasks={tasks} onDismiss={removeTask} onRetry={removeTask} />
@@ -276,6 +307,26 @@ const App: React.FC = () => {
               >
                 <Send size={18} className="text-sky-500" /> Contact
               </a>
+              {session.useCustomKey === false ? (
+                <button 
+                  onClick={() => {
+                    handleUpdateSession({ useCustomKey: true, role: 'free' });
+                    setToastMessage({ title: 'Logout အောင်မြင်ပါတယ်။', type: 'success' });
+                    setTimeout(() => setToastMessage(null), 3000);
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                >
+                  <User size={18} className="text-red-500" /> Logout
+                </button>
+              ) : (
+                <button 
+                  onClick={() => { setShowLoginModal(true); setIsMenuOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+                >
+                  <User size={18} className="text-purple-500" /> System Login
+                </button>
+              )}
             </div>
 
             <div className="absolute bottom-8 left-6 right-6">
@@ -287,6 +338,69 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          setLoginId('');
+          setLoginPass('');
+          setLoginError('');
+        }}
+        title="System Login"
+        maxWidth="max-w-sm"
+        hideBottomClose={true}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            System API ကို အသုံးပြုရန် ID နှင့် Password ထည့်ပါ။
+          </p>
+          
+          {loginError && (
+            <div className="p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center gap-2">
+              <XCircle size={16} />
+              {loginError}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">ID</label>
+              <input
+                type="text"
+                value={loginId}
+                onChange={(e) => setLoginId(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                placeholder="Enter ID"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={loginPass}
+                  onChange={(e) => setLoginPass(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSystemLogin()}
+                  className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                  placeholder="Enter Password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <Button onClick={handleSystemLogin} className="w-full py-3 mt-2">
+            Login
+          </Button>
+        </div>
+      </Modal>
 
       <Modal
         isOpen={showWelcomePopup}
@@ -312,15 +426,29 @@ const App: React.FC = () => {
       <Modal
         isOpen={showApiKeyPopup}
         onClose={() => setShowApiKeyPopup(false)}
-        title="API Key Required"
+        title="API Key လိုအပ်ပါသည်"
+        maxWidth="max-w-sm"
+        hideBottomClose={true}
       >
         <div className="space-y-4 py-2">
-          <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-center">
-            You need to provide your own Gemini API key to use this tool. Please go to the Home page and add your API key in the "Own Key" section.
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm">
+            ဒီ Tool ကိုအသုံးပြုရန် သင့်ကိုယ်ပိုင် Gemini API Key ထည့်သွင်းရန် လိုအပ်ပါသည်။
           </p>
-          <Button onClick={() => { setShowApiKeyPopup(false); setActiveFeature('home'); }} className="w-full py-3">
-            Go to Home
-          </Button>
+          <div className="flex justify-end pt-2">
+            <Button 
+              onClick={() => { 
+                setShowApiKeyPopup(false); 
+                setActiveFeature('home'); 
+                handleUpdateSession({ useCustomKey: true });
+                setTimeout(() => {
+                  document.getElementById('custom-api-key-input')?.focus();
+                }, 100);
+              }} 
+              className="py-2 px-4 text-xs"
+            >
+              Add API
+            </Button>
+          </div>
         </div>
       </Modal>
       
@@ -387,7 +515,7 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <main className="flex-grow max-w-7xl mx-auto px-4 py-8 w-full">
+      <main className={`flex-grow max-w-7xl mx-auto px-4 w-full ${activeFeature === 'teleprompter' ? 'py-0 pb-4' : 'py-8'}`}>
         {renderActiveFeature()}
       </main>
 
@@ -419,7 +547,8 @@ const Home: React.FC<{
   activeTasks: ProcessingTask[];
   session: UserSession;
   onUpdateSession: (updates: Partial<UserSession>) => void;
-}> = ({ onSelect, settings, activeTasks, session, onUpdateSession }) => (
+  onRequireLogin: () => void;
+}> = ({ onSelect, settings, activeTasks, session, onUpdateSession, onRequireLogin }) => (
   <div className="space-y-12">
     <div className="text-center max-w-3xl mx-auto">
       <h1 className="text-3xl md:text-5xl font-black mb-6 tracking-tighter leading-normal px-4 py-2 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928]"
@@ -434,7 +563,7 @@ const Home: React.FC<{
     </div>
 
     <div className="max-w-4xl mx-auto">
-      <ApiKeyManager session={session} onUpdate={onUpdateSession} />
+      <ApiKeyManager session={session} onUpdate={onUpdateSession} onRequireLogin={onRequireLogin} />
     </div>
 
     <div className="w-full">

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, ChevronDown, Minus } from 'lucide-react';
 
 const PLAYLIST = [
-  { id: 'nC_ukkiLuXY', start: 0 },
+  { id: 'nC_ukkiLuXY', start: 2 },
   { id: 'JUSeIfAtzPM', start: 11 },
   { id: 'K2FAoUg_Q3E', start: 55 },
   { id: 'LUqf2auMuWY', start: 0 },

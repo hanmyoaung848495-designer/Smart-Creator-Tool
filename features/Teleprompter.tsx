@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { generateScript, refineScript } from '../services/gemini';
 import { Recording, ScriptVersion } from '../types';
 import { X, Mic, Wand2, Save, Download, Trash2, History, Send, RotateCcw, FileText, Clock, Key, ShieldCheck, UserCheck, ArrowLeft, Play, Pause, Square, Type, Settings, Sparkles, Link, Link2Off, ChevronUp, ChevronDown, Plus, Minus } from 'lucide-react';
-import { Button } from '../components/Shared';
+import { Button, TutorialButton } from '../components/Shared';
 
 import { UserSession } from '../types';
 
@@ -221,7 +221,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
   // --- End Inline Teleprompter Component Logic ---
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] w-full bg-black text-white selection:bg-blue-500/30 relative rounded-3xl overflow-hidden shadow-2xl border border-neutral-800">
+    <div className="flex flex-col h-[calc(100vh-110px)] w-full bg-black text-white selection:bg-blue-500/30 relative rounded-3xl overflow-hidden shadow-2xl border border-neutral-800">
       {/* Top Header UI */}
       <div className="z-30 flex flex-col p-4 bg-neutral-900/50 backdrop-blur-md border-b border-neutral-800 gap-4">
         <div className="flex items-center justify-between w-full">
@@ -233,6 +233,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>
               <span className="text-sm font-black uppercase tracking-[0.2em] text-neutral-300">TelePromp <span className="text-blue-500">AI</span></span>
             </div>
+            <TutorialButton videoId="-3FIdZrEnFE" timestamp="2" iconOnly={true} />
           </div>
 
           {isRecording && (
@@ -298,7 +299,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
           onTouchStart={handleInteractionStart}
           onTouchEnd={handleInteractionEnd}
           onScroll={handleScroll}
-          className={`flex-1 overflow-y-auto no-scrollbar px-8 md:px-24 py-[45vh] transition-opacity duration-300 relative z-10 ${
+          className={`flex-1 overflow-y-auto no-scrollbar px-8 md:px-24 pt-[45vh] pb-[15vh] transition-opacity duration-300 relative z-10 ${
             isHovering ? 'opacity-90' : 'opacity-100'
           }`}
         >
@@ -325,120 +326,125 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
       </div>
 
       {/* Controls Area */}
-      <div className="w-full bg-neutral-900 border-t border-neutral-800 p-3 md:p-4 flex flex-col md:flex-row items-center justify-between gap-4 z-20 shadow-2xl mt-auto">
-        <div className="flex items-center gap-4 w-full md:w-auto flex-1">
-          <div className="flex flex-col gap-1 min-w-[140px] flex-1">
-            <label className="text-neutral-500 text-[9px] font-bold uppercase tracking-wider flex items-center justify-between">
-              Speed: {speed.toFixed(1)}
-              <span className="text-neutral-400">FPS</span>
-            </label>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => setSpeed(Math.max(0.5, speed - 0.5))}
-                className="p-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 flex-shrink-0"
-                title="Decrease Speed"
-              >
-                <Minus size={14} />
-              </button>
-              <input
-                type="range"
-                min="0.5"
-                max="10"
-                step="0.5"
-                value={speed}
-                onChange={(e) => setSpeed(parseFloat(e.target.value))}
-                className="flex-1 h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-blue-500 min-w-[60px]"
-              />
-              <button 
-                onClick={() => setSpeed(Math.min(10, speed + 0.5))}
-                className="p-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 flex-shrink-0"
-                title="Increase Speed"
-              >
-                <Plus size={14} />
-              </button>
+      <div className="w-full bg-neutral-900 border-t border-neutral-800 p-3 md:p-4 flex flex-col gap-4 z-20 shadow-2xl mt-auto">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 w-full md:w-auto flex-1">
+            <div className="flex flex-col gap-1 min-w-[140px] flex-1">
+              <label className="text-neutral-500 text-[9px] font-bold uppercase tracking-wider flex items-center justify-between">
+                Speed: {speed.toFixed(1)}
+                <span className="text-neutral-400">FPS</span>
+              </label>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setSpeed(Math.max(0.5, speed - 0.5))}
+                  className="p-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 flex-shrink-0"
+                  title="Decrease Speed"
+                >
+                  <Minus size={14} />
+                </button>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="10"
+                  step="0.5"
+                  value={speed}
+                  onChange={(e) => setSpeed(parseFloat(e.target.value))}
+                  className="flex-1 h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-blue-500 min-w-[60px]"
+                />
+                <button 
+                  onClick={() => setSpeed(Math.min(10, speed + 0.5))}
+                  className="p-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 flex-shrink-0"
+                  title="Increase Speed"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1 min-w-[140px] flex-1">
+              <label className="text-neutral-500 text-[9px] font-bold uppercase tracking-wider">
+                Text Size: {fontSize}px
+              </label>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setFontSize(Math.max(24, fontSize - 4))}
+                  className="p-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 flex-shrink-0"
+                  title="Decrease Size"
+                >
+                  <Minus size={14} />
+                </button>
+                <input
+                  type="range"
+                  min="24"
+                  max="96"
+                  step="4"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(parseInt(e.target.value))}
+                  className="flex-1 h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-blue-500 min-w-[60px]"
+                />
+                <button 
+                  onClick={() => setFontSize(Math.min(120, fontSize + 4))}
+                  className="p-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 flex-shrink-0"
+                  title="Increase Size"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-1 min-w-[140px] flex-1">
-            <label className="text-neutral-500 text-[9px] font-bold uppercase tracking-wider">
-              Text Size: {fontSize}px
-            </label>
-            <div className="flex items-center gap-2">
-               <button 
-                onClick={() => setFontSize(Math.max(24, fontSize - 4))}
-                className="p-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 flex-shrink-0"
-                title="Decrease Size"
-              >
-                <Minus size={14} />
-              </button>
-              <input
-                type="range"
-                min="24"
-                max="96"
-                step="4"
-                value={fontSize}
-                onChange={(e) => setFontSize(parseInt(e.target.value))}
-                className="flex-1 h-1.5 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-blue-500 min-w-[60px]"
-              />
-              <button 
-                onClick={() => setFontSize(Math.min(120, fontSize + 4))}
-                className="p-1.5 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-300 flex-shrink-0"
-                title="Increase Size"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
+          <div className="flex items-center gap-3 justify-center flex-1">
+            <button
+              onClick={() => setSyncScroll(!syncScroll)}
+              title={syncScroll ? "Unsync Record/Scroll" : "Sync Record/Scroll"}
+              className={`p-2.5 rounded-full transition-all ${
+                syncScroll ? 'bg-blue-500/10 text-blue-500' : 'bg-neutral-800 text-neutral-500'
+              }`}
+            >
+              {syncScroll ? <Link size={18} /> : <Link2Off size={18} />}
+            </button>
+
+            <button
+              onClick={() => setIsScrolling(!isScrolling)}
+              className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold transition-all text-sm flex-1 max-w-[160px] justify-center ${
+                isScrolling ? 'bg-white text-black' : 'bg-neutral-800 text-white'
+              }`}
+            >
+              {isScrolling ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+              <span className="whitespace-nowrap">{isScrolling ? 'Stop Scroll' : 'Start Scroll'}</span>
+            </button>
+
+            <button
+              onClick={handleToggleRecording}
+              className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold transition-all text-sm shadow-lg flex-1 max-w-[160px] justify-center ${
+                isRecording 
+                  ? 'bg-red-600 text-white animate-pulse' 
+                  : 'bg-white text-black hover:bg-neutral-200'
+              }`}
+            >
+              {isRecording ? <Square size={18} fill="currentColor" /> : <Mic size={18} fill="currentColor" />}
+              <span>{isRecording ? 'STOP' : 'REC'}</span>
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 justify-center flex-1">
-          <button
-            onClick={() => setSyncScroll(!syncScroll)}
-            title={syncScroll ? "Unsync Record/Scroll" : "Sync Record/Scroll"}
-            className={`p-2.5 rounded-full transition-all ${
-              syncScroll ? 'bg-blue-500/10 text-blue-500' : 'bg-neutral-800 text-neutral-500'
-            }`}
-          >
-            {syncScroll ? <Link size={18} /> : <Link2Off size={18} />}
-          </button>
-
-          <button
-            onClick={() => setIsScrolling(!isScrolling)}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold transition-all text-sm flex-1 max-w-[160px] justify-center ${
-              isScrolling ? 'bg-white text-black' : 'bg-neutral-800 text-white'
-            }`}
-          >
-            {isScrolling ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
-            <span className="whitespace-nowrap">{isScrolling ? 'Stop Scroll' : 'Start Scroll'}</span>
-          </button>
-
-          <button
-            onClick={handleToggleRecording}
-            className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold transition-all text-sm shadow-lg flex-1 max-w-[160px] justify-center ${
-              isRecording 
-                ? 'bg-red-600 text-white animate-pulse' 
-                : 'bg-white text-black hover:bg-neutral-200'
-            }`}
-          >
-            {isRecording ? <Square size={18} fill="currentColor" /> : <Mic size={18} fill="currentColor" />}
-            <span>{isRecording ? 'STOP' : 'REC'}</span>
-          </button>
-        </div>
-
-        <div className="flex items-center gap-2 justify-end flex-1">
+        {/* Bottom Row for AI Script and Text Editor */}
+        <div className="flex items-center gap-4 justify-center pt-2 border-t border-neutral-800/50">
           <button
             onClick={() => setActiveModal('ai')}
-            className="p-2.5 bg-neutral-800 text-purple-400 rounded-full hover:bg-purple-400 hover:text-black transition-all"
+            className="flex items-center gap-2 px-6 py-2 bg-neutral-800 text-purple-400 rounded-xl hover:bg-purple-400 hover:text-black transition-all font-bold text-xs uppercase tracking-widest"
             title="AI Script Tools"
           >
-            <Sparkles size={18} />
+            <Sparkles size={16} />
+            AI Script
           </button>
           <button
             onClick={() => { setTempScript(script); setActiveModal('editor'); }}
-            className="p-2.5 bg-neutral-800 text-neutral-300 rounded-full hover:bg-neutral-700 transition-all"
+            className="flex items-center gap-2 px-6 py-2 bg-neutral-800 text-neutral-300 rounded-xl hover:bg-neutral-700 transition-all font-bold text-xs uppercase tracking-widest"
             title="Edit Script"
           >
-            <Type size={18} />
+            <Type size={16} />
+            Text Editor
           </button>
         </div>
       </div>

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
-import { Card, Button, Select, ResultBox, ProgressBar } from '../components/Shared';
+import { Card, Button, Select, ResultBox, ProgressBar, TutorialButton } from '../components/Shared';
 import { translateSRT } from '../services/gemini';
 import PersistentResults from '../components/PersistentResults';
 
@@ -84,6 +84,7 @@ const SRTTranslate: React.FC<Props> = ({
     <div className="max-w-4xl mx-auto">
       <div className="flex items-center gap-4 mb-8">
         <Button variant="ghost" onClick={onBack}>⬅️ Back</Button>
+        <TutorialButton videoId="epA3sSWCLx4" timestamp="30" />
         <h2 className="text-3xl font-bold text-gray-900">SRT Translate</h2>
       </div>
 

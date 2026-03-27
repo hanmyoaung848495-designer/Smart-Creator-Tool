@@ -13,7 +13,7 @@ interface TutorialItem {
 const TUTORIALS: TutorialItem[] = [
   {
     title: "Transcribe (အသံဖိုင်မှ စာသားပြောင်းခြင်း)",
-    description: "ဗီဒီယို သို့မဟုတ် အသံဖိုင်များမှ စကားပြောများကို စာသားအဖြစ် အလိုအလျောက် ပြောင်းလဲပေးပါသည်။ YouTube Link များမှလည်း တိုက်ရိုက် ပြောင်းလဲနိုင်ပါသည်။",
+    description: "Tutorial videoတွေမလုပ်ရသေးလို့ သီချင်းလေးပဲနားထောင်ပေးပါဦး။ \n ဗီဒီယို သို့မဟုတ် အသံဖိုင်များမှ စကားပြောများကို စာသားအဖြစ် အလိုအလျောက် ပြောင်းလဲပေးပါသည်။ YouTube Link များမှလည်း တိုက်ရိုက် ပြောင်းလဲနိုင်ပါသည်။",
     videoId: "Xdd9xScgNPM",
     timestamp: "30"
   },
@@ -52,6 +52,12 @@ const TUTORIALS: TutorialItem[] = [
     description: "Google AI Studioကိုသွားစရာမလိုပဲ အသံထုတ်လို့ပိုပြီးလွယ်အောင်စမ်းသပ်ထားခြင်းဖြစ်ပါတယ်။အဆင်ပြေရင် Contact မှာ Reviewလေးတွေလာပြောပေးပါဦး",
     videoId: "sGHe7nhThwo",
     timestamp: "30"
+  },
+  {
+    title: "AI ဖြင့်မြန်မာသီချင်းဖန်တီးနည်း",
+    description: "မြန်မာသံပီပီသသနဲ့ AIသီချင်းဖန်တီးဖို့ အသေးစိတ်ပြောပြပေးထားပါတယ်",
+    videoId: "YNYx2t_F2e8",
+    timestamp: "0"
   }
 ];
 
