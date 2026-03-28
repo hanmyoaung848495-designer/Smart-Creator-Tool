@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: "Feedback service not configured" });
   }
 
-  const text = `<b>New Feedback Received</b>\n\n` +
+  const text = `<b>Smart Creator Feedback Received</b>\n\n` +
     `<b>Name:</b> <code>${name}</code>\n` +
     `<b>Contact:</b> <code>${contact}</code>\n` +
     `<b>Message:</b>\n<code>${message}</code>`;
