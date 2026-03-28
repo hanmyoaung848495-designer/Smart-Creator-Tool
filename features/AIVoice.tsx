@@ -42,7 +42,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     { id: '1', speaker: 'Speaker 1', text: '' },
     { id: '2', speaker: 'Speaker 2', text: '' }
   ]);
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-pro-preview-tts');
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-preview-tts');
   const [voice1, setVoice1] = useState('Kore');
   const [voice2, setVoice2] = useState('Puck');
   const [styleInstruction, setStyleInstruction] = useState('Read aloud in a warm and friendly tone: ');
@@ -97,8 +97,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         return false;
       }
     } else {
-      // System mode: Require login if no built-in key
-      if (session.role !== 'premium' && !process.env.GEMINI_API_KEY) {
+      // System mode: Require an API key
+      if (!process.env.GEMINI_API_KEY && !session.customApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -117,7 +117,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     }
 
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (process.env.GEMINI_API_KEY || session.customApiKey);
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || process.env.GEMINI_API_KEY);
 
     const displayTitle = mode === 'multi' && isDialogMode 
       ? dialogBlocks.find(b => b.text.trim())?.text.slice(0, 30) || 'Multi-speaker Dialog'
@@ -396,9 +396,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest">Select Voice</h3>
               <button 
                 onClick={() => setPickingVoiceFor(null)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-3 bg-gray-200 hover:bg-gray-300 rounded-full transition-all text-gray-800 hover:text-black shadow-sm"
               >
-                <span className="text-2xl leading-none">&times;</span>
+                <span className="text-3xl leading-none font-black">&times;</span>
               </button>
             </div>
             <div className="flex-grow overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-indigo-200">

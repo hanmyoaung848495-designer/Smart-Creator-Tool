@@ -13,7 +13,7 @@ export const getAIClient = (apiKey?: string) => {
 export const generateScript = async (topic: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3.1-pro-preview',
     contents: `Write a high-quality video script about "${topic}". 
     The script should be interesting, engaging, and well-structured.
     Include scene descriptions and speaker labels.
@@ -25,7 +25,7 @@ export const generateScript = async (topic: string, apiKey?: string): Promise<st
 export const refineScript = async (script: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3.1-pro-preview',
     contents: `Refine and improve the following video script to make it more engaging, professional, and attractive: \n\n${script}`
   });
   return response.text || "Failed to refine script.";
@@ -129,7 +129,7 @@ export const writeScript = async (topic: string, style: string, length: string, 
   const ai = getAIClient(apiKey);
   const lengthInstruction = length === 'short' ? '1 to 3 pages/paragraphs' : '5 to 15 pages/paragraphs';
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3.1-pro-preview',
     contents: `Write a high-quality ${style} video script about "${topic}" in the language: ${lang}. 
     Length: Approximately ${lengthInstruction}. 
     Style: ${style}.
@@ -151,7 +151,7 @@ export const createContent = async (params: {
   const { category, type, gender, platform, lang } = params;
   
   const response = await ai.models.generateContent({
-    model: 'gemini-3-pro-preview',
+    model: 'gemini-3.1-pro-preview',
     contents: `Generate a viral ${type} for ${platform}. 
                Category: ${category}. 
                Perspective: ${gender} creator. 

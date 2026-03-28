@@ -45,8 +45,8 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
         return false;
       }
     } else {
-      // System mode: Require login if no built-in key
-      if (session.role !== 'premium' && !process.env.GEMINI_API_KEY) {
+      // System mode: Require an API key
+      if (!process.env.GEMINI_API_KEY && !session.customApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -146,7 +146,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
 
     setIsGenerating(true);
     try {
-      const apiKey = session.useCustomKey ? session.customApiKey : (process.env.GEMINI_API_KEY || session.customApiKey);
+      const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || process.env.GEMINI_API_KEY);
       const newScript = await generateScript(aiTopic, apiKey);
       setScript(newScript);
       saveScriptVersion(newScript);

@@ -39,8 +39,8 @@ const SubGenerator: React.FC<Props> = ({
         return false;
       }
     } else {
-      // System mode: Require login if no built-in key
-      if (session.role !== 'premium' && !process.env.GEMINI_API_KEY) {
+      // System mode: Require an API key
+      if (!process.env.GEMINI_API_KEY && !session.customApiKey) {
         onRequireApiKey();
         return false;
       }
