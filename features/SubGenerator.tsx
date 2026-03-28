@@ -51,7 +51,7 @@ const SubGenerator: React.FC<Props> = ({
   const processMedia = async () => {
     if (!file || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
+    const apiKey = session.useCustomKey ? session.customApiKey : (process.env.GEMINI_API_KEY || session.customApiKey);
     
     onStartTask('sub-generator', `Generating SRT for ${file.name}`, async (taskId) => {
       return new Promise((resolve, reject) => {

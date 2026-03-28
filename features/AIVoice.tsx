@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Modality } from "@google/genai";
+import { getAIClient } from '../services/gemini';
 import { Card, Button, TextArea, Input, Select, ProgressBar, TutorialButton } from '../components/Shared';
 import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2, X } from 'lucide-react';
 import { FeatureType, ProcessingTask, UserSession } from '../types';
@@ -116,7 +117,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     }
 
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || process.env.GEMINI_API_KEY);
+    const apiKey = session.useCustomKey ? session.customApiKey : (process.env.GEMINI_API_KEY || session.customApiKey);
 
     const displayTitle = mode === 'multi' && isDialogMode 
       ? dialogBlocks.find(b => b.text.trim())?.text.slice(0, 30) || 'Multi-speaker Dialog'
@@ -124,7 +125,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     const title = displayTitle + (displayTitle.length >= 30 ? '...' : '');
     
     onStartTask('ai-voice', title, async (taskId) => {
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = getAIClient(apiKey);
       
       let config: any = {
         responseModalities: [Modality.AUDIO],
@@ -303,7 +304,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
     setIsPreviewing(voiceName);
     try {
-      const ai = new GoogleGenAI({ apiKey });
+      const ai = getAIClient(apiKey);
       const response = await ai.models.generateContent({
         model: selectedModel,
         contents: [{ parts: [{ text: `Hello, I am ${voiceName}.` }] }],

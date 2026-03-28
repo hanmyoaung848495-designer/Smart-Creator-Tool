@@ -68,7 +68,7 @@ const ScriptWriter: React.FC<Props> = ({
     if (!topic || activeTask) return;
     if (style === 'custom' && !customStyle) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
+    const apiKey = session.useCustomKey ? session.customApiKey : (process.env.GEMINI_API_KEY || session.customApiKey);
     
     onStartTask('script-writer', `Writing Script: ${topic}`, async () => {
       const res = await writeScript(topic, finalStyle, length, lang, apiKey);

@@ -1,8 +1,13 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const getAIClient = (apiKey?: string) => {
-  return new GoogleGenAI({ apiKey: apiKey || process.env.GEMINI_API_KEY || '' });
+export const getAIClient = (apiKey?: string) => {
+  console.log("getAIClient called with apiKey:", apiKey ? "provided" : "undefined");
+  const finalKey = apiKey || process.env.GEMINI_API_KEY || '';
+  if (!finalKey) {
+    console.error("No API Key found in getAIClient!");
+  }
+  return new GoogleGenAI({ apiKey: finalKey });
 };
 
 export const generateScript = async (topic: string, apiKey?: string): Promise<string> => {

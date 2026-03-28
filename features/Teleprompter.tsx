@@ -146,7 +146,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
 
     setIsGenerating(true);
     try {
-      const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
+      const apiKey = session.useCustomKey ? session.customApiKey : (process.env.GEMINI_API_KEY || session.customApiKey);
       const newScript = await generateScript(aiTopic, apiKey);
       setScript(newScript);
       saveScriptVersion(newScript);
