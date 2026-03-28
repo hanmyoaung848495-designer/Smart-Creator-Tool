@@ -49,9 +49,17 @@ const ScriptWriter: React.FC<Props> = ({
   const finalStyle = style === 'custom' ? customStyle : style;
 
   const checkApiKey = () => {
-    if (session.useCustomKey && (!session.customApiKey || session.customApiKey.trim() === '')) {
-      onRequireApiKey();
-      return false;
+    if (session.useCustomKey) {
+      if (!session.customApiKey || session.customApiKey.trim() === '') {
+        onRequireApiKey();
+        return false;
+      }
+    } else {
+      // System mode: Require login if no built-in key
+      if (session.role !== 'premium' && !process.env.GEMINI_API_KEY) {
+        onRequireApiKey();
+        return false;
+      }
     }
     return true;
   };
@@ -60,7 +68,7 @@ const ScriptWriter: React.FC<Props> = ({
     if (!topic || activeTask) return;
     if (style === 'custom' && !customStyle) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : undefined;
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
     
     onStartTask('script-writer', `Writing Script: ${topic}`, async () => {
       const res = await writeScript(topic, finalStyle, length, lang, apiKey);

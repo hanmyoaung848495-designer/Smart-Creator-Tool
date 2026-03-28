@@ -46,8 +46,11 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('smart_creator_session');
     if (saved) {
       const parsed = JSON.parse(saved);
-      // Force 'Own Key' as default for users who were on the old 'System' default
-      if (parsed.useCustomKey === false && !parsed.customApiKey) {
+      // If they have a custom key, keep it as custom. 
+      // If they don't have a custom key and were on the old 'System' default, 
+      // we used to force them to 'Own Key' to prompt them.
+      // But now we have a proper system login, so we can be more flexible.
+      if (parsed.useCustomKey === undefined) {
         parsed.useCustomKey = true;
       }
       if (parsed.user && !parsed.user.usage) {
@@ -86,7 +89,7 @@ const App: React.FC = () => {
       if (response.ok) {
         const { apiKey } = await response.json();
         handleUpdateSession({ 
-          useCustomKey: true, 
+          useCustomKey: false, // Switch to System mode on successful login
           customApiKey: apiKey,
           role: 'premium' 
         });

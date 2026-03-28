@@ -45,9 +45,17 @@ const Translate: React.FC<Props> = ({
   [tasks]);
 
   const checkApiKey = () => {
-    if (session.useCustomKey && (!session.customApiKey || session.customApiKey.trim() === '')) {
-      onRequireApiKey();
-      return false;
+    if (session.useCustomKey) {
+      if (!session.customApiKey || session.customApiKey.trim() === '') {
+        onRequireApiKey();
+        return false;
+      }
+    } else {
+      // System mode: Require login if no built-in key
+      if (session.role !== 'premium' && !process.env.GEMINI_API_KEY) {
+        onRequireApiKey();
+        return false;
+      }
     }
     return true;
   };
@@ -55,7 +63,7 @@ const Translate: React.FC<Props> = ({
   const handleTranslate = async () => {
     if (!text || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : undefined;
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
     
     onStartTask('translate', `Translating to ${targetLang}`, async () => {
       const res = await translateText(text, targetLang, apiKey);

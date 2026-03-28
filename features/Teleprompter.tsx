@@ -39,9 +39,17 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
   const [tempScript, setTempScript] = useState(script);
 
   const checkApiKey = () => {
-    if (!session.customApiKey || session.customApiKey.trim() === '') {
-      onRequireApiKey();
-      return false;
+    if (session.useCustomKey) {
+      if (!session.customApiKey || session.customApiKey.trim() === '') {
+        onRequireApiKey();
+        return false;
+      }
+    } else {
+      // System mode: Require login if no built-in key
+      if (session.role !== 'premium' && !process.env.GEMINI_API_KEY) {
+        onRequireApiKey();
+        return false;
+      }
     }
     return true;
   };
@@ -138,7 +146,8 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
 
     setIsGenerating(true);
     try {
-      const newScript = await generateScript(aiTopic, session.customApiKey);
+      const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
+      const newScript = await generateScript(aiTopic, apiKey);
       setScript(newScript);
       saveScriptVersion(newScript);
       setActiveModal(null);
@@ -155,7 +164,8 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
 
     setIsGenerating(true);
     try {
-      const refined = await refineScript(script, session.customApiKey);
+      const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
+      const refined = await refineScript(script, apiKey);
       setScript(refined);
       saveScriptVersion(refined);
     } catch (error) {

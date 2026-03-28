@@ -90,9 +90,17 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const activeTask = tasks.find(t => t.type === 'ai-voice' && t.status !== 'completed' && t.status !== 'failed');
 
   const checkApiKey = () => {
-    if (session.useCustomKey && (!session.customApiKey || session.customApiKey.trim() === '')) {
-      onRequireApiKey();
-      return false;
+    if (session.useCustomKey) {
+      if (!session.customApiKey || session.customApiKey.trim() === '') {
+        onRequireApiKey();
+        return false;
+      }
+    } else {
+      // System mode: Require login if no built-in key
+      if (session.role !== 'premium' && !process.env.GEMINI_API_KEY) {
+        onRequireApiKey();
+        return false;
+      }
     }
     return true;
   };
@@ -108,7 +116,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     }
 
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : process.env.GEMINI_API_KEY;
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || process.env.GEMINI_API_KEY);
 
     const displayTitle = mode === 'multi' && isDialogMode 
       ? dialogBlocks.find(b => b.text.trim())?.text.slice(0, 30) || 'Multi-speaker Dialog'
@@ -291,7 +299,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
   const previewVoice = async (voiceName: string) => {
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : process.env.GEMINI_API_KEY;
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || process.env.GEMINI_API_KEY);
 
     setIsPreviewing(voiceName);
     try {

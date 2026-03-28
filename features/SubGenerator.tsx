@@ -33,9 +33,17 @@ const SubGenerator: React.FC<Props> = ({
   [tasks]);
 
   const checkApiKey = () => {
-    if (session.useCustomKey && (!session.customApiKey || session.customApiKey.trim() === '')) {
-      onRequireApiKey();
-      return false;
+    if (session.useCustomKey) {
+      if (!session.customApiKey || session.customApiKey.trim() === '') {
+        onRequireApiKey();
+        return false;
+      }
+    } else {
+      // System mode: Require login if no built-in key
+      if (session.role !== 'premium' && !process.env.GEMINI_API_KEY) {
+        onRequireApiKey();
+        return false;
+      }
     }
     return true;
   };
@@ -43,7 +51,7 @@ const SubGenerator: React.FC<Props> = ({
   const processMedia = async () => {
     if (!file || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : undefined;
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
     
     onStartTask('sub-generator', `Generating SRT for ${file.name}`, async (taskId) => {
       return new Promise((resolve, reject) => {
