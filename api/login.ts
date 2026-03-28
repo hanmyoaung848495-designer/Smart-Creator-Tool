@@ -23,7 +23,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!envId) break;
 
-    console.log(`Checking key ${i}: EnvId=${envId}, EnvPass=${envPass ? '***' : 'missing'}`);
+    console.log(`Checking key ${i}: EnvId="${envId}", EnvPass="${envPass ? '***' : 'missing'}"`);
+    console.log(`Comparing: ID="${id}" vs EnvId="${envId}", Password="${password ? '***' : 'missing'}" vs EnvPass="${envPass ? '***' : 'missing'}"`);
 
     if (envId === id && envPass === password) {
       console.log(`Login successful for ID: ${id}`);
