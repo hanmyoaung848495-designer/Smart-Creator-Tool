@@ -15,7 +15,6 @@ import Tutorial from './features/Tutorial';
 import APIGuide from './features/APIGuide';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
-import TaskOverlay from './components/TaskOverlay';
 import { FeedbackModal } from './components/FeedbackModal';
 import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 
@@ -68,6 +67,7 @@ const App: React.FC = () => {
 
   const [tasks, setTasks] = useState<ProcessingTask[]>([]);
   const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('smart_creator_onboarded'));
+  const [logoError, setLogoError] = useState(false);
   const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
   const [showApiKeyPopup, setShowApiKeyPopup] = useState(false);
@@ -90,7 +90,7 @@ const App: React.FC = () => {
         const { apiKey } = await response.json();
         handleUpdateSession({ 
           useCustomKey: false, // Switch to System mode on successful login
-          customApiKey: apiKey,
+          systemApiKey: apiKey,
           role: 'premium' 
         });
         setShowLoginModal(false);
@@ -274,8 +274,6 @@ const App: React.FC = () => {
       )}
       {showTutorial && <Tutorial onBack={() => { setShowTutorial(false); localStorage.setItem('smart_creator_onboarded', 'true'); }} />}
       
-      <TaskOverlay tasks={tasks} onDismiss={removeTask} onRetry={removeTask} />
-
       {/* Side Menu Overlay */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm animate-in fade-in duration-300" onClick={toggleMenu}>
@@ -426,13 +424,22 @@ const App: React.FC = () => {
       >
         <div className="space-y-4 py-2 flex flex-col items-center">
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center p-2.5 shadow-xl border border-gray-100 dark:border-gray-700 dark:bg-gray-800">
-            <div className="w-full h-full bg-[#FF0000] rounded-lg flex items-center justify-center">
-              <span className="font-black text-lg text-[#FFD700] leading-none">$</span>
-            </div>
+            {!logoError ? (
+              <img 
+                src="/logo.png" 
+                alt="Logo" 
+                className="w-full h-full object-contain rounded-lg"
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <div className="w-full h-full bg-[#FF0000] rounded-lg flex items-center justify-center">
+                <span className="font-black text-lg text-[#FFD700] leading-none">$</span>
+              </div>
+            )}
           </div>
           
           <div className="text-center space-y-0.5">
-            <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">Smart Creator</h2>
+            <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">Smart Creator Tools</h2>
             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Designed and Developed</p>
             <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">By KC Team</p>
           </div>
@@ -512,9 +519,18 @@ const App: React.FC = () => {
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveFeature('home')}>
                 <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800">
-                  <div className="w-full h-full bg-[#FF0000] rounded-lg flex items-center justify-center">
-                    <span className="font-black text-sm text-[#FFD700] leading-none">$</span>
-                  </div>
+                  {!logoError ? (
+                    <img 
+                      src="/logo.png" 
+                      alt="Logo" 
+                      className="w-full h-full object-contain rounded-lg"
+                      onError={() => setLogoError(true)}
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#FF0000] rounded-lg flex items-center justify-center">
+                      <span className="font-black text-sm text-[#FFD700] leading-none">$</span>
+                    </div>
+                  )}
                 </div>
                 <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-gray-100">{settings.appLogo}</span>
               </div>

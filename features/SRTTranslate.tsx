@@ -51,8 +51,8 @@ const SRTTranslate: React.FC<Props> = ({
         return false;
       }
     } else {
-      // System mode: Require login if no built-in key
-      if (session.role !== 'premium' && !process.env.GEMINI_API_KEY) {
+      // System mode: Require an API key
+      if (!process.env.GEMINI_API_KEY && !session.systemApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -73,7 +73,7 @@ const SRTTranslate: React.FC<Props> = ({
   const handleTranslate = async () => {
     if (!srtContent || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
     
     onStartTask('srt-translate', `Translating Subtitles: ${srtFile?.name}`, async () => {
       const res = await translateSRT(srtContent, targetLang, apiKey);

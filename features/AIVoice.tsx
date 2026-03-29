@@ -5,6 +5,7 @@ import { getAIClient } from '../services/gemini';
 import { Card, Button, TextArea, Input, Select, ProgressBar, TutorialButton } from '../components/Shared';
 import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2, X } from 'lucide-react';
 import { FeatureType, ProcessingTask, UserSession } from '../types';
+import { saveVoiceHistoryDB, loadVoiceHistoryDB } from '../services/storage';
 
 interface VoiceHistory {
   id: string;
@@ -31,7 +32,7 @@ const VOICES = [
 ];
 
 const MODELS = [
-  { label: 'Gemini 2.5 Pro (High Quality)', value: 'gemini-2.5-pro-preview-tts' },
+  { label: 'Gemini 2.5 Pro (High Quality)', value: 'gemini-2.5-pro' },
   { label: 'Gemini 2.5 Flash (Fast)', value: 'gemini-2.5-flash-preview-tts' }
 ];
 
@@ -59,10 +60,26 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('ai_voice_history');
-    if (saved) {
-      setHistory(JSON.parse(saved));
-    }
+    const loadHistory = async () => {
+      try {
+        const saved = await loadVoiceHistoryDB();
+        if (saved && saved.length > 0) {
+          setHistory(saved);
+        } else {
+          // Fallback to localStorage for migration
+          const oldSaved = localStorage.getItem('ai_voice_history');
+          if (oldSaved) {
+            const parsed = JSON.parse(oldSaved);
+            setHistory(parsed);
+            await saveVoiceHistoryDB(parsed);
+            localStorage.removeItem('ai_voice_history');
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load history:", error);
+      }
+    };
+    loadHistory();
 
     audioRef.current = new Audio();
     audioRef.current.onended = () => setIsPlaying(false);
@@ -83,9 +100,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     };
   }, []);
 
-  const saveHistory = (newHistory: VoiceHistory[]) => {
+  const saveHistory = async (newHistory: VoiceHistory[]) => {
     setHistory(newHistory);
-    localStorage.setItem('ai_voice_history', JSON.stringify(newHistory));
+    await saveVoiceHistoryDB(newHistory);
   };
 
   const activeTask = tasks.find(t => t.type === 'ai-voice' && t.status !== 'completed' && t.status !== 'failed');
@@ -98,7 +115,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       }
     } else {
       // System mode: Require an API key
-      if (!process.env.GEMINI_API_KEY && !session.customApiKey) {
+      if (!process.env.GEMINI_API_KEY && !session.systemApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -117,7 +134,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     }
 
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || process.env.GEMINI_API_KEY);
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
 
     const displayTitle = mode === 'multi' && isDialogMode 
       ? dialogBlocks.find(b => b.text.trim())?.text.slice(0, 30) || 'Multi-speaker Dialog'
@@ -193,6 +210,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     }).catch(err => {
       const errMsg = err instanceof Error ? err.message : String(err);
       if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+        alert(`Quota Exceeded or Rate Limited.\n\nNote: Gemini Pro models have a strict limit of 2 Requests Per Minute (RPM) on the free tier. Please wait a minute before trying again, or switch to the Flash model for a higher limit (15 RPM).\n\nError details: ${errMsg}`);
         setIsQuotaModalOpen(true);
       } else {
         alert('Generation failed: ' + errMsg);
@@ -300,7 +318,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
   const previewVoice = async (voiceName: string) => {
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || process.env.GEMINI_API_KEY);
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
 
     setIsPreviewing(voiceName);
     try {
@@ -326,6 +344,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       console.error('Preview failed:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
       if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+        alert(`Quota Exceeded or Rate Limited.\n\nNote: Gemini Pro models have a strict limit of 2 Requests Per Minute (RPM) on the free tier. Please wait a minute before trying again, or switch to the Flash model for a higher limit (15 RPM).\n\nError details: ${errMsg}`);
         setIsQuotaModalOpen(true);
       } else {
         alert('Preview failed: ' + errMsg);
@@ -376,7 +395,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             </div>
             <h3 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Quota ပြည့်သွားပါပြီ</h3>
             <p className="text-gray-600 leading-relaxed font-medium">
-              လူကြီးမင်းထည့်ထားသော APIမှာ Quotaပြည့်သွားပါသဖြင့်အသုံးပြု၍မရတော့ပါ။ ခဏစောင့်ပြီးမှ ပြန်လည်ကြိုးစားပေးပါ သို့မဟုတ် အခြား API Key တစ်ခုကို အသုံးပြုပေးပါ။
+              လူကြီးမင်းထည့်ထားသော APIမှာ Quotaပြည့်သွားပါသဖြင့်အသုံးပြု၍မရတော့ပါ။ 
+              <br/><br/>
+              <span className="text-indigo-600 font-bold">မှတ်ချက်:</span> Gemini Pro model များသည် Free Tier တွင် တစ်မိနစ်လျှင် ၂ ကြိမ် (2 RPM) သာ အသုံးပြုခွင့်ရှိပါသည်။ ခဏစောင့်ပြီးမှ ပြန်လည်ကြိုးစားပေးပါ သို့မဟုတ် ပိုမိုမြန်ဆန်သော Flash model ကို ပြောင်းလဲအသုံးပြုပေးပါ။
             </p>
             <Button 
               onClick={() => setIsQuotaModalOpen(false)}
@@ -567,52 +588,42 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Button
-            onClick={activeTask ? undefined : handleRun}
-            variant={activeTask ? 'danger' : 'primary'}
-            className="flex-grow py-4 text-sm font-black uppercase tracking-[0.2em]"
-            disabled={isPreviewing !== null}
-          >
-            {activeTask ? (
-              <>
-                <StopCircle size={20} /> Stop (Cancel)
-              </>
-            ) : (
-              <>
-                <Play size={20} fill="currentColor" /> Run Generator
-              </>
-            )}
-          </Button>
-
-          {currentAudio && !activeTask && (
-            <div className="flex-grow flex items-center gap-3 bg-indigo-50 p-3 rounded-2xl border border-indigo-100 animate-in slide-in-from-right-4">
+        <div className="flex items-center justify-between gap-4 mt-4">
+          {currentAudio && !activeTask ? (
+            <div className="flex items-center gap-3">
               <button 
                 onClick={handlePlayPause}
                 className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 shadow-md hover:scale-105 transition-transform"
               >
                 {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
               </button>
-              <div className="flex-grow flex flex-col gap-1">
-                <input 
-                  type="range" 
-                  min="0" max="100" value={audioProgress} 
-                  onChange={handleSeek}
-                  className="w-full h-1.5 accent-indigo-600 bg-indigo-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-[10px] text-indigo-400 font-black tracking-tighter">
-                  <span>{formatTime(audioRef.current?.currentTime || 0)}</span>
-                  <span>{formatTime(audioDuration)}</span>
-                </div>
-              </div>
               <button 
                 onClick={() => handleDownload(history[0])}
-                className="p-2 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-colors"
+                className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm hover:bg-indigo-100 transition-colors"
               >
-                <Download size={20} />
+                <Download size={18} />
               </button>
             </div>
+          ) : (
+            <div className="flex-grow"></div>
           )}
+
+          <Button
+            onClick={activeTask ? undefined : handleRun}
+            variant={activeTask ? 'danger' : 'primary'}
+            className="w-auto px-6 py-3 text-sm font-black uppercase tracking-[0.2em] transition-all shrink-0 rounded-full"
+            disabled={isPreviewing !== null}
+          >
+            {activeTask ? (
+              <>
+                <StopCircle size={18} /> Stop
+              </>
+            ) : (
+              <>
+                <Play size={18} fill="currentColor" /> Run
+              </>
+            )}
+          </Button>
         </div>
       </Card>
 
@@ -642,7 +653,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                     <span className="text-[10px] text-gray-400">{new Date(item.timestamp).toLocaleString()}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-2">
                   <Button 
                     variant="secondary" 
                     className="p-2 h-9 w-9 rounded-lg"

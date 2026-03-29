@@ -99,6 +99,7 @@ export interface UserSession {
   role: 'free' | 'premium' | 'admin';
   useCustomKey: boolean;
   customApiKey?: string;
+  systemApiKey?: string;
   user?: UserProfile;
 }
 

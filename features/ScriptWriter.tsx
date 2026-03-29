@@ -56,7 +56,7 @@ const ScriptWriter: React.FC<Props> = ({
       }
     } else {
       // System mode: Require an API key
-      if (!process.env.GEMINI_API_KEY && !session.customApiKey) {
+      if (!process.env.GEMINI_API_KEY && !session.systemApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -68,7 +68,7 @@ const ScriptWriter: React.FC<Props> = ({
     if (!topic || activeTask) return;
     if (style === 'custom' && !customStyle) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (process.env.GEMINI_API_KEY || session.customApiKey);
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
     
     onStartTask('script-writer', `Writing Script: ${topic}`, async () => {
       const res = await writeScript(topic, finalStyle, length, lang, apiKey);

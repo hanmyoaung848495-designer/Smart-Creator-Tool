@@ -42,8 +42,8 @@ const Transcribe: React.FC<Props> = ({
         return false;
       }
     } else {
-      // System mode: Require login if no built-in key
-      if (session.role !== 'premium' && !process.env.GEMINI_API_KEY) {
+      // System mode: Require an API key
+      if (!process.env.GEMINI_API_KEY && !session.systemApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -60,7 +60,7 @@ const Transcribe: React.FC<Props> = ({
   const processFileUpload = async () => {
     if (!file || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
     
     onStartTask('transcribe', `Generating Script for ${file.name}`, async (taskId) => {
       return new Promise((resolve, reject) => {
@@ -88,7 +88,7 @@ const Transcribe: React.FC<Props> = ({
   const processYoutubeLink = async () => {
     if (!ytUrl || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.customApiKey || undefined);
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
     
     onStartTask('transcribe', `Video Script AI: ${ytUrl.substring(0, 30)}...`, async () => {
       const resData = await transcribeYoutubeLink(ytUrl, apiKey, translateBurmese);
