@@ -1,3 +1,7 @@
+// Fixes for node-telegram-bot-api in serverless environments
+process.env.NTBA_FIX_319 = "1";
+process.env.NTBA_FIX_350 = "1";
+
 import express from "express";
 import path from "path";
 import TelegramBot from "node-telegram-bot-api";
@@ -270,27 +274,36 @@ if (botToken) {
 
 // API routes
 app.use((req, res, next) => {
-  console.log(`[Server] ${req.method} ${req.url}`);
+  if (req.url.includes("webhook") || req.url.includes("api")) {
+    console.log(`[Server] ${req.method} ${req.url}`);
+  }
   next();
 });
 
 app.get("/api/telegram-webhook", (req, res) => {
-  res.send("🤖 Telegram Bot Webhook is active. Please send a POST request.");
+  res.json({
+    status: "active",
+    bot_initialized: !!bot,
+    supabase_initialized: !!supabase,
+    node_env: process.env.NODE_ENV
+  });
 });
 
 app.post(["/api/telegram-webhook", "/telegram-webhook"], (req, res) => {
-  console.log(`[Webhook] Received update: ${JSON.stringify(req.body)}`);
-  if (bot) {
+  // Respond to Telegram immediately to prevent "Read timeout expired"
+  res.status(200).send("OK");
+
+  if (bot && req.body && req.body.update_id) {
     try {
+      // Process update in the background. 
+      // Note: On Vercel, this might be cut short if it takes too long,
+      // but it's the only way to avoid the "Read timeout" from Telegram's side.
       bot.processUpdate(req.body);
-      res.status(200).send("OK");
     } catch (err) {
       console.error("[Webhook] Error processing update:", err);
-      res.status(500).send("Error processing update");
     }
-  } else {
+  } else if (!bot) {
     console.error("[Webhook] Bot not initialized");
-    res.status(500).send("Bot not initialized");
   }
 });
 
