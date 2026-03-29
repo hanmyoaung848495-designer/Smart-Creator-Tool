@@ -18,32 +18,28 @@ async function startServer() {
   // Initialize Telegram Bot
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const adminChatId = process.env.TELEGRAM_CHAT_ID;
+  const appUrl = process.env.APP_URL; // Get the app URL from environment
   let bot: TelegramBot | null = null;
 
   if (botToken) {
-    bot = new TelegramBot(botToken, { polling: true });
-    bot.deleteWebHook(); // Clear any existing webhook to ensure polling works
-    console.log("Telegram bot initialized and webhook cleared.");
-
-    bot.on("polling_error", (error) => {
-      console.error("Telegram Polling Error:", error.message);
-    });
-
-    bot.on("error", (error) => {
-      console.error("Telegram General Error:", error.message);
-    });
+    // Initialize bot without polling for Vercel/Serverless
+    bot = new TelegramBot(botToken, { polling: false });
+    console.log("Telegram bot initialized (Webhook mode).");
 
     bot.on("message", (msg) => {
-      console.log(`[Bot] Message from ${msg.chat.id} (${msg.from?.username}): ${msg.text}`);
+      console.log(`[Bot] Message from ${msg.chat.id}: ${msg.text}`);
     });
 
     bot.onText(/\/start/, (msg) => {
-      bot?.sendMessage(msg.chat.id, "👋 Welcome to Smart Creator Tools Bot! Use /help to see available commands.");
+      bot?.sendMessage(msg.chat.id, "👋 Welcome! Use /help to see commands.");
     });
 
     bot.onText(/\/help/, (msg) => {
-      if (msg.chat.id.toString() !== adminChatId?.trim()) {
-        bot?.sendMessage(msg.chat.id, "⚠️ You are not authorized to use admin commands.");
+      const currentId = String(msg.chat.id);
+      const expectedId = String(adminChatId).trim();
+      
+      if (currentId !== expectedId) {
+        bot?.sendMessage(msg.chat.id, `⚠️ Unauthorized. Your ID is: ${currentId}. Please update your Environment Variables if this is you.`);
         return;
       }
       const helpText = `
@@ -70,7 +66,7 @@ async function startServer() {
     });
 
     bot.onText(/\/stats(?:\s+(.*))?/, async (msg, match) => {
-      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -114,7 +110,7 @@ async function startServer() {
     });
 
     bot.onText(/\/post\s+(.*)/, async (msg, match) => {
-      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -143,7 +139,7 @@ async function startServer() {
     });
 
     bot.onText(/\/listposts/, async (msg) => {
-      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -173,7 +169,7 @@ async function startServer() {
     });
 
     bot.onText(/\/delpost\s+(.*)/, async (msg, match) => {
-      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -192,7 +188,7 @@ async function startServer() {
     });
 
     bot.onText(/\/playlist\s+(.*)/, async (msg, match) => {
-      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -229,7 +225,7 @@ async function startServer() {
     });
 
     bot.onText(/\/listplaylist/, async (msg) => {
-      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -259,7 +255,7 @@ async function startServer() {
     });
 
     bot.onText(/\/delplaylist/, async (msg) => {
-      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -276,6 +272,13 @@ async function startServer() {
   }
 
   // API routes
+  app.post("/api/telegram-webhook", (req, res) => {
+    if (bot) {
+      bot.processUpdate(req.body);
+    }
+    res.sendStatus(200);
+  });
+
   app.post("/api/feedback", async (req, res) => {
     const { name, contact, message } = req.body;
 
