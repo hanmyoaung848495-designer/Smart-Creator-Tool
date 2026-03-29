@@ -332,24 +332,26 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     setIsPreviewing(voiceName);
 
     // Check Supabase first (Global Cache)
-    try {
-      const { data, error } = await supabase
-        .from('tts_cache')
-        .select('audio_data')
-        .eq('voice_name', voiceName)
-        .single();
-      
-      if (data && data.audio_data) {
-        try {
-          localStorage.setItem(cacheKey, data.audio_data); // Cache locally for next time
-        } catch (e) {}
-        const wavBlob = base64PcmToWavBlob(data.audio_data, 24000);
-        const url = URL.createObjectURL(wavBlob);
-        playAudio(url);
-        return;
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('tts_cache')
+          .select('audio_data')
+          .eq('voice_name', voiceName)
+          .single();
+        
+        if (data && data.audio_data) {
+          try {
+            localStorage.setItem(cacheKey, data.audio_data); // Cache locally for next time
+          } catch (e) {}
+          const wavBlob = base64PcmToWavBlob(data.audio_data, 24000);
+          const url = URL.createObjectURL(wavBlob);
+          playAudio(url);
+          return;
+        }
+      } catch (err) {
+        console.warn("Supabase cache check failed:", err);
       }
-    } catch (err) {
-      console.warn("Supabase cache check failed:", err);
     }
 
     if (!checkApiKey()) {
@@ -380,11 +382,13 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         }
         
         // Save to Supabase for others
-        supabase.from('tts_cache').insert([
-          { voice_name: voiceName, audio_data: base64Audio }
-        ]).then(({error}) => {
-          if (error) console.error("Failed to save to Supabase:", error);
-        });
+        if (supabase) {
+          supabase.from('tts_cache').insert([
+            { voice_name: voiceName, audio_data: base64Audio }
+          ]).then(({error}) => {
+            if (error) console.error("Failed to save to Supabase:", error);
+          });
+        }
 
         const wavBlob = base64PcmToWavBlob(base64Audio, 24000);
         const url = URL.createObjectURL(wavBlob);
@@ -411,19 +415,19 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   };
 
   const VoiceSelector = ({ value, onChange, label, id }: { value: string; onChange: (v: string) => void; label: string; id: 'voice1' | 'voice2' }) => (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</label>
       <button 
         onClick={() => setPickingVoiceFor(id)}
-        className="w-full flex items-center justify-between p-4 bg-white border border-gray-200 rounded-2xl hover:border-indigo-300 transition-all shadow-sm group"
+        className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 transition-all shadow-sm group"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center">
-            <Mic size={16} />
+        <div className="flex items-center gap-2.5">
+          <div className="w-6 h-6 bg-indigo-50 text-indigo-600 rounded flex items-center justify-center">
+            <Mic size={14} />
           </div>
-          <span className="font-bold text-gray-700">{value}</span>
+          <span className="font-semibold text-sm text-gray-700">{value}</span>
         </div>
-        <div className="text-indigo-600 text-xs font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">Change →</div>
+        <div className="text-indigo-600 text-[10px] font-black uppercase tracking-widest group-hover:translate-x-1 transition-transform">Change →</div>
       </button>
     </div>
   );
@@ -462,17 +466,17 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       {/* Voice Picker Modal */}
       {pickingVoiceFor && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg max-h-[70vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-lg font-black text-gray-900 uppercase tracking-widest">Select Voice</h3>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[300px] max-h-[60vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-black text-gray-900 uppercase tracking-widest">Select Voice</h3>
               <button 
                 onClick={() => setPickingVoiceFor(null)}
-                className="p-3 bg-gray-200 hover:bg-gray-300 rounded-full transition-all text-gray-800 hover:text-black shadow-sm"
+                className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-all text-gray-600 hover:text-black shadow-sm"
               >
-                <span className="text-3xl leading-none font-black">&times;</span>
+                <span className="text-xl leading-none font-black">&times;</span>
               </button>
             </div>
-            <div className="flex-grow overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-indigo-200">
+            <div className="flex-grow overflow-y-auto p-3 space-y-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {VOICES.map(voice => {
                 const isSelected = (pickingVoiceFor === 'voice1' ? voice1 : voice2) === voice;
                 return (
@@ -483,11 +487,11 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                       else setVoice2(voice);
                       setPickingVoiceFor(null);
                     }}
-                    className={`flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all group ${isSelected ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'hover:bg-gray-50 text-gray-700'}`}
+                    className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all group ${isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'hover:bg-gray-50 text-gray-700'}`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : 'bg-indigo-600'}`} />
-                      <span className="font-bold">{voice}</span>
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : 'bg-indigo-600'}`} />
+                      <span className="font-semibold text-sm">{voice}</span>
                     </div>
                     <button 
                       onClick={(e) => {
@@ -495,9 +499,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                         previewVoice(voice);
                       }}
                       disabled={isPreviewing !== null}
-                      className={`p-2 rounded-xl transition-colors ${isSelected ? 'text-white bg-white/20 hover:bg-white/30' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'}`}
+                      className={`p-1.5 rounded-lg transition-colors ${isSelected ? 'text-white bg-white/20 hover:bg-white/30' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'}`}
                     >
-                      {isPreviewing === voice ? <Loader2 size={18} className="animate-spin" /> : <Volume2 size={18} />}
+                      {isPreviewing === voice ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
                     </button>
                   </div>
                 );

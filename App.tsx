@@ -118,6 +118,19 @@ const App: React.FC = () => {
   }, [showWelcomePopup]);
 
   useEffect(() => {
+    const handleFallback = (e: any) => {
+      const { newModel } = e.detail;
+      setToastMessage({ 
+        title: `Limit ပြည့်သွားသဖြင့် ${newModel} သို့ အလိုအလျောက် ပြောင်းလဲအသုံးပြုထားပါသည်။`, 
+        type: 'success' 
+      });
+      setTimeout(() => setToastMessage(null), 5000);
+    };
+    window.addEventListener('gemini-fallback', handleFallback);
+    return () => window.removeEventListener('gemini-fallback', handleFallback);
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('smart_creator_session', JSON.stringify(session));
   }, [session]);
 

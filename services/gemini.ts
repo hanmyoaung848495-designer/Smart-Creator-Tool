@@ -10,10 +10,60 @@ export const getAIClient = (apiKey?: string) => {
   return new GoogleGenAI({ apiKey: finalKey });
 };
 
+const FALLBACK_MODELS = [
+  'gemini-3.1-pro-preview',
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-2.5-flash',
+  'gemini-2.5-pro'
+];
+
+const generateWithFallback = async (ai: GoogleGenAI, initialModel: string, params: any) => {
+  let modelIndex = FALLBACK_MODELS.indexOf(initialModel);
+  const modelsToTry = modelIndex >= 0 
+    ? FALLBACK_MODELS.slice(modelIndex) 
+    : [initialModel, ...FALLBACK_MODELS.filter(m => m !== initialModel)];
+
+  let lastError: any;
+
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const modelName = modelsToTry[i];
+    try {
+      const response = await ai.models.generateContent({
+        ...params,
+        model: modelName
+      });
+      
+      if (modelName !== initialModel) {
+        window.dispatchEvent(new CustomEvent('gemini-fallback', { 
+          detail: { oldModel: initialModel, newModel: modelName } 
+        }));
+      }
+      
+      return response;
+    } catch (error: any) {
+      lastError = error;
+      const errMsg = error?.message || String(error);
+      
+      const isLimitError = errMsg.includes('429') || 
+                           errMsg.includes('503') || 
+                           errMsg.includes('RESOURCE_EXHAUSTED') ||
+                           errMsg.includes('quota') ||
+                           errMsg.includes('overloaded');
+                           
+      if (!isLimitError) {
+        throw error;
+      }
+      console.warn(`Model ${modelName} failed with limit error. Trying next model...`, errMsg);
+    }
+  }
+  
+  throw lastError;
+};
+
 export const generateScript = async (topic: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
-  const response = await ai.models.generateContent({
-    model: 'gemini-3.1-pro-preview',
+  const response = await generateWithFallback(ai, 'gemini-3.1-pro-preview', {
     contents: `Write a high-quality video script about "${topic}". 
     The script should be interesting, engaging, and well-structured.
     Include scene descriptions and speaker labels.
@@ -24,8 +74,7 @@ export const generateScript = async (topic: string, apiKey?: string): Promise<st
 
 export const refineScript = async (script: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
-  const response = await ai.models.generateContent({
-    model: 'gemini-3.1-pro-preview',
+  const response = await generateWithFallback(ai, 'gemini-3.1-pro-preview', {
     contents: `Refine and improve the following video script to make it more engaging, professional, and attractive: \n\n${script}`
   });
   return response.text || "Failed to refine script.";
@@ -33,8 +82,7 @@ export const refineScript = async (script: string, apiKey?: string): Promise<str
 
 export const transcribeMedia = async (fileBase64: string, mimeType: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+  const response = await generateWithFallback(ai, 'gemini-3-flash-preview', {
     contents: {
       parts: [
         { inlineData: { data: fileBase64, mimeType } },
@@ -59,8 +107,7 @@ export const transcribeYoutubeLink = async (url: string, apiKey?: string, transl
   
   If the content is inaccessible, provide a high-fidelity summary and a reconstructed script based on available metadata and search results.`;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+  const response = await generateWithFallback(ai, 'gemini-3-flash-preview', {
     contents: systemPrompt,
     config: {
       tools: [{ googleSearch: {} }, { urlContext: {} }]
@@ -76,8 +123,7 @@ export const transcribeYoutubeLink = async (url: string, apiKey?: string, transl
 
 export const translateText = async (text: string, targetLang: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+  const response = await generateWithFallback(ai, 'gemini-3-flash-preview', {
     contents: `Translate the following text into ${targetLang}. Preserve tone and formatting. Only return the translated text: \n\n${text}`
   });
   return response.text || "Translation failed.";
@@ -85,8 +131,7 @@ export const translateText = async (text: string, targetLang: string, apiKey?: s
 
 export const translateSRT = async (srtContent: string, targetLang: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+  const response = await generateWithFallback(ai, 'gemini-3-flash-preview', {
     contents: `You are a professional subtitle translator. Translate the text within this SRT file to ${targetLang}. Keep the indices and timestamps EXACTLY the same. Only return the modified SRT content: \n\n${srtContent}`
   });
   return response.text || "SRT translation failed.";
@@ -94,8 +139,7 @@ export const translateSRT = async (srtContent: string, targetLang: string, apiKe
 
 export const generateSubtitles = async (fileBase64: string, mimeType: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+  const response = await generateWithFallback(ai, 'gemini-3-flash-preview', {
     contents: {
       parts: [
         { inlineData: { data: fileBase64, mimeType } },
@@ -108,8 +152,7 @@ export const generateSubtitles = async (fileBase64: string, mimeType: string, ap
 
 export const convertTextToSRT = async (text: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+  const response = await generateWithFallback(ai, 'gemini-3-flash-preview', {
     contents: `Convert the following text into a valid .srt subtitle file. 
     The input might contain timestamps like "00:00:05 - 00:00:10: Text" or similar. 
     Ensure the output follows the standard SRT format:
@@ -128,8 +171,7 @@ export const convertTextToSRT = async (text: string, apiKey?: string): Promise<s
 export const writeScript = async (topic: string, style: string, length: string, lang: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
   const lengthInstruction = length === 'short' ? '1 to 3 pages/paragraphs' : '5 to 15 pages/paragraphs';
-  const response = await ai.models.generateContent({
-    model: 'gemini-3.1-pro-preview',
+  const response = await generateWithFallback(ai, 'gemini-3.1-pro-preview', {
     contents: `Write a high-quality ${style} video script about "${topic}" in the language: ${lang}. 
     Length: Approximately ${lengthInstruction}. 
     Style: ${style}.
@@ -150,8 +192,7 @@ export const createContent = async (params: {
   const ai = getAIClient(apiKey);
   const { category, type, gender, platform, lang } = params;
   
-  const response = await ai.models.generateContent({
-    model: 'gemini-3.1-pro-preview',
+  const response = await generateWithFallback(ai, 'gemini-3.1-pro-preview', {
     contents: `Generate a viral ${type} for ${platform}. 
                Category: ${category}. 
                Perspective: ${gender} creator. 
