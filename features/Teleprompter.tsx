@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
 import { generateScript, refineScript } from '../services/gemini';
 import { Recording, ScriptVersion } from '../types';
 import { X, Mic, Wand2, Save, Download, Trash2, History, Send, RotateCcw, FileText, Clock, Key, ShieldCheck, UserCheck, ArrowLeft, Play, Pause, Square, Type, Settings, Sparkles, Link, Link2Off, ChevronUp, ChevronDown, Plus, Minus } from 'lucide-react';
@@ -134,7 +135,9 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
         recorder.start();
         setIsRecording(true);
       } catch (err) {
-        alert("Microphone access denied. Please allow microphone permissions.");
+        toast.error("Microphone access denied. Please allow microphone permissions.", {
+          style: { borderRadius: '1rem' }
+        });
         console.error(err);
       }
     }
@@ -152,8 +155,14 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
       saveScriptVersion(newScript);
       setActiveModal(null);
       setAiTopic('');
+      toast.success('AI Script generated successfully!', {
+        icon: '✨',
+        style: { borderRadius: '1rem' }
+      });
     } catch (error) {
-      alert("API Error: Please check if your provided key is valid.");
+      toast.error("API Error: Please check if your provided key is valid.", {
+        style: { borderRadius: '1rem' }
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -168,8 +177,14 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
       const refined = await refineScript(script, apiKey);
       setScript(refined);
       saveScriptVersion(refined);
+      toast.success('AI Script refined successfully!', {
+        icon: '🪄',
+        style: { borderRadius: '1rem' }
+      });
     } catch (error) {
-      alert("API Error: Please check if your provided key is valid.");
+      toast.error("API Error: Please check if your provided key is valid.", {
+        style: { borderRadius: '1rem' }
+      });
     } finally {
       setIsGenerating(false);
     }

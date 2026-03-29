@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { StoredResult, FeatureType } from '../types';
 import { Card, Button } from './Shared';
 
@@ -20,6 +21,24 @@ const PersistentResults: React.FC<Props> = ({ results, activeType, onDelete, onC
     : results;
 
   if (filteredResults.length === 0) return null;
+
+  const handleDelete = (id: string) => {
+    toast('Delete this record?', {
+      description: 'This action cannot be undone.',
+      action: {
+        label: 'Delete',
+        onClick: () => {
+          onDelete(id);
+          toast.success('Record deleted');
+        },
+      },
+      cancel: {
+        label: 'Cancel',
+        onClick: () => {},
+      },
+      style: { borderRadius: '1rem' }
+    });
+  };
 
   return (
     <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -81,11 +100,7 @@ const PersistentResults: React.FC<Props> = ({ results, activeType, onDelete, onC
                   </Button>
                   <Button 
                     variant="ghost" 
-                    onClick={() => {
-                      if(confirm('Delete this record?')) {
-                        onDelete(result.id);
-                      }
-                    }} 
+                    onClick={() => handleDelete(result.id)} 
                     className="text-[10px] font-bold h-8 px-3 uppercase text-red-500 hover:bg-red-50"
                   >
                     🗑️ Delete

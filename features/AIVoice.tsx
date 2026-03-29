@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { getAIClient } from '../services/gemini';
 import { Card, Button, TextArea, Input, Select, ProgressBar, TutorialButton } from '../components/Shared';
@@ -134,7 +135,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       : !text.trim();
 
     if (isTextEmpty) {
-      alert('Please enter some text!');
+      toast.error('Please enter some text!', {
+        style: { borderRadius: '1rem' }
+      });
       return;
     }
 
@@ -217,7 +220,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
         setIsQuotaModalOpen(true);
       } else {
-        alert('Generation failed: ' + errMsg);
+        toast.error('Generation failed: ' + errMsg, {
+          style: { borderRadius: '1rem' }
+        });
       }
     });
   };
@@ -403,7 +408,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
         setIsQuotaModalOpen(true);
       } else {
-        alert('Preview failed: ' + errMsg);
+        toast.error('Preview failed: ' + errMsg, {
+          style: { borderRadius: '1rem' }
+        });
       }
     } finally {
       setIsPreviewing(null);

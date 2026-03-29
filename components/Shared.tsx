@@ -329,3 +329,37 @@ export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; ico
     </>
   );
 };
+
+export const ConfirmModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  variant?: 'primary' | 'danger';
+}> = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Confirm", cancelText = "Cancel", variant = 'primary' }) => {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="max-w-md">
+      <div className="space-y-4">
+        <p className="text-gray-600 dark:text-gray-300">{message}</p>
+        <div className="flex justify-end gap-3 pt-4">
+          <Button variant="ghost" onClick={onClose} className="text-xs font-bold uppercase tracking-widest">
+            {cancelText}
+          </Button>
+          <Button 
+            variant={variant} 
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }} 
+            className="text-xs font-bold uppercase tracking-widest"
+          >
+            {confirmText}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+};

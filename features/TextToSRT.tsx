@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { FeatureType, StoredResult, UserSession, ProcessingTask } from '../types';
 import { Card, Button, TextArea, Input, Modal, TutorialButton } from '../components/Shared';
 import PersistentResults from '../components/PersistentResults';
@@ -93,7 +94,9 @@ const TextToSRT: React.FC<Props> = ({
       return;
     }
     if (!text.trim()) {
-      alert('ကျေးဇူးပြု၍ စာသားထည့်ပါ');
+      toast.error('ကျေးဇူးပြု၍ စာသားထည့်ပါ', {
+        style: { borderRadius: '1rem' }
+      });
       return;
     }
 
@@ -116,7 +119,10 @@ const TextToSRT: React.FC<Props> = ({
     setText('');
     setFileName('');
     setTouched(false);
-    alert('SRT File အဖြစ်ပြောင်းလဲပြီးပါပြီ');
+    toast.success('SRT File အဖြစ်ပြောင်းလဲပြီးပါပြီ', {
+      icon: '🎬',
+      style: { borderRadius: '1rem' }
+    });
   };
 
   const handleDownload = (result: StoredResult) => {

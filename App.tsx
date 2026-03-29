@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FeatureType, AdminSettings, UserSession, ActivityRecord, StoredResult, ProcessingTask } from './types';
 import { FEATURES, DEFAULT_ADMIN_SETTINGS } from './constants';
-import { Card, Button, ProgressBar, ApiKeyManager, Modal } from './components/Shared';
+import { Card, Button, ProgressBar, ApiKeyManager, Modal, ConfirmModal } from './components/Shared';
 import Transcribe from './features/Transcribe';
 import Translate from './features/Translate';
 import SRTTranslate from './features/SRTTranslate';
@@ -18,8 +18,9 @@ import CodeEditor from './features/CodeEditor';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import { FeedbackModal } from './components/FeedbackModal';
-import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText } from 'lucide-react';
+import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText, Download } from 'lucide-react';
 import { trackEvent } from './lib/analytics';
+import { Toaster, toast } from 'sonner';
 
 const App: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<FeatureType>('home');
@@ -89,6 +90,9 @@ const App: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [toastMessage, setToastMessage] = useState<{title: string, type: 'success' | 'error'} | null>(null);
+  const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set());
+  const [pendingDownload, setPendingDownload] = useState<StoredResult | null>(null);
+  const [confirmClear, setConfirmClear] = useState<{ isOpen: boolean, type: FeatureType | null }>({ isOpen: false, type: null });
 
   const handleSystemLogin = async () => {
     try {
@@ -164,17 +168,28 @@ const App: React.FC = () => {
   }, []);
 
   const clearResultsByType = useCallback((type: FeatureType) => {
-    if (confirm(`Clear all ${type.replace('-', ' ')} history forever?`)) {
-      setResults(prev => prev.filter(r => r.type !== type));
-    }
+    setConfirmClear({ isOpen: true, type });
   }, []);
+
+  const handleConfirmClear = () => {
+    if (confirmClear.type) {
+      setResults(prev => prev.filter(r => r.type !== confirmClear.type));
+      toast.success(`${confirmClear.type.replace('-', ' ')} history cleared!`, {
+        icon: '🗑️',
+        style: { borderRadius: '1rem' }
+      });
+    }
+  };
 
   const copyResult = useCallback((content: string) => {
     navigator.clipboard.writeText(content);
-    alert('Copied to clipboard!');
+    toast.success('Copied to clipboard!', {
+      icon: '📋',
+      style: { borderRadius: '1rem' }
+    });
   }, []);
 
-  const downloadResult = useCallback((result: StoredResult) => {
+  const executeDownload = (result: StoredResult) => {
     const blob = new Blob([result.content], { type: result.mimeType || 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -182,7 +197,20 @@ const App: React.FC = () => {
     a.download = result.fileName || `result_${result.id}.txt`;
     a.click();
     URL.revokeObjectURL(url);
-  }, []);
+    setDownloadedIds(prev => new Set(prev).add(result.id));
+    toast.success('Download started!', {
+      icon: '📥',
+      style: { borderRadius: '1rem' }
+    });
+  };
+
+  const downloadResult = useCallback((result: StoredResult) => {
+    if (downloadedIds.has(result.id)) {
+      setPendingDownload(result);
+    } else {
+      executeDownload(result);
+    }
+  }, [downloadedIds]);
 
   const updateTask = useCallback((id: string, updates: Partial<ProcessingTask>) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
@@ -290,15 +318,29 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50/50 dark:bg-gray-900 dark:text-gray-100">
-      {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] animate-in slide-in-from-top fade-in duration-300">
-          <div className={`px-6 py-3 rounded-2xl shadow-lg border flex items-center gap-3 ${toastMessage.type === 'success' ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/50 dark:border-green-800 dark:text-green-100' : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/50 dark:border-red-800 dark:text-red-100'}`}>
-            {toastMessage.type === 'success' ? <CheckCircle size={20} className="text-green-500 dark:text-green-400"/> : <XCircle size={20} className="text-red-500 dark:text-red-400"/>}
-            <span className="font-bold text-sm">{toastMessage.title}</span>
-          </div>
-        </div>
-      )}
+    <div className={`min-h-screen flex flex-col transition-colors duration-500 ${isDarkMode ? 'dark bg-gray-950' : 'bg-gray-50'}`}>
+      <Toaster position="top-center" richColors closeButton />
+      
+      <ConfirmModal
+        isOpen={confirmClear.isOpen}
+        onClose={() => setConfirmClear({ isOpen: false, type: null })}
+        onConfirm={handleConfirmClear}
+        title="Clear History"
+        message={`Are you sure you want to clear all ${confirmClear.type?.replace('-', ' ')} history forever?`}
+        confirmText="Clear All"
+        variant="danger"
+      />
+
+      <ConfirmModal
+        isOpen={!!pendingDownload}
+        onClose={() => setPendingDownload(null)}
+        onConfirm={() => pendingDownload && executeDownload(pendingDownload)}
+        title="Download Again?"
+        message={`You have already downloaded "${pendingDownload?.fileName || 'this file'}". Do you want to download it again?`}
+        confirmText="Download Again"
+        variant="primary"
+      />
+
       {showTutorial && <Tutorial onBack={() => { setShowTutorial(false); localStorage.setItem('smart_creator_onboarded', 'true'); }} />}
       
       {/* Side Menu Overlay */}

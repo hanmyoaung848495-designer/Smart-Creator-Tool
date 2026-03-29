@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Save, Download, Code, ArrowLeft, Terminal, Play, Settings, Moon, Sun } from 'lucide-react';
 import { Button, Card } from '../components/Shared';
+import { toast } from 'sonner';
 
 interface CodeEditorProps {
   onBack: () => void;
@@ -14,6 +15,21 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onBack }) => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
+
+  const [isExtDropdownOpen, setIsExtDropdownOpen] = useState(false);
+  const extDropdownRef = useRef<HTMLDivElement>(null);
+
+  const codeExtensions = [".js", ".ts", ".html", ".css", ".py", ".cpp", ".java", ".json", ".php", ".rb", ".go", ".rs", ".sql", ".sh"];
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (extDropdownRef.current && !extDropdownRef.current.contains(event.target as Node)) {
+        setIsExtDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleScroll = () => {
     if (textareaRef.current && lineNumbersRef.current) {
@@ -39,7 +55,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onBack }) => {
         const writable = await handle.createWritable();
         await writable.write(blob);
         await writable.close();
-        alert('Code saved successfully!');
+        toast.success('Code saved successfully!', {
+          icon: '💾',
+          style: { borderRadius: '1rem' }
+        });
         return;
       }
     } catch (err: any) {
@@ -133,20 +152,32 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onBack }) => {
               placeholder="File name"
               className="col-span-1 sm:w-32 px-3 py-2 sm:py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 outline-none font-mono"
             />
-            <select
-              value={fileExt}
-              onChange={(e) => setFileExt(e.target.value)}
-              className="col-span-1 px-2 py-2 sm:py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 outline-none font-mono font-bold"
-            >
-              <option value=".js" className="text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">.js</option>
-              <option value=".ts" className="text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">.ts</option>
-              <option value=".html" className="text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">.html</option>
-              <option value=".css" className="text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">.css</option>
-              <option value=".py" className="text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">.py</option>
-              <option value=".cpp" className="text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">.cpp</option>
-              <option value=".java" className="text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">.java</option>
-              <option value=".json" className="text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">.json</option>
-            </select>
+            <div className="relative col-span-1" ref={extDropdownRef}>
+              <input
+                type="text"
+                value={fileExt}
+                onChange={(e) => setFileExt(e.target.value)}
+                onFocus={() => setIsExtDropdownOpen(true)}
+                placeholder=".ext"
+                className="w-20 px-2 py-2 sm:py-1.5 text-sm rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 outline-none font-mono font-bold"
+              />
+              {isExtDropdownOpen && (
+                <div className="absolute top-full left-0 mt-1 w-24 max-h-32 overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 no-scrollbar">
+                  {codeExtensions.map(ext => (
+                    <button
+                      key={ext}
+                      onClick={() => {
+                        setFileExt(ext);
+                        setIsExtDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-700 dark:text-gray-300 font-mono"
+                    >
+                      {ext}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <Button onClick={handleSaveAs} className="col-span-2 sm:col-span-1 py-2 sm:py-1.5 px-4 flex items-center justify-center gap-2 text-sm whitespace-nowrap">
               <Save size={16} /> Save As
             </Button>
