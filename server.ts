@@ -10,358 +10,300 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Initialize Supabase
+  // ===== Supabase =====
   const supabaseUrl = process.env.VITE_SUPABASE_URL;
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
-  const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+  const supabase =
+    supabaseUrl && supabaseKey
+      ? createClient(supabaseUrl, supabaseKey)
+      : null;
 
-  // Initialize Telegram Bot
+  // ===== Telegram Bot =====
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const adminChatId = process.env.TELEGRAM_CHAT_ID;
-  const appUrl = process.env.APP_URL; // Get the app URL from environment
+
   let bot: TelegramBot | null = null;
 
   if (botToken) {
-    // Initialize bot without polling for Vercel/Serverless
     bot = new TelegramBot(botToken, { polling: false });
-    console.log("Telegram bot initialized (Webhook mode).");
+    console.log("✅ Telegram bot initialized (webhook mode)");
 
+    // ===== DEBUG =====
     bot.on("message", (msg) => {
-      console.log(`[Bot] Message from ${msg.chat.id}: ${msg.text}`);
+      console.log(`📩 ${msg.chat.id}: ${msg.text}`);
     });
 
+    // ===== COMMANDS =====
     bot.onText(/\/start/, (msg) => {
-      bot?.sendMessage(msg.chat.id, "👋 Welcome! Use /help to see commands.");
+      bot?.sendMessage(msg.chat.id, "👋 Welcome! Use /help");
     });
 
     bot.onText(/\/help/, (msg) => {
-      const currentId = String(msg.chat.id).trim();
-      const expectedId = String(adminChatId).trim();
-      
-      if (currentId !== expectedId) {
-        bot?.sendMessage(msg.chat.id, `⚠️ Unauthorized. Your ID is: ${currentId}. Please update your Environment Variables if this is you.`);
-        return;
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+        return bot?.sendMessage(
+          msg.chat.id,
+          `⚠️ Unauthorized. Your ID: ${msg.chat.id}`
+        );
       }
-      const helpText = `
-🤖 *Smart Creator Tools Bot*
 
-📊 *Analytics:*
-/stats - Today's visitors
-/stats all - All time visitors
-/stats YYYY-MM-DD - Visitors on a specific date
+      bot?.sendMessage(
+        msg.chat.id,
+        `🤖 Commands:
 
-📚 *Tutorials:*
-/post Title | Video Id | Time start | content | [tool_key] - Add a new tutorial
-💡 *Tool Keys:* transcribe, srt_generator, srt_translate, text_to_srt, script_writer, translator, teleprompter, ai_voice, api_key
+/stats - Today stats
+/stats all
+/stats YYYY-MM-DD
 
-/listposts - List all tutorial videos
-/delpost [id] - Delete a tutorial by ID
+/post Title | VideoId | Time | Content | tool
+/listposts
+/delpost id
 
-🎵 *Playlists:*
-/playlist Video1Id | Time1 | Video2Id | Time2 | ... - Set the header video playlist
-/listplaylist - List current playlist videos
-/delplaylist - Clear the playlist
-      `;
-      bot?.sendMessage(msg.chat.id, helpText, { parse_mode: "Markdown" });
+/playlist Video | Time ...
+/listplaylist
+/delplaylist`,
+        { parse_mode: "Markdown" }
+      );
     });
 
+    // ===== STATS =====
     bot.onText(/\/stats(?:\s+(.*))?/, async (msg, match) => {
-      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
-        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-        return;
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+        return bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized");
       }
       if (!supabase) {
-        bot?.sendMessage(msg.chat.id, "Supabase is not configured.");
-        return;
+        return bot?.sendMessage(msg.chat.id, "Supabase not configured");
       }
 
       const param = match?.[1]?.trim();
-      let query = supabase.from('analytics').select('tool', { count: 'exact' });
+      let query = supabase.from("analytics").select("tool", { count: "exact" });
 
-      let dateStr = "Today";
-      if (param === 'all') {
-        dateStr = "All Time";
+      let label = "Today";
+
+      if (param === "all") {
+        label = "All Time";
       } else if (param) {
-        dateStr = param;
-        query = query.like('timestamp', `${param}%`);
+        label = param;
+        query = query.like("timestamp", `${param}%`);
       } else {
-        const today = new Date().toISOString().split('T')[0];
-        query = query.like('timestamp', `${today}%`);
+        const today = new Date().toISOString().split("T")[0];
+        query = query.like("timestamp", `${today}%`);
       }
 
       const { data, count, error } = await query;
 
       if (error) {
-        bot?.sendMessage(msg.chat.id, `Error fetching stats: ${error.message}`);
-        return;
+        return bot?.sendMessage(msg.chat.id, error.message);
       }
 
       const toolCounts: Record<string, number> = {};
-      data?.forEach(row => {
-        toolCounts[row.tool] = (toolCounts[row.tool] || 0) + 1;
+      data?.forEach((r) => {
+        toolCounts[r.tool] = (toolCounts[r.tool] || 0) + 1;
       });
 
-      let statsText = `📊 *Stats for ${dateStr}*\n\nTotal Interactions: ${count}\n\n*Tool Usage:*\n`;
-      for (const [tool, c] of Object.entries(toolCounts)) {
-        statsText += `- ${tool}: ${c}\n`;
+      let text = `📊 Stats (${label})\nTotal: ${count}\n\n`;
+      for (const [k, v] of Object.entries(toolCounts)) {
+        text += `- ${k}: ${v}\n`;
       }
 
-      bot?.sendMessage(msg.chat.id, statsText, { parse_mode: "Markdown" });
+      bot?.sendMessage(msg.chat.id, text);
     });
 
+    // ===== POST =====
     bot.onText(/\/post\s+(.*)/, async (msg, match) => {
-      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
-        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-        return;
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+        return bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized");
       }
       if (!supabase) return;
 
-      const input = match?.[1];
-      if (!input) return;
-
-      const parts = input.split('|').map(p => p.trim());
-      if (parts.length < 4) {
-        bot?.sendMessage(msg.chat.id, "Invalid format. Use: /post Title | Video Id | Time start | content | [tool_key]");
-        return;
+      const parts = match?.[1]?.split("|").map((p) => p.trim());
+      if (!parts || parts.length < 4) {
+        return bot?.sendMessage(msg.chat.id, "Invalid format");
       }
 
       const [title, video_id, time_start, content, tool_key] = parts;
 
-      const { error } = await supabase.from('tutorials').insert([{
-        title, video_id, time_start, content, tool_key: tool_key || null
-      }]);
+      const { error } = await supabase.from("tutorials").insert([
+        {
+          title,
+          video_id,
+          time_start,
+          content,
+          tool_key: tool_key || null,
+        },
+      ]);
 
-      if (error) {
-        bot?.sendMessage(msg.chat.id, `Error adding tutorial: ${error.message}`);
-      } else {
-        bot?.sendMessage(msg.chat.id, "✅ Tutorial added successfully.");
-      }
+      bot?.sendMessage(
+        msg.chat.id,
+        error ? error.message : "✅ Added"
+      );
     });
 
+    // ===== LIST POSTS =====
     bot.onText(/\/listposts/, async (msg) => {
-      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
-        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-        return;
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+        return bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized");
       }
       if (!supabase) return;
 
-      const { data, error } = await supabase
-        .from('tutorials')
-        .select('id, title, tool_key')
-        .order('id', { ascending: true });
+      const { data } = await supabase
+        .from("tutorials")
+        .select("id,title");
 
-      if (error) {
-        bot?.sendMessage(msg.chat.id, `Error fetching tutorials: ${error.message}`);
-        return;
+      if (!data?.length) {
+        return bot?.sendMessage(msg.chat.id, "No posts");
       }
 
-      if (!data || data.length === 0) {
-        bot?.sendMessage(msg.chat.id, "No tutorials found.");
-        return;
-      }
-
-      let listText = "📚 *Tutorial List:*\n\n";
-      data.forEach(t => {
-        listText += `🆔 \`${t.id}\` | *${t.title}* ${t.tool_key ? `(\`${t.tool_key}\`)` : ""}\n`;
+      let text = "📚 Tutorials\n\n";
+      data.forEach((t) => {
+        text += `${t.id} - ${t.title}\n`;
       });
 
-      bot?.sendMessage(msg.chat.id, listText, { parse_mode: "Markdown" });
+      bot?.sendMessage(msg.chat.id, text);
     });
 
+    // ===== DELETE POST =====
     bot.onText(/\/delpost\s+(.*)/, async (msg, match) => {
-      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
-        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-        return;
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+        return bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized");
       }
       if (!supabase) return;
 
-      const id = match?.[1]?.trim();
-      if (!id) return;
+      const id = match?.[1];
 
-      const { error } = await supabase.from('tutorials').delete().eq('id', id);
+      await supabase.from("tutorials").delete().eq("id", id);
 
-      if (error) {
-        bot?.sendMessage(msg.chat.id, `Error deleting tutorial: ${error.message}`);
-      } else {
-        bot?.sendMessage(msg.chat.id, `✅ Tutorial ${id} deleted.`);
-      }
+      bot?.sendMessage(msg.chat.id, "✅ Deleted");
     });
 
+    // ===== PLAYLIST =====
     bot.onText(/\/playlist\s+(.*)/, async (msg, match) => {
-      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
-        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-        return;
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+        return bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized");
       }
       if (!supabase) return;
 
-      const input = match?.[1];
-      if (!input) return;
-
-      const parts = input.split('|').map(p => p.trim());
-      if (parts.length % 2 !== 0) {
-        bot?.sendMessage(msg.chat.id, "Invalid format. Must be pairs of Video ID and Time start.");
-        return;
+      const parts = match?.[1]?.split("|").map((p) => p.trim());
+      if (!parts || parts.length % 2 !== 0) {
+        return bot?.sendMessage(msg.chat.id, "Invalid format");
       }
 
-      // First clear existing
-      await supabase.from('playlists').delete().neq('id', 0);
+      await supabase.from("playlists").delete().neq("id", 0);
 
       const inserts = [];
       for (let i = 0; i < parts.length; i += 2) {
         inserts.push({
           video_id: parts[i],
-          time_start: parseInt(parts[i+1]) || 0,
-          order_index: i / 2
+          time_start: Number(parts[i + 1]) || 0,
+          order_index: i / 2,
         });
       }
 
-      const { error } = await supabase.from('playlists').insert(inserts);
+      await supabase.from("playlists").insert(inserts);
 
-      if (error) {
-        bot?.sendMessage(msg.chat.id, `Error setting playlist: ${error.message}`);
-      } else {
-        bot?.sendMessage(msg.chat.id, `✅ Playlist updated with ${inserts.length} videos.`);
-      }
+      bot?.sendMessage(msg.chat.id, "✅ Playlist updated");
     });
 
     bot.onText(/\/listplaylist/, async (msg) => {
-      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
-        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-        return;
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+        return bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized");
       }
       if (!supabase) return;
 
-      const { data, error } = await supabase
-        .from('playlists')
-        .select('id, video_id, order_index')
-        .order('order_index', { ascending: true });
+      const { data } = await supabase
+        .from("playlists")
+        .select("*")
+        .order("order_index");
 
-      if (error) {
-        bot?.sendMessage(msg.chat.id, `Error fetching playlist: ${error.message}`);
-        return;
+      if (!data?.length) {
+        return bot?.sendMessage(msg.chat.id, "Empty");
       }
 
-      if (!data || data.length === 0) {
-        bot?.sendMessage(msg.chat.id, "Playlist is empty.");
-        return;
-      }
-
-      let listText = "🎵 *Current Playlist:*\n\n";
-      data.forEach(p => {
-        listText += `🔹 Order: ${p.order_index} | Video ID: \`${p.video_id}\`\n`;
+      let text = "🎵 Playlist\n\n";
+      data.forEach((p) => {
+        text += `${p.order_index} - ${p.video_id}\n`;
       });
 
-      bot?.sendMessage(msg.chat.id, listText, { parse_mode: "Markdown" });
+      bot?.sendMessage(msg.chat.id, text);
     });
 
     bot.onText(/\/delplaylist/, async (msg) => {
-      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
-        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-        return;
+      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+        return bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized");
       }
       if (!supabase) return;
 
-      const { error } = await supabase.from('playlists').delete().neq('id', 0);
+      await supabase.from("playlists").delete().neq("id", 0);
 
-      if (error) {
-        bot?.sendMessage(msg.chat.id, `Error clearing playlist: ${error.message}`);
-      } else {
-        bot?.sendMessage(msg.chat.id, "✅ Playlist cleared.");
-      }
+      bot?.sendMessage(msg.chat.id, "✅ Cleared");
     });
   }
 
-  // API routes
-  app.post("/api/telegram-webhook", async (req, res) => {
+  // ===== 🔥 WEBHOOK =====
+  app.post("/api/telegram-webhook", (req, res) => {
+    console.log("🔥 Webhook hit");
+
     if (bot) {
       try {
-        // Vercel မှာ function မသေသွားအောင် await ခံပေးဖို့ လိုပါတယ်
-        await bot.processUpdate(req.body);
+        bot.processUpdate(req.body);
       } catch (err) {
-        console.error("Bot update error:", err);
+        console.error("Webhook error:", err);
       }
     }
+
     res.sendStatus(200);
   });
 
+  // ===== FEEDBACK =====
   app.post("/api/feedback", async (req, res) => {
     const { name, contact, message } = req.body;
 
     if (!name || !contact || !message) {
-      return res.status(400).json({ error: "All fields are required" });
+      return res.status(400).json({ error: "Missing fields" });
     }
-
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const chatId = process.env.TELEGRAM_CHAT_ID;
-
-    if (!botToken || !chatId) {
-      console.error("Telegram credentials missing in environment variables");
-      return res.status(500).json({ error: "Feedback service not configured" });
-    }
-
-    const text = `<b>New Feedback Received</b>\n\n` +
-      `<b>Name:</b> <code>${name}</code>\n` +
-      `<b>Contact:</b> <code>${contact}</code>\n` +
-      `<b>Message:</b>\n<code>${message}</code>`;
 
     try {
-      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: text,
-          parse_mode: "HTML",
-        }),
-      });
+      await fetch(
+        `https://api.telegram.org/bot${botToken}/sendMessage`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: adminChatId,
+            text: `Feedback:\n${name}\n${contact}\n${message}`,
+          }),
+        }
+      );
 
-      if (response.ok) {
-        res.json({ success: true });
-      } else {
-        const errorData = await response.json();
-        console.error("Telegram API error:", errorData);
-        res.status(500).json({ error: "Failed to send feedback" });
-      }
-    } catch (error) {
-      console.error("Error sending feedback to Telegram:", error);
-      res.status(500).json({ error: "Internal server error" });
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed" });
     }
   });
 
+  // ===== LOGIN =====
   app.post("/api/login", (req, res) => {
     const { id, password } = req.body;
 
-    if (!id || !password) {
-      return res.status(400).json({ error: "ID and Password are required" });
-    }
-
-    // Search for matching credentials in environment variables
-    // Format: SYSTEM_KEY_1_ID, SYSTEM_KEY_1_PASS, SYSTEM_KEY_1_VALUE
     let i = 1;
-    let foundKey = null;
-
     while (true) {
       const envId = process.env[`SYSTEM_KEY_${i}_ID`];
-      const envPass = process.env[`SYSTEM_KEY_${i}_PASS`];
-      const envValue = process.env[`SYSTEM_KEY_${i}_VALUE`];
+      if (!envId) break;
 
-      if (!envId) break; // No more keys defined
-
-      if (envId === id && envPass === password) {
-        foundKey = envValue;
-        break;
+      if (
+        envId === id &&
+        process.env[`SYSTEM_KEY_${i}_PASS`] === password
+      ) {
+        return res.json({
+          apiKey: process.env[`SYSTEM_KEY_${i}_VALUE`],
+        });
       }
       i++;
     }
 
-    if (foundKey) {
-      return res.json({ apiKey: foundKey });
-    } else {
-      return res.status(401).json({ error: "Invalid ID or Password" });
-    }
+    res.status(401).json({ error: "Invalid" });
   });
 
-  // Vite middleware for development
+  // ===== VITE =====
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -369,15 +311,15 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    app.get("*", (_, res) =>
+      res.sendFile(path.join(distPath, "index.html"))
+    );
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Server running on port ${PORT}`);
   });
 }
 
