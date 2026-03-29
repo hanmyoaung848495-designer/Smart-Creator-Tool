@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import TelegramBot from "node-telegram-bot-api";
 import { createClient } from "@supabase/supabase-js";
@@ -17,11 +16,10 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 // Initialize Telegram Bot
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const adminChatId = process.env.TELEGRAM_CHAT_ID;
-const appUrl = process.env.APP_URL; // Get the app URL from environment
+const appUrl = process.env.APP_URL; 
 let bot: TelegramBot | null = null;
 
 if (botToken) {
-  // Initialize bot without polling for Vercel/Serverless
   bot = new TelegramBot(botToken, { polling: false });
   console.log("Telegram bot initialized (Webhook mode).");
 
@@ -271,24 +269,39 @@ if (botToken) {
 }
 
 // API routes
-app.post("/api/telegram-webhook", (req, res) => {
-  if (bot) {
-    bot.processUpdate(req.body);
-  }
-  res.sendStatus(200);
+app.use((req, res, next) => {
+  console.log(`[Server] ${req.method} ${req.url}`);
+  next();
 });
 
-app.post("/api/feedback", async (req, res) => {
+app.get("/api/telegram-webhook", (req, res) => {
+  res.send("🤖 Telegram Bot Webhook is active. Please send a POST request.");
+});
+
+app.post(["/api/telegram-webhook", "/telegram-webhook"], (req, res) => {
+  console.log(`[Webhook] Received update: ${JSON.stringify(req.body)}`);
+  if (bot) {
+    try {
+      bot.processUpdate(req.body);
+      res.status(200).send("OK");
+    } catch (err) {
+      console.error("[Webhook] Error processing update:", err);
+      res.status(500).send("Error processing update");
+    }
+  } else {
+    console.error("[Webhook] Bot not initialized");
+    res.status(500).send("Bot not initialized");
+  }
+});
+
+app.post(["/api/feedback", "/feedback"], async (req, res) => {
   const { name, contact, message } = req.body;
 
   if (!name || !contact || !message) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
-  const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
-
-  if (!botToken || !chatId) {
+  if (!botToken || !adminChatId) {
     console.error("Telegram credentials missing in environment variables");
     return res.status(500).json({ error: "Feedback service not configured" });
   }
@@ -303,7 +316,7 @@ app.post("/api/feedback", async (req, res) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        chat_id: chatId,
+        chat_id: adminChatId,
         text: text,
         parse_mode: "HTML",
       }),
@@ -322,24 +335,23 @@ app.post("/api/feedback", async (req, res) => {
   }
 });
 
-app.post("/api/login", (req, res) => {
-  const { id, password } = req.body;
+app.post(["/api/login", "/login"], (req, res) => {
+  const id = req.body.id?.toString().trim();
+  const password = req.body.password?.toString().trim();
 
   if (!id || !password) {
     return res.status(400).json({ error: "ID and Password are required" });
   }
 
-  // Search for matching credentials in environment variables
-  // Format: SYSTEM_KEY_1_ID, SYSTEM_KEY_1_PASS, SYSTEM_KEY_1_VALUE
   let i = 1;
   let foundKey = null;
 
-  while (true) {
+  while (i <= 10) {
     const envId = process.env[`SYSTEM_KEY_${i}_ID`];
     const envPass = process.env[`SYSTEM_KEY_${i}_PASS`];
     const envValue = process.env[`SYSTEM_KEY_${i}_VALUE`];
 
-    if (!envId) break; // No more keys defined
+    if (!envId) break;
 
     if (envId === id && envPass === password) {
       foundKey = envValue;
@@ -356,20 +368,24 @@ app.post("/api/login", (req, res) => {
 });
 
 // Vite middleware for development
-if (process.env.NODE_ENV !== "production") {
-  createViteServer({
-    server: { middlewareMode: true },
-    appType: "spa",
-  }).then(vite => {
+async function setupVite() {
+  if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: "spa",
+    });
     app.use(vite.middlewares);
-  });
-} else {
-  const distPath = path.join(process.cwd(), 'dist');
-  app.use(express.static(distPath));
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
+  } else {
+    const distPath = path.join(process.cwd(), 'dist');
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
+    });
+  }
 }
+
+setupVite();
 
 // Export for Vercel
 export default app;
