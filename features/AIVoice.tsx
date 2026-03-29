@@ -28,9 +28,12 @@ interface AIVoiceProps {
 }
 
 const VOICES = [
-  'Puck', 'Charon', 'Kore', 'Fenrir', 'Zephyr', 'Aoede', 'Orpheus', 
-  'Cassiopeia', 'Rigel', 'Castor', 'Pollux', 'Lyra', 'Vega', 'Deneb', 
-  'Altair', 'Antares', 'Sirius', 'Canopus', 'Capella', 'Arcturus'
+  'Zephyr', 'Charon', 'Kore', 'Fenrir', 'Leda', 'Orus', 'Aoede', 
+  'Callirrhoe', 'Autonoe', 'Enceladus', 'lapetus', 'Umbriel', 
+  'Algieba', 'Despina', 'Erinome', 'Algenib', 'Rasalgethi', 
+  'Laomedeia', 'Achernar', 'Alnilam', 'Schedar', 'Garcux', 
+  'Pulcherrima', 'Achird', 'Zubenelgenubi', 'Vindemiatrix', 
+  'Sadachbia', 'Sadaltager', 'Sulafat'
 ];
 
 const MODELS = [
@@ -47,7 +50,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   ]);
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-preview-tts');
   const [voice1, setVoice1] = useState('Kore');
-  const [voice2, setVoice2] = useState('Puck');
+  const [voice2, setVoice2] = useState('Charon');
   const [styleInstruction, setStyleInstruction] = useState('Read aloud in a warm and friendly tone: ');
   const [text, setText] = useState('');
   const [history, setHistory] = useState<VoiceHistory[]>([]);
