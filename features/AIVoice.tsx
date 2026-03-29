@@ -6,6 +6,7 @@ import { Card, Button, TextArea, Input, Select, ProgressBar, TutorialButton } fr
 import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2, X } from 'lucide-react';
 import { FeatureType, ProcessingTask, UserSession } from '../types';
 import { saveVoiceHistoryDB, loadVoiceHistoryDB } from '../services/storage';
+import { supabase } from '../lib/supabase';
 
 interface VoiceHistory {
   id: string;
@@ -32,7 +33,7 @@ const VOICES = [
 ];
 
 const MODELS = [
-  { label: 'Gemini 2.5 Pro (High Quality)', value: 'gemini-2.5-pro' },
+  { label: 'Gemini 2.5 Preview (High Quality)', value: 'gemini-2.5-preview-tts' },
   { label: 'Gemini 2.5 Flash (Fast)', value: 'gemini-2.5-flash-preview-tts' }
 ];
 
@@ -317,14 +318,50 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   };
 
   const previewVoice = async (voiceName: string) => {
-    if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
+    const cacheKey = `tts_preview_${voiceName}`;
+    const cachedAudio = localStorage.getItem(cacheKey);
+
+    if (cachedAudio) {
+      setIsPreviewing(voiceName);
+      const wavBlob = base64PcmToWavBlob(cachedAudio, 24000);
+      const url = URL.createObjectURL(wavBlob);
+      playAudio(url);
+      return;
+    }
 
     setIsPreviewing(voiceName);
+
+    // Check Supabase first (Global Cache)
+    try {
+      const { data, error } = await supabase
+        .from('tts_cache')
+        .select('audio_data')
+        .eq('voice_name', voiceName)
+        .single();
+      
+      if (data && data.audio_data) {
+        try {
+          localStorage.setItem(cacheKey, data.audio_data); // Cache locally for next time
+        } catch (e) {}
+        const wavBlob = base64PcmToWavBlob(data.audio_data, 24000);
+        const url = URL.createObjectURL(wavBlob);
+        playAudio(url);
+        return;
+      }
+    } catch (err) {
+      console.warn("Supabase cache check failed:", err);
+    }
+
+    if (!checkApiKey()) {
+      setIsPreviewing(null);
+      return;
+    }
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
+
     try {
       const ai = getAIClient(apiKey);
       const response = await ai.models.generateContent({
-        model: selectedModel,
+        model: 'gemini-2.5-flash-preview-tts', // Always use flash for preview to save quota
         contents: [{ parts: [{ text: `Hello, I am ${voiceName}.` }] }],
         config: {
           responseModalities: [Modality.AUDIO],
@@ -336,6 +373,19 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
       const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (base64Audio) {
+        try {
+          localStorage.setItem(cacheKey, base64Audio);
+        } catch (e) {
+          console.warn('Failed to cache preview audio (storage full?)', e);
+        }
+        
+        // Save to Supabase for others
+        supabase.from('tts_cache').insert([
+          { voice_name: voiceName, audio_data: base64Audio }
+        ]).then(({error}) => {
+          if (error) console.error("Failed to save to Supabase:", error);
+        });
+
         const wavBlob = base64PcmToWavBlob(base64Audio, 24000);
         const url = URL.createObjectURL(wavBlob);
         playAudio(url);
