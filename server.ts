@@ -22,9 +22,30 @@ async function startServer() {
 
   if (botToken) {
     bot = new TelegramBot(botToken, { polling: true });
+    bot.deleteWebHook(); // Clear any existing webhook to ensure polling works
+    console.log("Telegram bot initialized and webhook cleared.");
+
+    bot.on("polling_error", (error) => {
+      console.error("Telegram Polling Error:", error.message);
+    });
+
+    bot.on("error", (error) => {
+      console.error("Telegram General Error:", error.message);
+    });
+
+    bot.on("message", (msg) => {
+      console.log(`[Bot] Message from ${msg.chat.id} (${msg.from?.username}): ${msg.text}`);
+    });
+
+    bot.onText(/\/start/, (msg) => {
+      bot?.sendMessage(msg.chat.id, "👋 Welcome to Smart Creator Tools Bot! Use /help to see available commands.");
+    });
 
     bot.onText(/\/help/, (msg) => {
-      if (msg.chat.id.toString() !== adminChatId) return;
+      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+        bot?.sendMessage(msg.chat.id, "⚠️ You are not authorized to use admin commands.");
+        return;
+      }
       const helpText = `
 🤖 *Smart Creator Tools Bot*
 
@@ -49,7 +70,10 @@ async function startServer() {
     });
 
     bot.onText(/\/stats(?:\s+(.*))?/, async (msg, match) => {
-      if (msg.chat.id.toString() !== adminChatId) return;
+      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
+        return;
+      }
       if (!supabase) {
         bot?.sendMessage(msg.chat.id, "Supabase is not configured.");
         return;
@@ -90,7 +114,10 @@ async function startServer() {
     });
 
     bot.onText(/\/post\s+(.*)/, async (msg, match) => {
-      if (msg.chat.id.toString() !== adminChatId) return;
+      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
+        return;
+      }
       if (!supabase) return;
 
       const input = match?.[1];
@@ -116,7 +143,10 @@ async function startServer() {
     });
 
     bot.onText(/\/listposts/, async (msg) => {
-      if (msg.chat.id.toString() !== adminChatId) return;
+      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
+        return;
+      }
       if (!supabase) return;
 
       const { data, error } = await supabase
@@ -143,7 +173,10 @@ async function startServer() {
     });
 
     bot.onText(/\/delpost\s+(.*)/, async (msg, match) => {
-      if (msg.chat.id.toString() !== adminChatId) return;
+      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
+        return;
+      }
       if (!supabase) return;
 
       const id = match?.[1]?.trim();
@@ -159,7 +192,10 @@ async function startServer() {
     });
 
     bot.onText(/\/playlist\s+(.*)/, async (msg, match) => {
-      if (msg.chat.id.toString() !== adminChatId) return;
+      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
+        return;
+      }
       if (!supabase) return;
 
       const input = match?.[1];
@@ -193,7 +229,10 @@ async function startServer() {
     });
 
     bot.onText(/\/listplaylist/, async (msg) => {
-      if (msg.chat.id.toString() !== adminChatId) return;
+      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
+        return;
+      }
       if (!supabase) return;
 
       const { data, error } = await supabase
@@ -220,7 +259,10 @@ async function startServer() {
     });
 
     bot.onText(/\/delplaylist/, async (msg) => {
-      if (msg.chat.id.toString() !== adminChatId) return;
+      if (msg.chat.id.toString() !== adminChatId?.trim()) {
+        bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
+        return;
+      }
       if (!supabase) return;
 
       const { error } = await supabase.from('playlists').delete().neq('id', 0);
