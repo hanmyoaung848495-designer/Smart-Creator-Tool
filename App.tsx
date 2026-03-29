@@ -13,6 +13,8 @@ import TeleprompterFeature from './features/Teleprompter';
 import AIVoice from './features/AIVoice';
 import Tutorial from './features/Tutorial';
 import APIGuide from './features/APIGuide';
+import NotePad from './features/NotePad';
+import CodeEditor from './features/CodeEditor';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import { FeedbackModal } from './components/FeedbackModal';
@@ -264,6 +266,8 @@ const App: React.FC = () => {
       case 'ai-voice': return <AIVoice {...commonProps} />;
       case 'api-guide': return <APIGuide onBack={() => setActiveFeature('home')} />;
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
+      case 'note-pad': return <NotePad onBack={() => setActiveFeature('home')} />;
+      case 'code-editor': return <CodeEditor onBack={() => setActiveFeature('home')} />;
       default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
     }
   };

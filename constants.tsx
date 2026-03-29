@@ -50,6 +50,18 @@ export const FEATURES: FeatureCardData[] = [
     title: 'AI Voice',
     description: 'Generate high-quality AI voices from your text.',
     icon: '🗣️'
+  },
+  {
+    id: 'note-pad',
+    title: 'Note Pad',
+    description: 'Write, edit, and save your text notes easily.',
+    icon: '📓'
+  },
+  {
+    id: 'code-editor',
+    title: 'Code Editor',
+    description: 'Write and save code with syntax highlighting.',
+    icon: '💻'
   }
 ];
 
