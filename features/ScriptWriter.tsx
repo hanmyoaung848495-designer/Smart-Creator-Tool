@@ -56,7 +56,7 @@ const ScriptWriter: React.FC<Props> = ({
       }
     } else {
       // System mode: Require an API key
-      if (!process.env.GEMINI_API_KEY && !session.systemApiKey) {
+      if (!session.systemApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -68,7 +68,7 @@ const ScriptWriter: React.FC<Props> = ({
     if (!topic || activeTask) return;
     if (style === 'custom' && !customStyle) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
+    const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
     onStartTask('script-writer', `Writing Script: ${topic}`, async () => {
       const res = await writeScript(topic, finalStyle, length, lang, apiKey);
@@ -91,7 +91,7 @@ const ScriptWriter: React.FC<Props> = ({
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">AI Script Writer</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="5D66YbnUO1s" timestamp="10" />
+          <TutorialButton videoId="5D66YbnUO1s" timestamp="10" toolKey="script_writer" />
         </div>
       </div>
 

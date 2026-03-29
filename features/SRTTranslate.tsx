@@ -68,7 +68,7 @@ const SRTTranslate: React.FC<Props> = ({
       }
     } else {
       // System mode: Require an API key
-      if (!process.env.GEMINI_API_KEY && !session.systemApiKey) {
+      if (!session.systemApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -89,7 +89,7 @@ const SRTTranslate: React.FC<Props> = ({
   const handleTranslate = async () => {
     if (!srtContent || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
+    const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
     const finalFileName = getFinalFileName();
     const taskTitle = customFileName.trim() ? customFileName : (srtFile?.name || 'Pasted Text');
@@ -115,7 +115,7 @@ const SRTTranslate: React.FC<Props> = ({
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">SRT Translate</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="epA3sSWCLx4" timestamp="30" />
+          <TutorialButton videoId="epA3sSWCLx4" timestamp="30" toolKey="srt_translate" />
         </div>
       </div>
 

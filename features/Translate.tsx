@@ -52,7 +52,7 @@ const Translate: React.FC<Props> = ({
       }
     } else {
       // System mode: Require an API key
-      if (!process.env.GEMINI_API_KEY && !session.systemApiKey) {
+      if (!session.systemApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -63,7 +63,7 @@ const Translate: React.FC<Props> = ({
   const handleTranslate = async () => {
     if (!text || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
+    const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
     onStartTask('translate', `Translating to ${targetLang}`, async () => {
       const res = await translateText(text, targetLang, apiKey);
@@ -86,7 +86,7 @@ const Translate: React.FC<Props> = ({
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Translate</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="epA3sSWCLx4" timestamp="30" />
+          <TutorialButton videoId="epA3sSWCLx4" timestamp="30" toolKey="translator" />
         </div>
       </div>
 

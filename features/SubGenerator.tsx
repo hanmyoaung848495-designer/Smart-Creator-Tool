@@ -40,7 +40,7 @@ const SubGenerator: React.FC<Props> = ({
       }
     } else {
       // System mode: Require an API key
-      if (!process.env.GEMINI_API_KEY && !session.systemApiKey) {
+      if (!session.systemApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -51,7 +51,7 @@ const SubGenerator: React.FC<Props> = ({
   const processMedia = async () => {
     if (!file || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
+    const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
     onStartTask('sub-generator', `Generating SRT for ${file.name}`, async (taskId) => {
       return new Promise((resolve, reject) => {
@@ -86,7 +86,7 @@ const SubGenerator: React.FC<Props> = ({
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">SRT Generator</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="bKoi0NHV338" timestamp="0" />
+          <TutorialButton videoId="bKoi0NHV338" timestamp="0" toolKey="srt_generator" />
         </div>
       </div>
 

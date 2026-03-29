@@ -83,7 +83,11 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     loadHistory();
 
     audioRef.current = new Audio();
-    audioRef.current.onended = () => setIsPlaying(false);
+    audioRef.current.onended = () => {
+      setIsPlaying(false);
+      setAudioProgress(0);
+      setIsPreviewing(null);
+    };
     audioRef.current.ontimeupdate = () => {
       if (audioRef.current && audioRef.current.duration > 0) {
         setAudioProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
@@ -116,7 +120,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       }
     } else {
       // System mode: Require an API key
-      if (!process.env.GEMINI_API_KEY && !session.systemApiKey) {
+      if (!session.systemApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -135,7 +139,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     }
 
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
+    const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
 
     const displayTitle = mode === 'multi' && isDialogMode 
       ? dialogBlocks.find(b => b.text.trim())?.text.slice(0, 30) || 'Multi-speaker Dialog'
@@ -211,7 +215,6 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     }).catch(err => {
       const errMsg = err instanceof Error ? err.message : String(err);
       if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
-        alert(`Quota Exceeded or Rate Limited.\n\nNote: Gemini Pro models have a strict limit of 2 Requests Per Minute (RPM) on the free tier. Please wait a minute before trying again, or switch to the Flash model for a higher limit (15 RPM).\n\nError details: ${errMsg}`);
         setIsQuotaModalOpen(true);
       } else {
         alert('Generation failed: ' + errMsg);
@@ -398,7 +401,6 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       console.error('Preview failed:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
       if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
-        alert(`Quota Exceeded or Rate Limited.\n\nNote: Gemini Pro models have a strict limit of 2 Requests Per Minute (RPM) on the free tier. Please wait a minute before trying again, or switch to the Flash model for a higher limit (15 RPM).\n\nError details: ${errMsg}`);
         setIsQuotaModalOpen(true);
       } else {
         alert('Preview failed: ' + errMsg);
@@ -451,7 +453,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             <p className="text-gray-600 leading-relaxed font-medium">
               လူကြီးမင်းထည့်ထားသော APIမှာ Quotaပြည့်သွားပါသဖြင့်အသုံးပြု၍မရတော့ပါ။ 
               <br/><br/>
-              <span className="text-indigo-600 font-bold">မှတ်ချက်:</span> Gemini Pro model များသည် Free Tier တွင် တစ်မိနစ်လျှင် ၂ ကြိမ် (2 RPM) သာ အသုံးပြုခွင့်ရှိပါသည်။ ခဏစောင့်ပြီးမှ ပြန်လည်ကြိုးစားပေးပါ သို့မဟုတ် ပိုမိုမြန်ဆန်သော Flash model ကို ပြောင်းလဲအသုံးပြုပေးပါ။
+              <span className="text-indigo-600 font-bold">မှတ်ချက်:</span> Gemini AI model များသည် Free Tier တွင် အသုံးပြုမှု အကန့်အသတ် ရှိပါသည်။ ခဏစောင့်ပြီးမှ ပြန်လည်ကြိုးစားပေးပါ သို့မဟုတ် ပိုမိုမြန်ဆန်သော Flash model ကို ပြောင်းလဲအသုံးပြုပေးပါ။
             </p>
             <Button 
               onClick={() => setIsQuotaModalOpen(false)}
@@ -518,7 +520,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">AI Voice Generator</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" />
+          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" toolKey="ai_voice" />
         </div>
       </div>
 

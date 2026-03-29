@@ -156,7 +156,7 @@ const TextToSRT: React.FC<Props> = ({
           </div>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" />
+          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" toolKey="text_to_srt" />
         </div>
       </div>
 

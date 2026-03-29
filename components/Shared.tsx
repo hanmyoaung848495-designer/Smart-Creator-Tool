@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserProfile, UserSession } from '../types';
 import { Play, Minus } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
   <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden ${className}`}>
@@ -73,7 +74,7 @@ export const ApiKeyManager: React.FC<{
             onChange={(e) => onUpdate({ customApiKey: e.target.value })}
             className="flex-grow w-full px-4 py-2 text-xs rounded-xl border border-blue-200 dark:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:text-gray-100"
           />
-          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" label="API Key ယူနည်း" />
+          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" label="API Key ယူနည်း" toolKey="api_key" />
         </div>
       )}
     </div>
@@ -234,7 +235,7 @@ export const Modal: React.FC<{
 }> = ({ isOpen, onClose, title, children, hideClose, hideBottomClose, maxWidth = "max-w-2xl", compact }) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
       <div className={`bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full ${maxWidth} max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300`}>
         <div className={`flex items-center justify-between ${compact ? 'p-3 px-6' : 'p-6'} border-b border-gray-100 dark:border-gray-700`}>
           <h3 className={`${compact ? 'text-xs uppercase tracking-widest' : 'text-xl'} font-bold text-gray-900 dark:text-gray-100`}>{title}</h3>
@@ -257,9 +258,9 @@ export const Modal: React.FC<{
   );
 };
 
-export const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string }> = ({ videoId, timestamp }) => {
+export const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string; autoplay?: boolean }> = ({ videoId, timestamp, autoplay = false }) => {
   const start = timestamp ? parseInt(timestamp) : 0;
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?start=${start}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&color=white&autoplay=1`;
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?start=${start}&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&color=white&autoplay=${autoplay ? 1 : 0}`;
 
   return (
     <div className="relative w-full aspect-video overflow-hidden bg-black shadow-inner group">
@@ -275,8 +276,30 @@ export const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string }> = (
   );
 };
 
-export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; iconOnly?: boolean; label?: string }> = ({ videoId, timestamp, iconOnly, label = "Tutorial" }) => {
+export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; iconOnly?: boolean; label?: string; toolKey?: string }> = ({ videoId, timestamp, iconOnly, label = "Tutorial", toolKey }) => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const [dynamicVideo, setDynamicVideo] = useState<{id: string, start: string} | null>(null);
+
+  useEffect(() => {
+    const fetchToolTutorial = async () => {
+      if (!supabase || !toolKey) return;
+      const { data, error } = await supabase
+        .from('tutorials')
+        .select('video_id, time_start')
+        .eq('tool_key', toolKey)
+        .order('id', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (!error && data) {
+        setDynamicVideo({ id: data.video_id, start: data.time_start?.toString() || '0' });
+      }
+    };
+    fetchToolTutorial();
+  }, [toolKey]);
+
+  const finalVideoId = dynamicVideo?.id || videoId;
+  const finalTimestamp = dynamicVideo?.start || timestamp;
 
   return (
     <>
@@ -301,7 +324,7 @@ export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; ico
         maxWidth="max-w-4xl"
         compact={true}
       >
-        <YouTubeEmbed videoId={videoId} timestamp={timestamp} />
+        <YouTubeEmbed videoId={finalVideoId} timestamp={finalTimestamp} />
       </Modal>
     </>
   );

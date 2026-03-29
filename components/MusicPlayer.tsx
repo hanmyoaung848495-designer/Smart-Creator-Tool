@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, SkipBack, SkipForward, ChevronDown, Minus } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
-const PLAYLIST = [
+const DEFAULT_PLAYLIST = [
   { id: 'nC_ukkiLuXY', start: 2 },
   { id: 'JUSeIfAtzPM', start: 11 },
   { id: 'K2FAoUg_Q3E', start: 55 },
@@ -23,6 +24,7 @@ declare global {
 }
 
 const MusicPlayer: React.FC = () => {
+  const [playlist, setPlaylist] = useState<{id: string, start: number}[]>(DEFAULT_PLAYLIST);
   const [isActive, setIsActive] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -33,6 +35,19 @@ const MusicPlayer: React.FC = () => {
   const playerRef = useRef<any>(null);
 
   useEffect(() => {
+    const fetchPlaylist = async () => {
+      if (!supabase) return;
+      const { data, error } = await supabase
+        .from('playlists')
+        .select('*')
+        .order('order_index', { ascending: true });
+      
+      if (!error && data && data.length > 0) {
+        setPlaylist(data.map(item => ({ id: item.video_id, start: item.time_start })));
+      }
+    };
+    fetchPlaylist();
+
     // Load YouTube API
     if (!window.YT) {
       const tag = document.createElement('script');
@@ -57,10 +72,10 @@ const MusicPlayer: React.FC = () => {
       playerRef.current = new window.YT.Player('youtube-player', {
         height: '100%',
         width: '100%',
-        videoId: PLAYLIST[currentIndex].id,
+        videoId: playlist[currentIndex].id,
         playerVars: {
-          autoplay: 1,
-          start: PLAYLIST[currentIndex].start,
+          autoplay: 0,
+          start: playlist[currentIndex].start,
           controls: 1,
           modestbranding: 1,
           rel: 0,
@@ -87,8 +102,8 @@ const MusicPlayer: React.FC = () => {
     if (playerRef.current && isReady && isActive) {
       if (playerRef.current.loadVideoById) {
         playerRef.current.loadVideoById({
-          videoId: PLAYLIST[currentIndex].id,
-          startSeconds: PLAYLIST[currentIndex].start,
+          videoId: playlist[currentIndex].id,
+          startSeconds: playlist[currentIndex].start,
         });
       }
       if (!isPlaying && playerRef.current.pauseVideo) {
@@ -110,7 +125,7 @@ const MusicPlayer: React.FC = () => {
   const togglePlayer = () => {
     if (!isActive) {
       setIsActive(true);
-      setIsPlaying(true);
+      setIsPlaying(false); // Disable autoplay for the first video
       setShowToast(true);
       setShowVideo(true); // Open video immediately
       setShowControls(true);
@@ -132,12 +147,12 @@ const MusicPlayer: React.FC = () => {
   };
 
   const nextTrack = () => {
-    setCurrentIndex((prev) => (prev + 1) % PLAYLIST.length);
+    setCurrentIndex((prev) => (prev + 1) % playlist.length);
     setIsPlaying(true);
   };
 
   const prevTrack = () => {
-    setCurrentIndex((prev) => (prev - 1 + PLAYLIST.length) % PLAYLIST.length);
+    setCurrentIndex((prev) => (prev - 1 + playlist.length) % playlist.length);
     setIsPlaying(true);
   };
 

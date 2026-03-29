@@ -18,10 +18,20 @@ import CodeEditor from './features/CodeEditor';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import { FeedbackModal } from './components/FeedbackModal';
-import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
+import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText } from 'lucide-react';
+import { trackEvent } from './lib/analytics';
 
 const App: React.FC = () => {
   const [activeFeature, setActiveFeature] = useState<FeatureType>('home');
+  
+  useEffect(() => {
+    if (activeFeature !== 'home') {
+      trackEvent('view_tool', activeFeature);
+    } else {
+      trackEvent('visit', 'home');
+    }
+  }, [activeFeature]);
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
@@ -583,13 +593,17 @@ const App: React.FC = () => {
           <FeedbackModal />
           <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-5 mt-auto">
           <div className="max-w-7xl mx-auto px-6 text-center">
-            <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[10px] sm:text-[13px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">
-              <button onClick={() => setModalType('privacy')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Privacy</button>
+            <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[11px] sm:text-[13px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">
+              <button onClick={() => setModalType('privacy')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
+                <Shield size={16} /> Privacy
+              </button>
               <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
-              <button onClick={() => setModalType('terms')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">Terms</button>
+              <button onClick={() => setModalType('terms')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
+                <FileText size={16} /> Terms
+              </button>
               <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
-              <a href="https://t.me/kcteamofficialbot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap">
-                Contact
+              <a href="https://t.me/kcteamofficialbot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
+                <Send size={16} /> Contact
               </a>
             </div>
             <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-300 px-4 leading-relaxed flex items-center justify-center gap-2">

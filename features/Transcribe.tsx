@@ -43,7 +43,7 @@ const Transcribe: React.FC<Props> = ({
       }
     } else {
       // System mode: Require an API key
-      if (!process.env.GEMINI_API_KEY && !session.systemApiKey) {
+      if (!session.systemApiKey) {
         onRequireApiKey();
         return false;
       }
@@ -60,7 +60,7 @@ const Transcribe: React.FC<Props> = ({
   const processFileUpload = async () => {
     if (!file || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
+    const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
     onStartTask('transcribe', `Generating Script for ${file.name}`, async (taskId) => {
       return new Promise((resolve, reject) => {
@@ -88,7 +88,7 @@ const Transcribe: React.FC<Props> = ({
   const processYoutubeLink = async () => {
     if (!ytUrl || activeTask) return;
     if (!checkApiKey()) return;
-    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
+    const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
     onStartTask('transcribe', `Video Script AI: ${ytUrl.substring(0, 30)}...`, async () => {
       const resData = await transcribeYoutubeLink(ytUrl, apiKey, translateBurmese);
@@ -115,7 +115,7 @@ const Transcribe: React.FC<Props> = ({
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Transcribe</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="Xdd9xScgNPM" timestamp="30" />
+          <TutorialButton videoId="Xdd9xScgNPM" timestamp="30" toolKey="transcribe" />
         </div>
       </div>
 

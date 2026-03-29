@@ -1,16 +1,18 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Card } from '../components/Shared';
 import { ArrowLeft, Play, Info } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface TutorialItem {
+  id?: number;
   title: string;
   description: string;
   videoId?: string;
   timestamp?: string;
 }
 
-const TUTORIALS: TutorialItem[] = [
+const DEFAULT_TUTORIALS: TutorialItem[] = [
   {
     title: "Transcribe (အသံဖိုင်မှ စာသားပြောင်းခြင်း)",
     description: "Tutorial videoတွေမလုပ်ရသေးလို့ သီချင်းလေးပဲနားထောင်ပေးပါဦး။ \n ဗီဒီယို သို့မဟုတ် အသံဖိုင်များမှ စကားပြောများကို စာသားအဖြစ် အလိုအလျောက် ပြောင်းလဲပေးပါသည်။ YouTube Link များမှလည်း တိုက်ရိုက် ပြောင်းလဲနိုင်ပါသည်။",
@@ -83,6 +85,36 @@ const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string }> = ({ video
 };
 
 const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const [tutorials, setTutorials] = useState<TutorialItem[]>(DEFAULT_TUTORIALS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTutorials = async () => {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('tutorials')
+        .select('*')
+        .order('id', { ascending: true });
+        
+      if (!error && data && data.length > 0) {
+        setTutorials(data.map(t => ({
+          id: t.id,
+          title: t.title,
+          description: t.content,
+          videoId: t.video_id,
+          timestamp: t.time_start?.toString()
+        })));
+      }
+      setLoading(false);
+    };
+    
+    fetchTutorials();
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto w-full px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center justify-between mb-12">
@@ -96,8 +128,8 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       </div>
 
       <div className="grid gap-8">
-        {TUTORIALS.map((item, index) => (
-          <Card key={index} className="p-0 overflow-hidden border-none shadow-xl shadow-indigo-500/5 bg-white dark:bg-gray-800">
+        {tutorials.map((item, index) => (
+          <Card key={item.id || index} className="p-0 overflow-hidden border-none shadow-xl shadow-indigo-500/5 bg-white dark:bg-gray-800">
             <div className="p-8">
               <div className="flex items-start gap-4 mb-6">
                 <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-200 dark:shadow-none">
