@@ -35,7 +35,7 @@ async function startServer() {
     });
 
     bot.onText(/\/help/, (msg) => {
-      const currentId = String(msg.chat.id);
+      const currentId = String(msg.chat.id).trim();
       const expectedId = String(adminChatId).trim();
       
       if (currentId !== expectedId) {
@@ -66,7 +66,7 @@ async function startServer() {
     });
 
     bot.onText(/\/stats(?:\s+(.*))?/, async (msg, match) => {
-      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -110,7 +110,7 @@ async function startServer() {
     });
 
     bot.onText(/\/post\s+(.*)/, async (msg, match) => {
-      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -139,7 +139,7 @@ async function startServer() {
     });
 
     bot.onText(/\/listposts/, async (msg) => {
-      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -169,7 +169,7 @@ async function startServer() {
     });
 
     bot.onText(/\/delpost\s+(.*)/, async (msg, match) => {
-      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -188,7 +188,7 @@ async function startServer() {
     });
 
     bot.onText(/\/playlist\s+(.*)/, async (msg, match) => {
-      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -225,7 +225,7 @@ async function startServer() {
     });
 
     bot.onText(/\/listplaylist/, async (msg) => {
-      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -255,7 +255,7 @@ async function startServer() {
     });
 
     bot.onText(/\/delplaylist/, async (msg) => {
-      if (String(msg.chat.id) !== String(adminChatId).trim()) {
+      if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
         bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
         return;
       }
@@ -272,9 +272,14 @@ async function startServer() {
   }
 
   // API routes
-  app.post("/api/telegram-webhook", (req, res) => {
+  app.post("/api/telegram-webhook", async (req, res) => {
     if (bot) {
-      bot.processUpdate(req.body);
+      try {
+        // Vercel မှာ function မသေသွားအောင် await ခံပေးဖို့ လိုပါတယ်
+        await bot.processUpdate(req.body);
+      } catch (err) {
+        console.error("Bot update error:", err);
+      }
     }
     res.sendStatus(200);
   });
