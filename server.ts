@@ -5,6 +5,8 @@ import TelegramBot from "node-telegram-bot-api";
 import { createClient } from "@supabase/supabase-js";
 
 const app = express();
+const PORT = Number(process.env.PORT) || 3000;
+
 app.use(express.json());
 
 // Initialize Supabase
@@ -15,9 +17,11 @@ const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabase
 // Initialize Telegram Bot
 const botToken = process.env.TELEGRAM_BOT_TOKEN;
 const adminChatId = process.env.TELEGRAM_CHAT_ID;
-let bot = null;
+const appUrl = process.env.APP_URL; // Get the app URL from environment
+let bot: TelegramBot | null = null;
 
 if (botToken) {
+  // Initialize bot without polling for Vercel/Serverless
   bot = new TelegramBot(botToken, { polling: false });
   console.log("Telegram bot initialized (Webhook mode).");
 
@@ -30,7 +34,7 @@ if (botToken) {
   });
 
   bot.onText(/\/help/, (msg) => {
-    const currentId = String(msg.chat.id).trim();
+    const currentId = String(msg.chat.id);
     const expectedId = String(adminChatId).trim();
     
     if (currentId !== expectedId) {
@@ -61,7 +65,7 @@ if (botToken) {
   });
 
   bot.onText(/\/stats(?:\s+(.*))?/, async (msg, match) => {
-    if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) {
       bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
       return;
     }
@@ -91,7 +95,7 @@ if (botToken) {
       return;
     }
 
-    const toolCounts = {};
+    const toolCounts: Record<string, number> = {};
     data?.forEach(row => {
       toolCounts[row.tool] = (toolCounts[row.tool] || 0) + 1;
     });
@@ -105,7 +109,7 @@ if (botToken) {
   });
 
   bot.onText(/\/post\s+(.*)/, async (msg, match) => {
-    if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) {
       bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
       return;
     }
@@ -134,7 +138,7 @@ if (botToken) {
   });
 
   bot.onText(/\/listposts/, async (msg) => {
-    if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) {
       bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
       return;
     }
@@ -164,7 +168,7 @@ if (botToken) {
   });
 
   bot.onText(/\/delpost\s+(.*)/, async (msg, match) => {
-    if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) {
       bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
       return;
     }
@@ -183,7 +187,7 @@ if (botToken) {
   });
 
   bot.onText(/\/playlist\s+(.*)/, async (msg, match) => {
-    if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) {
       bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
       return;
     }
@@ -198,6 +202,7 @@ if (botToken) {
       return;
     }
 
+    // First clear existing
     await supabase.from('playlists').delete().neq('id', 0);
 
     const inserts = [];
@@ -219,7 +224,7 @@ if (botToken) {
   });
 
   bot.onText(/\/listplaylist/, async (msg) => {
-    if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) {
       bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
       return;
     }
@@ -249,7 +254,7 @@ if (botToken) {
   });
 
   bot.onText(/\/delplaylist/, async (msg) => {
-    if (String(msg.chat.id).trim() !== String(adminChatId).trim()) {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) {
       bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
       return;
     }
@@ -266,13 +271,9 @@ if (botToken) {
 }
 
 // API routes
-app.post("/api/telegram-webhook", async (req, res) => {
+app.post("/api/telegram-webhook", (req, res) => {
   if (bot) {
-    try {
-      await bot.processUpdate(req.body);
-    } catch (err) {
-      console.error("Bot Error:", err);
-    }
+    bot.processUpdate(req.body);
   }
   res.sendStatus(200);
 });
@@ -288,6 +289,7 @@ app.post("/api/feedback", async (req, res) => {
   const chatId = process.env.TELEGRAM_CHAT_ID;
 
   if (!botToken || !chatId) {
+    console.error("Telegram credentials missing in environment variables");
     return res.status(500).json({ error: "Feedback service not configured" });
   }
 
@@ -310,9 +312,12 @@ app.post("/api/feedback", async (req, res) => {
     if (response.ok) {
       res.json({ success: true });
     } else {
+      const errorData = await response.json();
+      console.error("Telegram API error:", errorData);
       res.status(500).json({ error: "Failed to send feedback" });
     }
   } catch (error) {
+    console.error("Error sending feedback to Telegram:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -324,6 +329,8 @@ app.post("/api/login", (req, res) => {
     return res.status(400).json({ error: "ID and Password are required" });
   }
 
+  // Search for matching credentials in environment variables
+  // Format: SYSTEM_KEY_1_ID, SYSTEM_KEY_1_PASS, SYSTEM_KEY_1_VALUE
   let i = 1;
   let foundKey = null;
 
@@ -332,7 +339,7 @@ app.post("/api/login", (req, res) => {
     const envPass = process.env[`SYSTEM_KEY_${i}_PASS`];
     const envValue = process.env[`SYSTEM_KEY_${i}_VALUE`];
 
-    if (!envId) break; 
+    if (!envId) break; // No more keys defined
 
     if (envId === id && envPass === password) {
       foundKey = envValue;
@@ -348,21 +355,29 @@ app.post("/api/login", (req, res) => {
   }
 });
 
-// Vite middleware for development (Only runs in local)
+// Vite middleware for development
 if (process.env.NODE_ENV !== "production") {
-  const startLocalServer = async () => {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
+  createViteServer({
+    server: { middlewareMode: true },
+    appType: "spa",
+  }).then(vite => {
     app.use(vite.middlewares);
-    
-    app.listen(3000, "0.0.0.0", () => {
-      console.log(`Local Server running on http://localhost:3000`);
-    });
-  };
-  startLocalServer();
+  });
+} else {
+  const distPath = path.join(process.cwd(), 'dist');
+  app.use(express.static(distPath));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
 }
 
-// VERCEL FIX: Export the app instead of running app.listen in production
+// Export for Vercel
 export default app;
+
+// Local listen
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+}
+
