@@ -4,8 +4,11 @@ import { UserProfile, UserSession } from '../types';
 import { Play, Minus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
-export const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden ${className}`}>
+export const Card: React.FC<{ children: React.ReactNode; className?: string; onClick?: () => void }> = ({ children, className, onClick }) => (
+  <div 
+    onClick={onClick}
+    className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden ${className}`}
+  >
     {children}
   </div>
 );

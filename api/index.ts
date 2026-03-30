@@ -3,13 +3,10 @@ process.env.NTBA_FIX_319 = "1";
 process.env.NTBA_FIX_350 = "1";
 
 import express from "express";
-import path from "path";
 import TelegramBot from "node-telegram-bot-api";
 import { createClient } from "@supabase/supabase-js";
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
-
 app.use(express.json());
 
 // Initialize Supabase
@@ -53,28 +50,63 @@ if (botToken) {
 
 📚 *Tutorials:*
 /post Title | Video Id | Time start | content | [tool_key] - Add a new tutorial
-💡 *Tool Keys:* transcribe, srt_generator, srt_translate, text_to_srt, script_writer, translator, teleprompter, ai_voice, api_key
-
 /listposts - List all tutorial videos
 /delpost [id] - Delete a tutorial by ID
+/checkpost [id] - Check details of a tutorial by ID
 
 🎵 *Playlists:*
 /playlist Video1Id | Time1 | Video2Id | Time2 | ... - Set the header video playlist
 /listplaylist - List current playlist videos
 /delplaylist - Clear the playlist
+
+🚫 *Ban Management:*
+/ban [session_id] - Ban a session ID
+/unban [session_id] - Unban a session ID
+/listbans - List all banned session IDs
+/checkban [session_id] - Check if a session ID is banned
+
+⚙️ *System:*
+/setwebhook - Set/Reset the bot webhook URL
     `;
     bot?.sendMessage(msg.chat.id, helpText, { parse_mode: "Markdown" });
   });
 
+  bot.onText(/\/checkban\s+(.*)/, async (msg, match) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    if (!supabase) return;
+
+    const sessionId = match?.[1]?.trim();
+    if (!sessionId) return;
+
+    const { data, error } = await supabase.from('banned_sessions').select('id').eq('session_id', sessionId).single();
+
+    if (error && error.code !== 'PGRST116') {
+      bot?.sendMessage(msg.chat.id, `❌ Error checking ban: ${error.message}`);
+    } else if (data) {
+      bot?.sendMessage(msg.chat.id, `🚫 Session ID \`${sessionId}\` is BANNED.`);
+    } else {
+      bot?.sendMessage(msg.chat.id, `✅ Session ID \`${sessionId}\` is NOT banned.`);
+    }
+  });
+
+  bot.onText(/\/setwebhook/, async (msg) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    if (!appUrl) {
+      bot?.sendMessage(msg.chat.id, "❌ APP_URL is not set in Environment Variables.");
+      return;
+    }
+    const webhookUrl = `${appUrl}/api/telegram-webhook`;
+    try {
+      await bot?.setWebHook(webhookUrl);
+      bot?.sendMessage(msg.chat.id, `✅ Webhook set to: ${webhookUrl}`);
+    } catch (err: any) {
+      bot?.sendMessage(msg.chat.id, `❌ Error setting webhook: ${err.message}`);
+    }
+  });
+
   bot.onText(/\/stats(?:\s+(.*))?/, async (msg, match) => {
-    if (String(msg.chat.id) !== String(adminChatId).trim()) {
-      bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-      return;
-    }
-    if (!supabase) {
-      bot?.sendMessage(msg.chat.id, "Supabase is not configured.");
-      return;
-    }
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    if (!supabase) return;
 
     const param = match?.[1]?.trim();
     let query = supabase.from('analytics').select('tool', { count: 'exact' });
@@ -91,9 +123,8 @@ if (botToken) {
     }
 
     const { data, count, error } = await query;
-
     if (error) {
-      bot?.sendMessage(msg.chat.id, `Error fetching stats: ${error.message}`);
+      bot?.sendMessage(msg.chat.id, `❌ Error fetching stats: ${error.message}`);
       return;
     }
 
@@ -111,10 +142,7 @@ if (botToken) {
   });
 
   bot.onText(/\/post\s+(.*)/, async (msg, match) => {
-    if (String(msg.chat.id) !== String(adminChatId).trim()) {
-      bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-      return;
-    }
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     if (!supabase) return;
 
     const input = match?.[1];
@@ -133,17 +161,14 @@ if (botToken) {
     }]);
 
     if (error) {
-      bot?.sendMessage(msg.chat.id, `Error adding tutorial: ${error.message}`);
+      bot?.sendMessage(msg.chat.id, `❌ Error adding tutorial: ${error.message}`);
     } else {
       bot?.sendMessage(msg.chat.id, "✅ Tutorial added successfully.");
     }
   });
 
   bot.onText(/\/listposts/, async (msg) => {
-    if (String(msg.chat.id) !== String(adminChatId).trim()) {
-      bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-      return;
-    }
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     if (!supabase) return;
 
     const { data, error } = await supabase
@@ -152,7 +177,7 @@ if (botToken) {
       .order('id', { ascending: true });
 
     if (error) {
-      bot?.sendMessage(msg.chat.id, `Error fetching tutorials: ${error.message}`);
+      bot?.sendMessage(msg.chat.id, `❌ Error fetching tutorials: ${error.message}`);
       return;
     }
 
@@ -170,10 +195,7 @@ if (botToken) {
   });
 
   bot.onText(/\/delpost\s+(.*)/, async (msg, match) => {
-    if (String(msg.chat.id) !== String(adminChatId).trim()) {
-      bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-      return;
-    }
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     if (!supabase) return;
 
     const id = match?.[1]?.trim();
@@ -182,17 +204,47 @@ if (botToken) {
     const { error } = await supabase.from('tutorials').delete().eq('id', id);
 
     if (error) {
-      bot?.sendMessage(msg.chat.id, `Error deleting tutorial: ${error.message}`);
+      bot?.sendMessage(msg.chat.id, `❌ Error deleting tutorial: ${error.message}`);
     } else {
       bot?.sendMessage(msg.chat.id, `✅ Tutorial ${id} deleted.`);
     }
   });
 
-  bot.onText(/\/playlist\s+(.*)/, async (msg, match) => {
-    if (String(msg.chat.id) !== String(adminChatId).trim()) {
-      bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
+  bot.onText(/\/checkpost\s+(.*)/, async (msg, match) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    if (!supabase) return;
+
+    const id = match?.[1]?.trim();
+    if (!id) return;
+
+    const { data, error } = await supabase.from('tutorials').select('*').eq('id', id).single();
+
+    if (error) {
+      bot?.sendMessage(msg.chat.id, `❌ Error fetching tutorial: ${error.message}`);
       return;
     }
+
+    if (!data) {
+      bot?.sendMessage(msg.chat.id, "❌ Tutorial not found.");
+      return;
+    }
+
+    const checkText = `
+📚 *Tutorial Details:*
+🆔 \`${data.id}\`
+📌 *Title:* ${data.title}
+🎥 *Video ID:* \`${data.video_id}\`
+⏱️ *Start Time:* ${data.time_start}s
+🛠️ *Tool Key:* \`${data.tool_key || "None"}\`
+📝 *Content:*
+${data.content}
+    `;
+
+    bot?.sendMessage(msg.chat.id, checkText, { parse_mode: "Markdown" });
+  });
+
+  bot.onText(/\/playlist\s+(.*)/, async (msg, match) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     if (!supabase) return;
 
     const input = match?.[1];
@@ -219,17 +271,14 @@ if (botToken) {
     const { error } = await supabase.from('playlists').insert(inserts);
 
     if (error) {
-      bot?.sendMessage(msg.chat.id, `Error setting playlist: ${error.message}`);
+      bot?.sendMessage(msg.chat.id, `❌ Error setting playlist: ${error.message}`);
     } else {
       bot?.sendMessage(msg.chat.id, `✅ Playlist updated with ${inserts.length} videos.`);
     }
   });
 
   bot.onText(/\/listplaylist/, async (msg) => {
-    if (String(msg.chat.id) !== String(adminChatId).trim()) {
-      bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-      return;
-    }
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     if (!supabase) return;
 
     const { data, error } = await supabase
@@ -238,7 +287,7 @@ if (botToken) {
       .order('order_index', { ascending: true });
 
     if (error) {
-      bot?.sendMessage(msg.chat.id, `Error fetching playlist: ${error.message}`);
+      bot?.sendMessage(msg.chat.id, `❌ Error fetching playlist: ${error.message}`);
       return;
     }
 
@@ -256,54 +305,99 @@ if (botToken) {
   });
 
   bot.onText(/\/delplaylist/, async (msg) => {
-    if (String(msg.chat.id) !== String(adminChatId).trim()) {
-      bot?.sendMessage(msg.chat.id, "⚠️ Unauthorized.");
-      return;
-    }
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     if (!supabase) return;
 
     const { error } = await supabase.from('playlists').delete().neq('id', 0);
 
     if (error) {
-      bot?.sendMessage(msg.chat.id, `Error clearing playlist: ${error.message}`);
+      bot?.sendMessage(msg.chat.id, `❌ Error clearing playlist: ${error.message}`);
     } else {
       bot?.sendMessage(msg.chat.id, "✅ Playlist cleared.");
     }
   });
+
+  // Ban Management Commands
+  bot.onText(/\/ban\s+(.*)/, async (msg, match) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    if (!supabase) return;
+
+    const sessionId = match?.[1]?.trim();
+    if (!sessionId) return;
+
+    const { error } = await supabase.from('banned_sessions').insert([{ session_id: sessionId }]);
+
+    if (error) {
+      bot?.sendMessage(msg.chat.id, `❌ Error banning session: ${error.message}`);
+    } else {
+      bot?.sendMessage(msg.chat.id, `✅ Session ID \`${sessionId}\` has been banned.`);
+    }
+  });
+
+  bot.onText(/\/unban\s+(.*)/, async (msg, match) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    if (!supabase) return;
+
+    const sessionId = match?.[1]?.trim();
+    if (!sessionId) return;
+
+    const { error } = await supabase.from('banned_sessions').delete().eq('session_id', sessionId);
+
+    if (error) {
+      bot?.sendMessage(msg.chat.id, `❌ Error unbanning session: ${error.message}`);
+    } else {
+      bot?.sendMessage(msg.chat.id, `✅ Session ID \`${sessionId}\` has been unbanned.`);
+    }
+  });
+
+  bot.onText(/\/listbans/, async (msg) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    if (!supabase) return;
+
+    const { data, error } = await supabase.from('banned_sessions').select('session_id, created_at');
+
+    if (error) {
+      bot?.sendMessage(msg.chat.id, `❌ Error fetching bans: ${error.message}`);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      bot?.sendMessage(msg.chat.id, "No banned sessions.");
+      return;
+    }
+
+    let listText = "🚫 *Banned Sessions:*\n\n";
+    data.forEach(b => {
+      listText += `- \`${b.session_id}\` (since ${new Date(b.created_at).toLocaleDateString()})\n`;
+    });
+
+    bot?.sendMessage(msg.chat.id, listText, { parse_mode: "Markdown" });
+  });
 }
 
 // API routes
-app.use((req, res, next) => {
-  if (req.url.includes("webhook") || req.url.includes("api")) {
-    console.log(`[Server] ${req.method} ${req.url}`);
+app.get("/api/set-webhook", async (req, res) => {
+  if (!bot || !appUrl) {
+    return res.status(500).json({ error: "Bot or APP_URL not configured" });
   }
-  next();
-});
-
-app.get("/api/telegram-webhook", (req, res) => {
-  res.json({
-    status: "active",
-    bot_initialized: !!bot,
-    supabase_initialized: !!supabase,
-    node_env: process.env.NODE_ENV
-  });
+  const webhookUrl = `${appUrl}/api/telegram-webhook`;
+  try {
+    await bot.setWebHook(webhookUrl);
+    res.json({ success: true, url: webhookUrl });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post(["/api/telegram-webhook", "/telegram-webhook"], (req, res) => {
-  // Respond to Telegram immediately to prevent "Read timeout expired"
   res.status(200).send("OK");
 
   if (bot && req.body && req.body.update_id) {
     try {
-      // Process update in the background. 
-      // Note: On Vercel, this might be cut short if it takes too long,
-      // but it's the only way to avoid the "Read timeout" from Telegram's side.
       bot.processUpdate(req.body);
     } catch (err) {
       console.error("[Webhook] Error processing update:", err);
     }
-  } else if (!bot) {
-    console.error("[Webhook] Bot not initialized");
   }
 });
 
@@ -315,7 +409,6 @@ app.post(["/api/feedback", "/feedback"], async (req, res) => {
   }
 
   if (!botToken || !adminChatId) {
-    console.error("Telegram credentials missing in environment variables");
     return res.status(500).json({ error: "Feedback service not configured" });
   }
 
@@ -338,22 +431,29 @@ app.post(["/api/feedback", "/feedback"], async (req, res) => {
     if (response.ok) {
       res.json({ success: true });
     } else {
-      const errorData = await response.json();
-      console.error("Telegram API error:", errorData);
       res.status(500).json({ error: "Failed to send feedback" });
     }
   } catch (error) {
-    console.error("Error sending feedback to Telegram:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-app.post(["/api/login", "/login"], (req, res) => {
+import path from "path";
+
+app.post(["/api/login", "/login"], async (req, res) => {
   const id = req.body.id?.toString().trim();
   const password = req.body.password?.toString().trim();
 
   if (!id || !password) {
     return res.status(400).json({ error: "ID and Password are required" });
+  }
+
+  // Check if session is banned
+  if (supabase) {
+    const { data: banData } = await supabase.from('banned_sessions').select('id').eq('session_id', id).single();
+    if (banData) {
+      return res.status(403).json({ error: "This ID has been banned." });
+    }
   }
 
   let i = 1;
@@ -404,6 +504,7 @@ setupVite();
 export default app;
 
 // Local listen
+const PORT = Number(process.env.PORT) || 3000;
 if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);

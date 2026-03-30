@@ -55,27 +55,36 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
   const [session, setSession] = useState<UserSession>(() => {
-    const saved = localStorage.getItem('smart_creator_session');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // If they have a custom key, keep it as custom. 
-      // If they don't have a custom key and were on the old 'System' default, 
-      // we used to force them to 'Own Key' to prompt them.
-      // But now we have a proper system login, so we can be more flexible.
-      if (parsed.useCustomKey === undefined) {
-        parsed.useCustomKey = true;
+    try {
+      const saved = localStorage.getItem('smart_creator_session');
+      if (saved && saved.trim() !== 'undefined') {
+        const parsed = JSON.parse(saved);
+        // If they have a custom key, keep it as custom. 
+        // If they don't have a custom key and were on the old 'System' default, 
+        // we used to force them to 'Own Key' to prompt them.
+        // But now we have a proper system login, so we can be more flexible.
+        if (parsed.useCustomKey === undefined) {
+          parsed.useCustomKey = true;
+        }
+        if (parsed.user && !parsed.user.usage) {
+          parsed.user.usage = { appApiUsedToday: 0, ownApiUsedToday: 0, lastResetDate: new Date().toDateString() };
+        }
+        return parsed;
       }
-      if (parsed.user && !parsed.user.usage) {
-        parsed.user.usage = { appApiUsedToday: 0, ownApiUsedToday: 0, lastResetDate: new Date().toDateString() };
-      }
-      return parsed;
+    } catch (e) {
+      console.error("Failed to parse session from localStorage", e);
     }
     return { role: 'free', useCustomKey: true, customApiKey: '' };
   });
   
   const [results, setResults] = useState<StoredResult[]>(() => {
-    const saved = localStorage.getItem('smart_creator_results');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('smart_creator_results');
+      return saved && saved.trim() !== 'undefined' ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Failed to parse results from localStorage", e);
+      return [];
+    }
   });
 
   const [tasks, setTasks] = useState<ProcessingTask[]>([]);
@@ -492,16 +501,16 @@ const App: React.FC = () => {
         maxWidth="max-w-xs"
       >
         <div className="space-y-4 py-2 flex flex-col items-center">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center p-2.5 shadow-xl border border-gray-100 dark:border-gray-700 dark:bg-gray-800">
+          <div className="w-16 h-16 flex items-center justify-center rounded-2xl overflow-hidden shadow-xl border border-gray-100 dark:border-gray-700">
             {!logoError ? (
               <img 
                 src="/logo.png" 
                 alt="Logo" 
-                className="w-full h-full object-contain rounded-lg"
+                className="w-full h-full object-cover"
                 onError={() => setLogoError(true)}
               />
             ) : (
-              <div className="w-full h-full bg-[#FF0000] rounded-lg flex items-center justify-center">
+              <div className="w-full h-full flex items-center justify-center bg-[#FF0000]">
                 <span className="font-black text-lg text-[#FFD700] leading-none">$</span>
               </div>
             )}
@@ -587,16 +596,16 @@ const App: React.FC = () => {
           <div className="flex items-center gap-8">
             <div className="flex flex-col items-start">
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => setActiveFeature('home')}>
-                <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center p-1.5 shadow-sm border border-gray-200 dark:border-gray-700 dark:bg-gray-800">
+                <div className="w-9 h-9 flex items-center justify-center rounded-xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700">
                   {!logoError ? (
                     <img 
                       src="/logo.png" 
                       alt="Logo" 
-                      className="w-full h-full object-contain rounded-lg"
+                      className="w-full h-full object-cover"
                       onError={() => setLogoError(true)}
                     />
                   ) : (
-                    <div className="w-full h-full bg-[#FF0000] rounded-lg flex items-center justify-center">
+                    <div className="w-full h-full flex items-center justify-center bg-[#FF0000]">
                       <span className="font-black text-sm text-[#FFD700] leading-none">$</span>
                     </div>
                   )}
