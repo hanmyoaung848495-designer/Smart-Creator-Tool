@@ -74,11 +74,13 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           // Fallback to localStorage for migration
           const oldSaved = localStorage.getItem('ai_voice_history');
           try {
-            if (oldSaved && oldSaved.trim() !== 'undefined') {
+            if (oldSaved && oldSaved.trim() !== 'undefined' && oldSaved.trim() !== 'null') {
               const parsed = JSON.parse(oldSaved);
-              setHistory(parsed);
-              await saveVoiceHistoryDB(parsed);
-              localStorage.removeItem('ai_voice_history');
+              if (Array.isArray(parsed)) {
+                setHistory(parsed);
+                await saveVoiceHistoryDB(parsed);
+                localStorage.removeItem('ai_voice_history');
+              }
             }
           } catch (e) {
             console.error("Failed to parse AI voice history from localStorage", e);

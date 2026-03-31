@@ -344,7 +344,7 @@ export const ConfirmModal: React.FC<{
   variant?: 'primary' | 'danger';
 }> = ({ isOpen, onClose, onConfirm, title, message, confirmText = "Confirm", cancelText = "Cancel", variant = 'primary' }) => {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="max-w-md">
+    <Modal isOpen={isOpen} onClose={onClose} title={title} maxWidth="max-w-md" hideBottomClose>
       <div className="space-y-4">
         <p className="text-gray-600 dark:text-gray-300">{message}</p>
         <div className="flex justify-end gap-3 pt-4">

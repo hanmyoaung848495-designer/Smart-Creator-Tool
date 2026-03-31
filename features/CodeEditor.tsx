@@ -8,7 +8,7 @@ interface CodeEditorProps {
 }
 
 const CodeEditor: React.FC<CodeEditorProps> = ({ onBack }) => {
-  const [content, setContent] = useState('// Write your code here\nconsole.log("Hello World!");');
+  const [content, setContent] = useState('');
   const [fileName, setFileName] = useState('script');
   const [fileExt, setFileExt] = useState('.js');
   const [fontSize, setFontSize] = useState(14);
@@ -39,7 +39,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onBack }) => {
 
   const handleSaveAs = async () => {
     const fullFileName = `${fileName}${fileExt}`;
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([content || '// Write your code here\nconsole.log("Hello World!");'], { type: 'text/plain;charset=utf-8' });
 
     try {
       if ('showSaveFilePicker' in window) {
@@ -204,6 +204,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ onBack }) => {
             onKeyDown={handleKeyDown}
             onScroll={handleScroll}
             spellCheck="false"
+            placeholder='// Write your code here...'
             className={`w-full min-h-[500px] pl-16 pr-6 py-6 bg-transparent outline-none resize-none font-mono ${theme === 'dark' ? 'text-[#d4d4d4]' : 'text-[#333]'}`}
             style={{ 
               fontSize: `${fontSize}px`,

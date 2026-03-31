@@ -37,7 +37,7 @@ const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)').matches : false;
   });
   const [settings] = useState<AdminSettings>({
     ...DEFAULT_ADMIN_SETTINGS,
@@ -57,19 +57,21 @@ const App: React.FC = () => {
   const [session, setSession] = useState<UserSession>(() => {
     try {
       const saved = localStorage.getItem('smart_creator_session');
-      if (saved && saved.trim() !== 'undefined') {
+      if (saved && saved.trim() !== 'undefined' && saved.trim() !== 'null') {
         const parsed = JSON.parse(saved);
-        // If they have a custom key, keep it as custom. 
-        // If they don't have a custom key and were on the old 'System' default, 
-        // we used to force them to 'Own Key' to prompt them.
-        // But now we have a proper system login, so we can be more flexible.
-        if (parsed.useCustomKey === undefined) {
-          parsed.useCustomKey = true;
+        if (parsed && typeof parsed === 'object') {
+          // If they have a custom key, keep it as custom. 
+          // If they don't have a custom key and were on the old 'System' default, 
+          // we used to force them to 'Own Key' to prompt them.
+          // But now we have a proper system login, so we can be more flexible.
+          if (parsed.useCustomKey === undefined) {
+            parsed.useCustomKey = true;
+          }
+          if (parsed.user && !parsed.user.usage) {
+            parsed.user.usage = { appApiUsedToday: 0, ownApiUsedToday: 0, lastResetDate: new Date().toDateString() };
+          }
+          return parsed;
         }
-        if (parsed.user && !parsed.user.usage) {
-          parsed.user.usage = { appApiUsedToday: 0, ownApiUsedToday: 0, lastResetDate: new Date().toDateString() };
-        }
-        return parsed;
       }
     } catch (e) {
       console.error("Failed to parse session from localStorage", e);
@@ -80,7 +82,11 @@ const App: React.FC = () => {
   const [results, setResults] = useState<StoredResult[]>(() => {
     try {
       const saved = localStorage.getItem('smart_creator_results');
-      return saved && saved.trim() !== 'undefined' ? JSON.parse(saved) : [];
+      if (saved && saved.trim() !== 'undefined' && saved.trim() !== 'null') {
+        const parsed = JSON.parse(saved);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+      return [];
     } catch (e) {
       console.error("Failed to parse results from localStorage", e);
       return [];
@@ -137,7 +143,7 @@ const App: React.FC = () => {
     if (showWelcomePopup) {
       const timer = setTimeout(() => {
         setShowWelcomePopup(false);
-      }, 8000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [showWelcomePopup]);

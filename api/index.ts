@@ -390,6 +390,7 @@ app.get("/api/set-webhook", async (req, res) => {
 });
 
 app.post(["/api/telegram-webhook", "/telegram-webhook"], (req, res) => {
+  console.log("[Webhook] Received update:", JSON.stringify(req.body));
   res.status(200).send("OK");
 
   if (bot && req.body && req.body.update_id) {
@@ -403,12 +404,14 @@ app.post(["/api/telegram-webhook", "/telegram-webhook"], (req, res) => {
 
 app.post(["/api/feedback", "/feedback"], async (req, res) => {
   const { name, contact, message } = req.body;
+  console.log("[Feedback] Received:", { name, contact, message });
 
   if (!name || !contact || !message) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
   if (!botToken || !adminChatId) {
+    console.error("[Feedback] Bot not configured:", { botToken: !!botToken, adminChatId: !!adminChatId });
     return res.status(500).json({ error: "Feedback service not configured" });
   }
 
