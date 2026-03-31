@@ -403,10 +403,10 @@ app.post(["/api/telegram-webhook", "/telegram-webhook"], (req, res) => {
 });
 
 app.post(["/api/feedback", "/feedback"], async (req, res) => {
-  const { name, contact, message } = req.body;
-  console.log("[Feedback] Received:", { name, contact, message });
+  const { name, contact, message, sessionId } = req.body;
+  console.log("[Feedback] Received:", { name, contact, message, sessionId });
 
-  if (!name || !contact || !message) {
+  if (!name || !contact || !message || !sessionId) {
     return res.status(400).json({ error: "All fields are required" });
   }
 
@@ -415,9 +415,9 @@ app.post(["/api/feedback", "/feedback"], async (req, res) => {
     return res.status(500).json({ error: "Feedback service not configured" });
   }
 
-  const text = `<b>New Feedback Received</b>\n\n` +
-    `<b>Name:</b> <code>${name}</code>\n` +
-    `<b>Contact:</b> <code>${contact}</code>\n` +
+  const text = `<b>Smart Creator Feedback Received</b>\n\n` +
+    `<b>Session ID :</b> <code>${sessionId}</code>\n` +
+    `<b>Name :</b> <code>${name}</code> <b>Email/Telegram:</b> <code>${contact}</code>\n` +
     `<b>Message:</b>\n<code>${message}</code>`;
 
   try {

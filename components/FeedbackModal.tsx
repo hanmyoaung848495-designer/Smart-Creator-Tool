@@ -13,13 +13,14 @@ export const FeedbackModal: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     contact: '',
-    message: ''
+    message: '',
+    sessionId: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.contact || !formData.message) {
-      setError('ကျေးဇူးပြု၍ အချက်အလက်အားလုံး ဖြည့်စွက်ပေးပါ');
+    if (!formData.name || !formData.contact || !formData.message || !formData.sessionId) {
+      setError('ကျေးဇူးပြု၍ အချက်အလက်အားလုံး (Session ID အပါအဝင်) ဖြည့်စွက်ပေးပါ');
       return;
     }
 
@@ -120,6 +121,16 @@ export const FeedbackModal: React.FC = () => {
                           placeholder="ဆက်သွယ်ရန် လိပ်စာ"
                           value={formData.contact}
                           onChange={(val) => setFormData({ ...formData, contact: val })}
+                          className="border-gray-100 text-sm py-2"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Session ID</label>
+                        <Input 
+                          placeholder="သင်၏ Session ID"
+                          value={formData.sessionId}
+                          onChange={(val) => setFormData({ ...formData, sessionId: val })}
                           className="border-gray-100 text-sm py-2"
                         />
                       </div>
