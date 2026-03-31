@@ -3,6 +3,7 @@ process.env.NTBA_FIX_319 = "1";
 process.env.NTBA_FIX_350 = "1";
 
 import express from "express";
+import { botService } from '../services/botService';
 import TelegramBot from "node-telegram-bot-api";
 import { createClient } from "@supabase/supabase-js";
 
@@ -28,66 +29,8 @@ if (botToken) {
     console.log(`[Bot] Message from ${msg.chat.id}: ${msg.text}`);
   });
 
-  bot.onText(/\/start/, (msg) => {
-    bot?.sendMessage(msg.chat.id, "👋 Welcome! Use /help to see commands.");
-  });
-
-  bot.onText(/\/help/, (msg) => {
-    const currentId = String(msg.chat.id);
-    const expectedId = String(adminChatId).trim();
-    
-    if (currentId !== expectedId) {
-      bot?.sendMessage(msg.chat.id, `⚠️ Unauthorized. Your ID is: ${currentId}. Please update your Environment Variables if this is you.`);
-      return;
-    }
-    const helpText = `
-🤖 *Smart Creator Tools Bot*
-
-📊 *Analytics:*
-/stats - Today's visitors
-/stats all - All time visitors
-/stats YYYY-MM-DD - Visitors on a specific date
-
-📚 *Tutorials:*
-/post Title | Video Id | Time start | content | [tool_key] - Add a new tutorial
-/listposts - List all tutorial videos
-/delpost [id] - Delete a tutorial by ID
-/checkpost [id] - Check details of a tutorial by ID
-
-🎵 *Playlists:*
-/playlist Video1Id | Time1 | Video2Id | Time2 | ... - Set the header video playlist
-/listplaylist - List current playlist videos
-/delplaylist - Clear the playlist
-
-🚫 *Ban Management:*
-/ban [session_id] - Ban a session ID
-/unban [session_id] - Unban a session ID
-/listbans - List all banned session IDs
-/checkban [session_id] - Check if a session ID is banned
-
-⚙️ *System:*
-/setwebhook - Set/Reset the bot webhook URL
-    `;
-    bot?.sendMessage(msg.chat.id, helpText, { parse_mode: "Markdown" });
-  });
-
-  bot.onText(/\/checkban\s+(.*)/, async (msg, match) => {
-    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
-    const sessionId = match?.[1]?.trim();
-    if (!sessionId) return;
-
-    const { data, error } = await supabase.from('banned_sessions').select('id').eq('session_id', sessionId).single();
-
-    if (error && error.code !== 'PGRST116') {
-      bot?.sendMessage(msg.chat.id, `❌ Error checking ban: ${error.message}`);
-    } else if (data) {
-      bot?.sendMessage(msg.chat.id, `🚫 Session ID \`${sessionId}\` is BANNED.`);
-    } else {
-      bot?.sendMessage(msg.chat.id, `✅ Session ID \`${sessionId}\` is NOT banned.`);
-    }
-  });
+  bot.onText(/\/start/, (msg) => botService.handleStart(bot, msg.chat.id));
+  bot.onText(/\/help/, (msg) => botService.handleHelp(bot, msg.chat.id, adminChatId!));
 
   bot.onText(/\/setwebhook/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
@@ -106,272 +49,70 @@ if (botToken) {
 
   bot.onText(/\/stats(?:\s+(.*))?/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
-    const param = match?.[1]?.trim();
-    let query = supabase.from('analytics').select('tool', { count: 'exact' });
-
-    let dateStr = "Today";
-    if (param === 'all') {
-      dateStr = "All Time";
-    } else if (param) {
-      dateStr = param;
-      query = query.like('timestamp', `${param}%`);
-    } else {
-      const today = new Date().toISOString().split('T')[0];
-      query = query.like('timestamp', `${today}%`);
-    }
-
-    const { data, count, error } = await query;
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error fetching stats: ${error.message}`);
-      return;
-    }
-
-    const toolCounts: Record<string, number> = {};
-    data?.forEach(row => {
-      toolCounts[row.tool] = (toolCounts[row.tool] || 0) + 1;
-    });
-
-    let statsText = `📊 *Stats for ${dateStr}*\n\nTotal Interactions: ${count}\n\n*Tool Usage:*\n`;
-    for (const [tool, c] of Object.entries(toolCounts)) {
-      statsText += `- ${tool}: ${c}\n`;
-    }
-
-    bot?.sendMessage(msg.chat.id, statsText, { parse_mode: "Markdown" });
+    await botService.handleStats(bot, msg.chat.id, match?.[1]?.trim());
   });
 
   bot.onText(/\/post\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
     const input = match?.[1];
     if (!input) return;
-
-    const parts = input.split('|').map(p => p.trim());
-    if (parts.length < 4) {
-      bot?.sendMessage(msg.chat.id, "Invalid format. Use: /post Title | Video Id | Time start | content | [tool_key]");
-      return;
-    }
-
-    const [title, video_id, time_start, content, tool_key] = parts;
-
-    const { error } = await supabase.from('tutorials').insert([{
-      title, video_id, time_start, content, tool_key: tool_key || null
-    }]);
-
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error adding tutorial: ${error.message}`);
-    } else {
-      bot?.sendMessage(msg.chat.id, "✅ Tutorial added successfully.");
-    }
+    await botService.handlePost(bot, msg.chat.id, input);
   });
 
   bot.onText(/\/listposts/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
-    const { data, error } = await supabase
-      .from('tutorials')
-      .select('id, title, tool_key')
-      .order('id', { ascending: true });
-
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error fetching tutorials: ${error.message}`);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      bot?.sendMessage(msg.chat.id, "No tutorials found.");
-      return;
-    }
-
-    let listText = "📚 *Tutorial List:*\n\n";
-    data.forEach(t => {
-      listText += `🆔 \`${t.id}\` | *${t.title}* ${t.tool_key ? `(\`${t.tool_key}\`)` : ""}\n`;
-    });
-
-    bot?.sendMessage(msg.chat.id, listText, { parse_mode: "Markdown" });
+    await botService.handleListPosts(bot, msg.chat.id);
   });
 
   bot.onText(/\/delpost\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
     const id = match?.[1]?.trim();
     if (!id) return;
-
-    const { error } = await supabase.from('tutorials').delete().eq('id', id);
-
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error deleting tutorial: ${error.message}`);
-    } else {
-      bot?.sendMessage(msg.chat.id, `✅ Tutorial ${id} deleted.`);
-    }
+    await botService.handleDeletePost(bot, msg.chat.id, id);
   });
 
   bot.onText(/\/checkpost\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
     const id = match?.[1]?.trim();
     if (!id) return;
-
-    const { data, error } = await supabase.from('tutorials').select('*').eq('id', id).single();
-
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error fetching tutorial: ${error.message}`);
-      return;
-    }
-
-    if (!data) {
-      bot?.sendMessage(msg.chat.id, "❌ Tutorial not found.");
-      return;
-    }
-
-    const checkText = `
-📚 *Tutorial Details:*
-🆔 \`${data.id}\`
-📌 *Title:* ${data.title}
-🎥 *Video ID:* \`${data.video_id}\`
-⏱️ *Start Time:* ${data.time_start}s
-🛠️ *Tool Key:* \`${data.tool_key || "None"}\`
-📝 *Content:*
-${data.content}
-    `;
-
-    bot?.sendMessage(msg.chat.id, checkText, { parse_mode: "Markdown" });
+    await botService.handleCheckPost(bot, msg.chat.id, id);
   });
 
   bot.onText(/\/playlist\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
     const input = match?.[1];
     if (!input) return;
-
-    const parts = input.split('|').map(p => p.trim());
-    if (parts.length % 2 !== 0) {
-      bot?.sendMessage(msg.chat.id, "Invalid format. Must be pairs of Video ID and Time start.");
-      return;
-    }
-
-    // First clear existing
-    await supabase.from('playlists').delete().neq('id', 0);
-
-    const inserts = [];
-    for (let i = 0; i < parts.length; i += 2) {
-      inserts.push({
-        video_id: parts[i],
-        time_start: parseInt(parts[i+1]) || 0,
-        order_index: i / 2
-      });
-    }
-
-    const { error } = await supabase.from('playlists').insert(inserts);
-
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error setting playlist: ${error.message}`);
-    } else {
-      bot?.sendMessage(msg.chat.id, `✅ Playlist updated with ${inserts.length} videos.`);
-    }
+    await botService.handlePlaylist(bot, msg.chat.id, input);
   });
 
   bot.onText(/\/listplaylist/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
-    const { data, error } = await supabase
-      .from('playlists')
-      .select('id, video_id, order_index')
-      .order('order_index', { ascending: true });
-
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error fetching playlist: ${error.message}`);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      bot?.sendMessage(msg.chat.id, "Playlist is empty.");
-      return;
-    }
-
-    let listText = "🎵 *Current Playlist:*\n\n";
-    data.forEach(p => {
-      listText += `🔹 Order: ${p.order_index} | Video ID: \`${p.video_id}\`\n`;
-    });
-
-    bot?.sendMessage(msg.chat.id, listText, { parse_mode: "Markdown" });
+    await botService.handleListPlaylist(bot, msg.chat.id);
   });
 
   bot.onText(/\/delplaylist/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
-    const { error } = await supabase.from('playlists').delete().neq('id', 0);
-
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error clearing playlist: ${error.message}`);
-    } else {
-      bot?.sendMessage(msg.chat.id, "✅ Playlist cleared.");
-    }
+    await botService.handleDelPlaylist(bot, msg.chat.id);
   });
 
   // Ban Management Commands
   bot.onText(/\/ban\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
     const sessionId = match?.[1]?.trim();
     if (!sessionId) return;
-
-    const { error } = await supabase.from('banned_sessions').insert([{ session_id: sessionId }]);
-
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error banning session: ${error.message}`);
-    } else {
-      bot?.sendMessage(msg.chat.id, `✅ Session ID \`${sessionId}\` has been banned.`);
-    }
+    await botService.handleBan(bot, msg.chat.id, sessionId);
   });
 
   bot.onText(/\/unban\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
     const sessionId = match?.[1]?.trim();
     if (!sessionId) return;
-
-    const { error } = await supabase.from('banned_sessions').delete().eq('session_id', sessionId);
-
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error unbanning session: ${error.message}`);
-    } else {
-      bot?.sendMessage(msg.chat.id, `✅ Session ID \`${sessionId}\` has been unbanned.`);
-    }
+    await botService.handleUnban(bot, msg.chat.id, sessionId);
   });
 
   bot.onText(/\/listbans/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    if (!supabase) return;
-
-    const { data, error } = await supabase.from('banned_sessions').select('session_id, created_at');
-
-    if (error) {
-      bot?.sendMessage(msg.chat.id, `❌ Error fetching bans: ${error.message}`);
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      bot?.sendMessage(msg.chat.id, "No banned sessions.");
-      return;
-    }
-
-    let listText = "🚫 *Banned Sessions:*\n\n";
-    data.forEach(b => {
-      listText += `- \`${b.session_id}\` (since ${new Date(b.created_at).toLocaleDateString()})\n`;
-    });
-
-    bot?.sendMessage(msg.chat.id, listText, { parse_mode: "Markdown" });
+    await botService.handleListBans(bot, msg.chat.id);
   });
 }
 

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MessageCircle, Send, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button, Card, Input } from './Shared';
@@ -14,13 +14,23 @@ export const FeedbackModal: React.FC = () => {
     name: '',
     contact: '',
     message: '',
-    sessionId: ''
   });
+
+  const [sessionId, setSessionId] = useState('');
+
+  useEffect(() => {
+    let id = localStorage.getItem('smart_creator_session_id');
+    if (!id) {
+      id = Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('smart_creator_session_id', id);
+    }
+    setSessionId(id);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.contact || !formData.message || !formData.sessionId) {
-      setError('ကျေးဇူးပြု၍ အချက်အလက်အားလုံး (Session ID အပါအဝင်) ဖြည့်စွက်ပေးပါ');
+    if (!formData.name || !formData.contact || !formData.message) {
+      setError('ကျေးဇူးပြု၍ အချက်အလက်အားလုံး ဖြည့်စွက်ပေးပါ');
       return;
     }
 
@@ -31,7 +41,7 @@ export const FeedbackModal: React.FC = () => {
       const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, sessionId })
       });
 
       if (response.ok) {
@@ -121,16 +131,6 @@ export const FeedbackModal: React.FC = () => {
                           placeholder="ဆက်သွယ်ရန် လိပ်စာ"
                           value={formData.contact}
                           onChange={(val) => setFormData({ ...formData, contact: val })}
-                          className="border-gray-100 text-sm py-2"
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Session ID</label>
-                        <Input 
-                          placeholder="သင်၏ Session ID"
-                          value={formData.sessionId}
-                          onChange={(val) => setFormData({ ...formData, sessionId: val })}
                           className="border-gray-100 text-sm py-2"
                         />
                       </div>
