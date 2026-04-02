@@ -230,7 +230,7 @@ export const translateSRT = async (srtContent: string, targetLang: string, apiKe
 
 export const generateSubtitles = async (fileBase64: string, mimeType: string, apiKey?: string): Promise<string> => {
   const ai = getAIClient(apiKey);
-  const response = await generateWithFallback(ai, 'gemini-3-flash-preview', {
+  const response = await generateWithFallback(ai, 'gemini-3.1-pro-preview', {
     contents: {
       parts: [
         { inlineData: { data: fileBase64, mimeType } },
