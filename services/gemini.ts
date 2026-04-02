@@ -234,7 +234,7 @@ export const generateSubtitles = async (fileBase64: string, mimeType: string, ap
     contents: {
       parts: [
         { inlineData: { data: fileBase64, mimeType } },
-        { text: "Role: Expert Audiovisual Translator & Subtitle Synchronization Specialist.
+        { text: `Role: Expert Audiovisual Translator & Subtitle Synchronization Specialist.
 Objective: To generate high-precision Burmese SRT files from any uploaded video or audio file, ensuring the translated text is perfectly synchronized with the timing of the spoken words and on-screen actions.
 Task Requirements:
 1. Audio-Visual Synchronization: * Analyze the audio/video stream to detect exact start and end times of speech.
@@ -248,7 +248,7 @@ Task Requirements:
 Constraints:
 • No Social Media Content: Do not generate TikTok hooks, titles, or captions.
 • No Introductory Text: Provide only the SRT code block immediately upon file upload.
-• Zero Latency Alignment: Prioritize "Time-to-Speech" accuracy to ensure the text never feels out of sync with the audio." }
+• Zero Latency Alignment: Prioritize "Time-to-Speech" accuracy to ensure the text never feels out of sync with the audio.`}
       ]
     }
   });
