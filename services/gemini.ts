@@ -80,7 +80,7 @@ export const generateScript = async (topic: string, apiKey?: string): Promise<st
     contents: `You are a professional storyteller. Write an immersive, high-quality narrator-style video script about "${topic}".
 
     Instructions:
-    1. Language & Style: Use natural, heart-touching Burmese "Spoken Style" (စကားပြော script). Avoid formal or bookish language.
+    1. Language & Style: Use natural, heart-touch ing Burmese "Spoken Style" (စကားပြော script). Avoid formal or bookish language.
     2. Tone: The tone must be deeply emotional, reflective, and engaging.
     3. Structure: 
        - Start with a scene description or background music cue in parentheses, e.g., (Scene: Slow, emotional piano music...).
