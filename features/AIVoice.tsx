@@ -6,6 +6,8 @@ import { getAIClient } from '../services/gemini';
 import { Card, Button, TextArea, Input, Select, ProgressBar, TutorialButton } from '../components/Shared';
 import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2, X } from 'lucide-react';
 import { FeatureType, ProcessingTask, UserSession } from '../types';
+import { KCAudioPlayer } from './KCAudioPlayer';
+import { INITIAL_PRONUNCIATION_MAP, applyPronunciation } from '../lib/pronunciation';
 import { saveVoiceHistoryDB, loadVoiceHistoryDB } from '../services/storage';
 import { supabase } from '../lib/supabase';
 
@@ -17,6 +19,7 @@ interface VoiceHistory {
   voices: string[];
   audioData: string; // Base64
   timestamp: number;
+  kcResult?: { status: string; audio_url: string; srt_url: string; fileName: string };
 }
 
 interface AIVoiceProps {
@@ -41,6 +44,29 @@ const MODELS = [
   { label: 'Gemini 2.5 Flash (Fast)', value: 'gemini-2.5-flash-preview-tts' }
 ];
 
+// KC TTS Constants
+const KC_CHARACTERS = [
+  { label: 'သီဟ', value: 'thiha' },
+  { label: 'နီလာ', value: 'nilar' },
+  { label: 'ဦးဘ', value: 'u_ba' },
+  { label: 'ဒေါ်မြ', value: 'daw_mya' },
+  { label: 'ကိုကျော်မင်း', value: 'ko_kyaw_min' },
+  { label: 'မသူဇာ', value: 'ma_thu_zar' },
+  { label: 'သန့်ဇင်', value: 'thant_zin' },
+  { label: 'သီတာ', value: 'thida' },
+  { label: 'ကျော်ကျော်', value: 'kyaw_kyaw' },
+  { label: 'သီရိ', value: 'thiri' }
+];
+
+const KC_STYLES = [
+  { label: 'Normal', value: 'normal' },
+  { label: 'Movie Recap', value: 'movie_recap' },
+  { label: 'Storytelling', value: 'storytelling' },
+  { label: 'Documentary', value: 'documentary' },
+  { label: 'Sad', value: 'sad' },
+  { label: 'Angry', value: 'angry' }
+];
+
 const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, onRequireApiKey }) => {
   const [mode, setMode] = useState<'single' | 'multi'>('single');
   const [isDialogMode, setIsDialogMode] = useState(false);
@@ -49,16 +75,114 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     { id: '2', speaker: 'Speaker 2', text: '' }
   ]);
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-preview-tts');
+  const [voiceEngine, setVoiceEngine] = useState<'gemini' | 'kc_tts'>('gemini');
   const [voice1, setVoice1] = useState('Kore');
   const [voice2, setVoice2] = useState('Charon');
   const [styleInstruction, setStyleInstruction] = useState('Read aloud in a warm and friendly tone: ');
   const [text, setText] = useState('');
+  
+  // KC TTS State
+  const [kcText, setKcText] = useState('');
+  const [kcCharacter, setKcCharacter] = useState('thiha');
+  const [kcStyle, setKcStyle] = useState('movie_recap');
+  const [kcCharOpen, setKcCharOpen] = useState(false);
+  const [kcStyleOpen, setKcStyleOpen] = useState(false);
+  const [kcRatio, setKcRatio] = useState<'16:9' | '9:16'>('9:16'); // Default 9:16
+  const [kcFileName, setKcFileName] = useState('KC_Voice');
+  const [kcPitch, setKcPitch] = useState(0);
+  const [kcRate, setKcRate] = useState(0);
+  const [kcVolume, setKcVolume] = useState(0);
+  const [kcManualOpen, setKcManualOpen] = useState(false);
+  const [kcPronunciationOpen, setKcPronunciationOpen] = useState(false);
+  const [kcManualText, setKcManualText] = useState(`Intro = အင်ထရို\nတူမလေး = တူ မ လေး`);
+  const [kcLoading, setKcLoading] = useState(false);
+  const [kcResult, setKcResult] = useState<{ status: string; audio_url: string; srt_url: string } | null>(null);
+
   const [history, setHistory] = useState<VoiceHistory[]>([]);
   const [currentAudio, setCurrentAudio] = useState<{ url: string; id: string } | null>(null);
+
+  const HISTORY_TIMEOUT = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+  const cleanupOldHistory = (currentHistory: VoiceHistory[]) => {
+    const now = Date.now();
+    const filtered = currentHistory.filter(item => now - item.timestamp < HISTORY_TIMEOUT);
+    if (filtered.length !== currentHistory.length) {
+      saveHistory(filtered);
+    }
+  };
+
+  const handleGenerateKCTTS = async () => {
+    if (!kcText.trim()) {
+      toast.error('Please enter text for KC Voice.');
+      return;
+    }
+
+    // Parse textarea into map
+    const customMap: Record<string, string> = {};
+    kcManualText.split('\n').filter(line => line.includes('=')).forEach(line => {
+        const [key, val] = line.split('=').map(s => s.trim());
+        if (key && val) customMap[key] = val;
+    });
+
+    let processedText = applyPronunciation(kcText, customMap);
+
+    setKcLoading(true);
+    setKcResult(null);
+    try {
+      const apiUrl = import.meta.env.VITE_KC_TTS_API_URL;
+      console.log('Generating with:', { apiUrl, processedText, kcCharacter, kcStyle, kcRatio });
+      
+      const response = await fetch(`${apiUrl}/api/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: processedText,
+          character: kcCharacter,
+          style: kcStyle,
+          ratio: kcRatio,
+          manual_pitch: kcPitch,
+          manual_rate: kcRate,
+          manual_volume: kcVolume
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`Generation failed: ${response.statusText} - ${errorText}`);
+      }
+      const data = await response.json();
+      const resultWithFileName = { ...data, fileName: kcFileName };
+      setKcResult(resultWithFileName);
+
+      // Save to history
+      const newItem: VoiceHistory = {
+        id: Math.random().toString(36).substr(2, 9),
+        title: kcFileName || 'KC_Voice',
+        text: kcText,
+        mode: 'single', // placeholder
+        voices: [kcCharacter],
+        audioData: '', // Audio is fetched from URL, not base64 here
+        timestamp: Date.now(),
+        kcResult: resultWithFileName
+      };
+      saveHistory([newItem, ...history]);
+
+      toast.success('Generated successfully!');
+    } catch (err) {
+      console.error('Generation Error details:', err);
+      toast.error(err instanceof Error ? err.message : 'Generation failed.');
+    } finally {
+      setKcLoading(false);
+    }
+  };
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const [isPreviewing, setIsPreviewing] = useState<string | null>(null);
+  const [kcPreviewUrls, setKcPreviewUrls] = useState<Record<string, string>>({});
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
   const [pickingVoiceFor, setPickingVoiceFor] = useState<'voice1' | 'voice2' | null>(null);
 
@@ -68,8 +192,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     const loadHistory = async () => {
       try {
         const saved = await loadVoiceHistoryDB();
+        let currentHistory: VoiceHistory[] = [];
         if (saved && saved.length > 0) {
-          setHistory(saved);
+          currentHistory = saved;
         } else {
           // Fallback to localStorage for migration
           const oldSaved = localStorage.getItem('ai_voice_history');
@@ -77,8 +202,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             if (oldSaved && oldSaved.trim() !== 'undefined' && oldSaved.trim() !== 'null') {
               const parsed = JSON.parse(oldSaved);
               if (Array.isArray(parsed)) {
-                setHistory(parsed);
-                await saveVoiceHistoryDB(parsed);
+                currentHistory = parsed;
                 localStorage.removeItem('ai_voice_history');
               }
             }
@@ -86,11 +210,41 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             console.error("Failed to parse AI voice history from localStorage", e);
           }
         }
+
+        // Apply initial cleanup
+        const now = Date.now();
+        const filtered = currentHistory.filter(item => now - item.timestamp < HISTORY_TIMEOUT);
+        setHistory(filtered);
+        await saveVoiceHistoryDB(filtered);
       } catch (error) {
         console.error("Failed to load history:", error);
       }
     };
     loadHistory();
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.character-dropdown-container')) {
+        setKcCharOpen(false);
+      }
+      if (!target.closest('.style-dropdown-container')) {
+        setKcStyleOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+
+    // Set up auto-cleanup timer
+    const cleanupInterval = setInterval(() => {
+      setHistory(prevHistory => {
+        const now = Date.now();
+        const filtered = prevHistory.filter(item => now - item.timestamp < HISTORY_TIMEOUT);
+        if (filtered.length !== prevHistory.length) {
+          saveVoiceHistoryDB(filtered); // Persist cleanup
+          return filtered;
+        }
+        return prevHistory;
+      });
+    }, 30000); // Check every 30 seconds
 
     audioRef.current = new Audio();
     audioRef.current.onended = () => {
@@ -108,6 +262,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     };
 
     return () => {
+      clearInterval(cleanupInterval);
+      window.removeEventListener('mousedown', handleClickOutside);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -183,10 +339,19 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       }
 
       let prompt = '';
+      
+      // Parse custom pronunciation from KC TTS manual text if in multi-speaker/gemini mode too
+      const customMap: Record<string, string> = {};
+      kcManualText.split('\n').filter(line => line.includes('=')).forEach(line => {
+          const [key, val] = line.split('=').map(s => s.trim());
+          if (key && val) customMap[key] = val;
+      });
+
       if (mode === 'multi' && isDialogMode) {
-        prompt = styleInstruction + "\n\n" + dialogBlocks.map(b => `${b.speaker}: ${b.text}`).join('\n');
+        const processedDialog = dialogBlocks.map(b => `${b.speaker}: ${applyPronunciation(b.text, customMap)}`).join('\n');
+        prompt = styleInstruction + "\n\n" + processedDialog;
       } else {
-        prompt = styleInstruction + "\n\n" + text;
+        prompt = styleInstruction + "\n\n" + applyPronunciation(text, customMap);
       }
 
       const response = await ai.models.generateContent({
@@ -275,22 +440,37 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     return new Blob([bytes], { type });
   };
 
-  const playAudio = (url: string) => {
+  const playAudio = async (url: string) => {
     if (audioRef.current) {
       audioRef.current.src = url;
-      audioRef.current.play();
       setIsPlaying(true);
+      try {
+        await audioRef.current.play();
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Audio playback failed:', error);
+          setIsPlaying(false);
+        }
+      }
     }
   };
 
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
-        audioRef.current.play();
+        setIsPlaying(true);
+        try {
+          await audioRef.current.play();
+        } catch (error: any) {
+          if (error.name !== 'AbortError') {
+            console.error('Audio playback failed:', error);
+            setIsPlaying(false);
+          }
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -331,6 +511,71 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const removeDialogBlock = (id: string) => {
     if (dialogBlocks.length > 1) {
       setDialogBlocks(dialogBlocks.filter(b => b.id !== id));
+    }
+  };
+
+  const previewKCCharacter = async (e: React.MouseEvent, charValue: string, charLabel: string) => {
+    e.stopPropagation();
+    
+    const previewId = `kc_${charValue}`;
+    if (isPreviewing === previewId) {
+      if (audioRef.current && isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+      setIsPreviewing(null);
+      return;
+    }
+    
+    if (kcPreviewUrls[charValue]) {
+       setIsPreviewing(previewId);
+       playAudio(kcPreviewUrls[charValue]);
+       return;
+    }
+
+    setIsPreviewing(previewId);
+
+    try {
+      const apiUrl = import.meta.env.VITE_KC_TTS_API_URL;
+      const previewText = `မင်္ဂလာပါ ${charLabel} ပြောနေပါတယ်။ အသံကြိုက်ရင် သုံးနိုင်ပါတယ်။`;
+      
+      const response = await fetch(`${apiUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: previewText,
+          character: charValue,
+          style: 'normal',
+          ratio: '9:16',
+          manual_pitch: 0,
+          manual_rate: 0,
+          manual_volume: 0
+        }),
+      });
+
+      if (!response.ok) {
+        toast.error(`Preview failed`);
+        setIsPreviewing(null);
+        return;
+      }
+      
+      const data = await response.json();
+      const audioUrl = data.audio_url;
+      
+      setKcPreviewUrls(prev => ({...prev, [charValue]: audioUrl}));
+      
+      setIsPreviewing(current => {
+         if (current === previewId) {
+            playAudio(audioUrl);
+            return previewId;
+         }
+         return current;
+      });
+
+    } catch (err) {
+      console.error(err);
+      toast.error('Preview failed');
+      setIsPreviewing(null);
     }
   };
 
@@ -535,167 +780,397 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           </Button>
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">AI Voice Generator</h2>
         </div>
-        <div className="ml-14">
+        <div className="ml-14 mb-4">
           <TutorialButton videoId="sGHe7nhThwo" timestamp="30" toolKey="ai_voice" />
+        </div>
+
+        {/* Voice Engine Tabs */}
+        <div className="flex bg-gray-100 p-1 rounded-xl w-fit ml-14 mb-4">
+          <button
+            onClick={() => setVoiceEngine('gemini')}
+            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${voiceEngine === 'gemini' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Gemini Voice
+          </button>
+          <button
+            onClick={() => setVoiceEngine('kc_tts')}
+            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${voiceEngine === 'kc_tts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            KC Voice
+          </button>
         </div>
       </div>
 
       <Card className="p-6 space-y-6">
-        {/* Model & Mode Selection */}
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="w-full md:w-64">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">AI Model</label>
-            <Select
-              value={selectedModel}
-              onChange={setSelectedModel}
-              options={MODELS}
-            />
-          </div>
-          
-          <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
-            <button
-              onClick={() => setMode('single')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${mode === 'single' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              <User size={14} /> Single
-            </button>
-            <button
-              onClick={() => setMode('multi')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${mode === 'multi' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              <Users size={14} /> Multi
-            </button>
-          </div>
-        </div>
-
-        {/* Voice Selectors */}
-        <div className={`grid gap-6 ${mode === 'multi' ? 'md:grid-cols-2' : ''}`}>
-          <VoiceSelector 
-            label={mode === 'multi' ? 'Speaker 1 Voice' : 'Select Voice'}
-            value={voice1}
-            onChange={setVoice1}
-            id="voice1"
-          />
-
-          {mode === 'multi' && (
-            <VoiceSelector 
-              label="Speaker 2 Voice"
-              value={voice2}
-              onChange={setVoice2}
-              id="voice2"
-            />
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <Input
-            label="Style Instruction"
-            value={styleInstruction}
-            onChange={setStyleInstruction}
-            placeholder="e.g. Read aloud in a warm and friendly tone: "
-          />
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Text to Speak</label>
-              {mode === 'multi' && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Dialog Mode</span>
-                  <button 
-                    onClick={() => setIsDialogMode(!isDialogMode)}
-                    className={`w-10 h-5 rounded-full transition-colors relative ${isDialogMode ? 'bg-indigo-600' : 'bg-gray-300'}`}
-                  >
-                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isDialogMode ? 'left-6' : 'left-1'}`} />
-                  </button>
+        {voiceEngine === 'gemini' ? (
+          <>
+            {/* Gemini Config */}
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div className="w-full md:w-64">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">AI Model</label>
+                  <Select
+                    value={selectedModel}
+                    onChange={setSelectedModel}
+                    options={MODELS}
+                  />
                 </div>
+                
+                {/* Mode Selection */}
+                <div className="flex items-center justify-end">
+                  <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
+                    <button
+                      onClick={() => setMode('single')}
+                      className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${mode === 'single' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      <User size={14} /> Single
+                    </button>
+                    <button
+                      onClick={() => setMode('multi')}
+                      className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${mode === 'multi' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                      <Users size={14} /> Multi
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Voice Selectors & Input */}
+            <div className={`grid gap-6 ${mode === 'multi' ? 'md:grid-cols-2' : ''}`}>
+              <VoiceSelector 
+                label={mode === 'multi' ? 'Speaker 1 Voice' : 'Select Voice'}
+                value={voice1}
+                onChange={setVoice1}
+                id="voice1"
+              />
+
+              {mode === 'multi' && (
+                <VoiceSelector 
+                  label="Speaker 2 Voice"
+                  value={voice2}
+                  onChange={setVoice2}
+                  id="voice2"
+                />
               )}
             </div>
 
-            {mode === 'multi' && isDialogMode ? (
-              <div className="space-y-3">
-                {dialogBlocks.map((block, index) => (
-                  <div key={block.id} className="flex flex-col gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 animate-in fade-in slide-in-from-top-2">
-                    <div className="flex items-center justify-between">
-                      <div className="w-full max-w-[160px]">
-                        <Select
-                          value={block.speaker}
-                          onChange={(val) => updateDialogBlock(block.id, { speaker: val as any })}
-                          options={[
-                            { label: 'Speaker 1', value: 'Speaker 1' },
-                            { label: 'Speaker 2', value: 'Speaker 2' }
-                          ]}
-                        />
-                      </div>
+            <div className="space-y-4">
+              <Input
+                label="Style Instruction"
+                value={styleInstruction}
+                onChange={setStyleInstruction}
+                placeholder="e.g. Read aloud in a warm and friendly tone: "
+              />
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Text to Speak</label>
+                  {mode === 'multi' && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Dialog Mode</span>
                       <button 
-                        onClick={() => removeDialogBlock(block.id)}
-                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                        onClick={() => setIsDialogMode(!isDialogMode)}
+                        className={`w-10 h-5 rounded-full transition-colors relative ${isDialogMode ? 'bg-indigo-600' : 'bg-gray-300'}`}
                       >
-                        <Trash2 size={18} />
+                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${isDialogMode ? 'left-6' : 'left-1'}`} />
                       </button>
                     </div>
-                    <TextArea
-                      value={block.text}
-                      onChange={(val) => updateDialogBlock(block.id, { text: val })}
-                      placeholder={`What Speaker ${block.speaker === 'Speaker 1' ? '1' : '2'} says...`}
-                      rows={2}
-                    />
+                  )}
+                </div>
+
+                {mode === 'multi' && isDialogMode ? (
+                  <div className="space-y-3">
+                    {dialogBlocks.map((block, index) => (
+                      <div key={block.id} className="flex flex-col gap-3 bg-gray-50 p-4 rounded-2xl border border-gray-100 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center justify-between">
+                          <div className="w-full max-w-[160px]">
+                            <Select
+                              value={block.speaker}
+                              onChange={(val) => updateDialogBlock(block.id, { speaker: val as any })}
+                              options={[
+                                { label: 'Speaker 1', value: 'Speaker 1' },
+                                { label: 'Speaker 2', value: 'Speaker 2' }
+                              ]}
+                            />
+                          </div>
+                          <button 
+                            onClick={() => removeDialogBlock(block.id)}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                        <TextArea
+                          value={block.text}
+                          onChange={(val) => updateDialogBlock(block.id, { text: val })}
+                          placeholder={`What Speaker ${block.speaker === 'Speaker 1' ? '1' : '2'} says...`}
+                          rows={2}
+                        />
+                      </div>
+                    ))}
+                    <Button 
+                      variant="secondary" 
+                      onClick={addDialogBlock}
+                      className="w-full py-3 border-dashed border-2 border-gray-200 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50"
+                    >
+                      + Add Speaker Line
+                    </Button>
                   </div>
-                ))}
-                <Button 
-                  variant="secondary" 
-                  onClick={addDialogBlock}
-                  className="w-full py-3 border-dashed border-2 border-gray-200 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50"
-                >
-                  + Add Speaker Line
-                </Button>
+                ) : (
+                  <TextArea
+                    value={text}
+                    onChange={setText}
+                    placeholder="Enter the text you want the AI to read..."
+                    rows={6}
+                  />
+                )}
               </div>
-            ) : (
-              <TextArea
-                value={text}
-                onChange={setText}
-                placeholder="Enter the text you want the AI to read..."
-                rows={6}
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between gap-4 mt-4">
-          {currentAudio && !activeTask ? (
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={handlePlayPause}
-                className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 shadow-md hover:scale-105 transition-transform"
-              >
-                {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
-              </button>
-              <button 
-                onClick={() => handleDownload(history[0])}
-                className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm hover:bg-indigo-100 transition-colors"
-              >
-                <Download size={18} />
-              </button>
             </div>
-          ) : (
-            <div className="flex-grow"></div>
-          )}
 
-          <Button
-            onClick={activeTask ? undefined : handleRun}
-            variant={activeTask ? 'danger' : 'primary'}
-            className="w-auto px-6 py-3 text-sm font-black uppercase tracking-[0.2em] transition-all shrink-0 rounded-full"
-            disabled={isPreviewing !== null}
+            <div className="flex items-center justify-between gap-4 mt-4">
+              {currentAudio && !activeTask ? (
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={handlePlayPause}
+                    className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 shadow-md hover:scale-105 transition-transform"
+                  >
+                    {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
+                  </button>
+                  <button 
+                    onClick={() => handleDownload(history[0])}
+                    className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm hover:bg-indigo-100 transition-colors"
+                  >
+                    <Download size={18} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex-grow"></div>
+              )}
+
+              <Button
+                onClick={activeTask ? undefined : handleRun}
+                variant={activeTask ? 'danger' : 'primary'}
+                className="w-auto px-6 py-3 text-sm font-black uppercase tracking-[0.2em] transition-all shrink-0 rounded-full"
+                disabled={isPreviewing !== null}
+              >
+                {activeTask ? (
+                  <>
+                    <StopCircle size={18} /> Stop
+                  </>
+                ) : (
+                  <>
+                    <Play size={18} fill="currentColor" /> Run
+                  </>
+                )}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-6">
+            {/* Input and Selectors */}
+            <div className="space-y-4">
+              <Input
+                label="File Name"
+                value={kcFileName}
+                onChange={setKcFileName}
+                placeholder="KC_Voice"
+              />
+              <TextArea
+                value={kcText}
+                onChange={setKcText}
+                placeholder="Enter text for KC Voice..."
+                rows={4}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5 relative character-dropdown-container">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Character</label>
+                  <button
+                    onClick={() => setKcCharOpen(!kcCharOpen)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  >
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {KC_CHARACTERS.find(c => c.value === kcCharacter)?.label}
+                    </span>
+                    <span className={`text-indigo-600 transition-transform duration-200 ${kcCharOpen ? 'rotate-180' : ''}`}>▼</span>
+                  </button>
+                  
+                  {kcCharOpen && (
+                    <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="max-h-[200px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        {KC_CHARACTERS.map((char) => (
+                          <div
+                            key={char.value}
+                            onClick={() => {
+                              setKcCharacter(char.value);
+                              setKcCharOpen(false);
+                            }}
+                            className={`px-4 py-2.5 text-sm font-medium cursor-pointer transition-colors flex items-center justify-between group ${
+                              kcCharacter === char.value 
+                                ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' 
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span>{char.label}</span>
+                              <button
+                                onClick={(e) => previewKCCharacter(e, char.value, char.label)}
+                                disabled={isPreviewing !== null && isPreviewing !== `kc_${char.value}`}
+                                className={`p-1.5 rounded-md transition-all ${
+                                  isPreviewing === `kc_${char.value}`
+                                    ? 'bg-indigo-100 text-indigo-600'
+                                    : 'hover:bg-indigo-100 hover:text-indigo-600 text-gray-400'
+                                }`}
+                                title="Preview voice"
+                              >
+                                {isPreviewing === `kc_${char.value}` ? (
+                                  <Loader2 size={14} className="animate-spin" />
+                                ) : (
+                                  <Volume2 size={14} />
+                                )}
+                              </button>
+                            </div>
+                            {kcCharacter === char.value && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5 relative style-dropdown-container">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Style</label>
+                  <button
+                    onClick={() => setKcStyleOpen(!kcStyleOpen)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  >
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {KC_STYLES.find(s => s.value === kcStyle)?.label}
+                    </span>
+                    <span className={`text-indigo-600 transition-transform duration-200 ${kcStyleOpen ? 'rotate-180' : ''}`}>▼</span>
+                  </button>
+                  
+                  {kcStyleOpen && (
+                    <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="max-h-[200px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        {KC_STYLES.map((style) => (
+                          <div
+                            key={style.value}
+                            onClick={() => {
+                              setKcStyle(style.value);
+                              setKcStyleOpen(false);
+                            }}
+                            className={`px-4 py-2.5 text-sm font-medium cursor-pointer transition-colors flex items-center justify-between ${
+                              kcStyle === style.value 
+                                ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' 
+                                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            }`}
+                          >
+                            <span>{style.label}</span>
+                            {kcStyle === style.value && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-4 items-center">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ratio:</label>
+                <button
+                  onClick={() => setKcRatio('16:9')}
+                  className={`px-4 py-1 rounded text-xs font-bold ${kcRatio === '16:9' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}
+                >
+                  16:9
+                </button>
+                <button
+                  onClick={() => setKcRatio('9:16')}
+                  className={`px-4 py-1 rounded text-xs font-bold ${kcRatio === '9:16' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}
+                >
+                  9:16
+                </button>
+              </div>
+
+              {/* Manual Style Controls */}
+              <div className="space-y-2">
+                <button
+                  onClick={() => setKcManualOpen(!kcManualOpen)}
+                  className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-xl hover:border-indigo-300 transition-all shadow-sm"
+                >
+                  <span className="text-xs font-bold text-gray-700 uppercase tracking-widest">Manual Settings</span>
+                  <span className="text-indigo-600 font-bold">{kcManualOpen ? '▲' : '▼'}</span>
+                </button>
+                
+                {kcManualOpen && (
+                  <div className="p-4 bg-white border border-gray-100 rounded-xl space-y-4 shadow-inner">
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center text-xs font-medium text-gray-700">
+                        <span>Pitch</span>
+                        <span>{kcPitch}</span>
+                      </div>
+                      <input type="range" min="-50" max="50" value={kcPitch} onChange={(e) => setKcPitch(Number(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center text-xs font-medium text-gray-700">
+                        <span>Rate</span>
+                        <span>{kcRate}%</span>
+                      </div>
+                      <input type="range" min="-100" max="100" value={kcRate} onChange={(e) => setKcRate(Number(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center text-xs font-medium text-gray-700">
+                        <span>Volume</span>
+                        <span>{kcVolume}</span>
+                      </div>
+                      <input type="range" min="0" max="20" value={kcVolume} onChange={(e) => setKcVolume(Number(e.target.value))} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <Button
+                  onClick={handleGenerateKCTTS}
+                  className="w-full mt-4"
+                  disabled={kcLoading}
+                >
+                  {kcLoading ? 'Generating...' : 'Generate'}
+              </Button>
+
+              {/* Result Area */}
+              {kcResult && (
+                <KCAudioPlayer 
+                  audioUrl={kcResult.audio_url} 
+                  srtUrl={kcResult.srt_url} 
+                  onDelete={() => setKcResult(null)}
+                />
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Pronunciation Rules */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-4">
+          <button
+            onClick={() => setKcPronunciationOpen(!kcPronunciationOpen)}
+            className="w-full flex items-center justify-between p-3"
           >
-            {activeTask ? (
-              <>
-                <StopCircle size={18} /> Stop
-              </>
-            ) : (
-              <>
-                <Play size={18} fill="currentColor" /> Run
-              </>
-            )}
-          </Button>
+            <span className="text-xs font-bold text-gray-700 uppercase tracking-widest flex items-center gap-2">
+              <span className="bg-indigo-100 p-1 rounded-sm"><span className="text-indigo-600">🔧</span></span>
+              Pronunciation Rules (အသံထွက် ပြင်ဆင်ရန်)
+            </span>
+            <span className="text-indigo-600 font-bold">{kcPronunciationOpen ? '▲' : '▼'}</span>
+          </button>
+          {kcPronunciationOpen && (
+            <div className="p-4 border-t border-gray-100">
+              <TextArea
+                value={kcManualText}
+                onChange={setKcManualText}
+                placeholder="Intro = အင်ထရို
+တူမလေး = တူ မ လေး"
+                rows={10}
+                className="font-mono text-xs"
+              />
+            </div>
+          )}
         </div>
       </Card>
 
@@ -711,48 +1186,60 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             </div>
           ) : (
             history.map(item => (
-              <Card key={item.id} className="p-4 flex items-center gap-4 group">
-                <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
-                  <Volume2 size={20} />
-                </div>
-                <div className="flex-grow min-w-0">
-                  <h4 className="text-sm font-bold text-gray-900 truncate">{item.title}</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">
-                      {item.mode === 'single' ? 'Single' : 'Multi'} • {item.voices.join(', ')}
-                    </span>
-                    <span className="text-[10px] text-gray-300">•</span>
-                    <span className="text-[10px] text-gray-400">{new Date(item.timestamp).toLocaleString()}</span>
+              <Card key={item.id} className="p-4 flex flex-col sm:flex-row items-center gap-4 group">
+                <div className="flex w-full items-center gap-4">
+                  <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                    <Volume2 size={20} />
+                  </div>
+                  <div className="flex-grow min-w-0">
+                    <h4 className="text-sm font-bold text-gray-900 truncate">{item.title}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">
+                        {item.mode === 'single' ? 'Single' : 'Multi'} • {item.voices.join(', ')}
+                      </span>
+                      <span className="text-[10px] text-gray-300">•</span>
+                      <span className="text-[10px] text-gray-400">{new Date(item.timestamp).toLocaleString()}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="secondary" 
-                    className="p-2 h-9 w-9 rounded-lg"
-                    onClick={() => {
-                      const blob = base64ToBlob(item.audioData, 'audio/wav');
-                      const url = URL.createObjectURL(blob);
-                      setCurrentAudio({ url, id: item.id });
-                      playAudio(url);
-                    }}
-                  >
-                    <Play size={16} fill="currentColor" />
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    className="p-2 h-9 w-9 rounded-lg"
-                    onClick={() => handleDownload(item)}
-                  >
-                    <Download size={16} />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    className="p-2 h-9 w-9 rounded-lg text-red-500 hover:bg-red-50"
-                    onClick={() => handleDelete(item.id)}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
+                {item.kcResult ? (
+                  <div className="w-full sm:w-auto">
+                    <KCAudioPlayer 
+                      audioUrl={item.kcResult.audio_url} 
+                      srtUrl={item.kcResult.srt_url} 
+                      onDelete={() => handleDelete(item.id)}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <Button 
+                      variant="secondary" 
+                      className="p-2 h-9 w-9 rounded-lg"
+                      onClick={() => {
+                        const blob = base64ToBlob(item.audioData, 'audio/wav');
+                        const url = URL.createObjectURL(blob);
+                        setCurrentAudio({ url, id: item.id });
+                        playAudio(url);
+                      }}
+                    >
+                      <Play size={16} fill="currentColor" />
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      className="p-2 h-9 w-9 rounded-lg"
+                      onClick={() => handleDownload(item)}
+                    >
+                      <Download size={16} />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="p-2 h-9 w-9 rounded-lg text-red-500 hover:bg-red-50"
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                )}
               </Card>
             ))
           )}

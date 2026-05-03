@@ -94,7 +94,7 @@ const App: React.FC = () => {
   });
 
   const [tasks, setTasks] = useState<ProcessingTask[]>([]);
-  const [showTutorial, setShowTutorial] = useState(() => !localStorage.getItem('smart_creator_onboarded'));
+  const [showTutorial, setShowTutorial] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);

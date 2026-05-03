@@ -44,18 +44,18 @@ export const botService = {
   },
 
   async handleStats(bot: TelegramBot, chatId: number, param: string | undefined) {
-    const { data, count, error } = await dbService.getStats(param);
-    if (error) {
-      bot.sendMessage(chatId, `❌ Error fetching stats: ${error.message}`);
+    const response = await dbService.getStats(param);
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error fetching stats: ${(response as any).error.message}`);
       return;
     }
 
     const toolCounts: Record<string, number> = {};
-    data?.forEach(row => {
+    ((response as any).data)?.forEach((row: any) => {
       toolCounts[row.tool] = (toolCounts[row.tool] || 0) + 1;
     });
 
-    let statsText = `📊 *Stats for ${param || "Today"}*\n\nTotal Interactions: ${count}\n\n*Tool Usage:*\n`;
+    let statsText = `📊 *Stats for ${param || "Today"}*\n\nTotal Interactions: ${(response as any).count}\n\n*Tool Usage:*\n`;
     for (const [tool, c] of Object.entries(toolCounts)) {
       statsText += `- ${tool}: ${c}\n`;
     }
@@ -69,37 +69,39 @@ export const botService = {
       return;
     }
     const [title, video_id, time_start, content, tool_key] = parts;
-    const { error } = await dbService.addTutorial(title, video_id, parseInt(time_start), content, tool_key || null);
-    if (error) {
-      bot.sendMessage(chatId, `❌ Error adding tutorial: ${error.message}`);
+    const response = await dbService.addTutorial(title, video_id, parseInt(time_start), content, tool_key || null);
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error adding tutorial: ${(response as any).error.message}`);
     } else {
       bot.sendMessage(chatId, "✅ Tutorial added successfully.");
     }
   },
 
   async handleListPosts(bot: TelegramBot, chatId: number) {
-    const { data, error } = await dbService.listTutorials();
-    if (error) {
-      bot.sendMessage(chatId, `❌ Error fetching tutorials: ${error.message}`);
+    const response = await dbService.listTutorials();
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error fetching tutorials: ${(response as any).error.message}`);
       return;
     }
+    const data = (response as any).data;
     if (!data || data.length === 0) {
       bot.sendMessage(chatId, "No tutorials found.");
       return;
     }
     let listText = "📚 *Tutorial List:*\n\n";
-    data.forEach(t => {
+    data.forEach((t: any) => {
       listText += `🆔 \`${t.id}\` | *${t.title}* ${t.tool_key ? `(\`${t.tool_key}\`)` : ""}\n`;
     });
     bot.sendMessage(chatId, listText, { parse_mode: "Markdown" });
   },
 
   async handleCheckPost(bot: TelegramBot, chatId: number, id: string) {
-    const { data, error } = await dbService.getTutorial(id);
-    if (error || !data) {
-      bot.sendMessage(chatId, `❌ Error fetching tutorial: ${error?.message || "Not found"}`);
+    const response = await dbService.getTutorial(id);
+    if ((response as any).error || !(response as any).data) {
+      bot.sendMessage(chatId, `❌ Error fetching tutorial: ${(response as any).error?.message || "Not found"}`);
       return;
     }
+    const data = (response as any).data;
     const checkText = `
 📚 *Tutorial Details:*
 🆔 \`${data.id}\`
@@ -114,9 +116,9 @@ ${data.content}
   },
 
   async handleDeletePost(bot: TelegramBot, chatId: number, id: string) {
-    const { error } = await dbService.deleteTutorial(id);
-    if (error) {
-      bot.sendMessage(chatId, `❌ Error deleting tutorial: ${error.message}`);
+    const response = await dbService.deleteTutorial(id);
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error deleting tutorial: ${(response as any).error.message}`);
     } else {
       bot.sendMessage(chatId, `✅ Tutorial ${id} deleted.`);
     }
@@ -136,80 +138,82 @@ ${data.content}
         order_index: i / 2
       });
     }
-    const { error } = await dbService.setPlaylist(inserts);
-    if (error) {
-      bot.sendMessage(chatId, `❌ Error setting playlist: ${error.message}`);
+    const response = await dbService.setPlaylist(inserts);
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error setting playlist: ${(response as any).error.message}`);
     } else {
       bot.sendMessage(chatId, `✅ Playlist updated with ${inserts.length} videos.`);
     }
   },
 
   async handleListPlaylist(bot: TelegramBot, chatId: number) {
-    const { data, error } = await dbService.listPlaylist();
-    if (error) {
-      bot.sendMessage(chatId, `❌ Error fetching playlist: ${error.message}`);
+    const response = await dbService.listPlaylist();
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error fetching playlist: ${(response as any).error.message}`);
       return;
     }
+    const data = (response as any).data;
     if (!data || data.length === 0) {
       bot.sendMessage(chatId, "Playlist is empty.");
       return;
     }
     let listText = "🎵 *Current Playlist:*\n\n";
-    data.forEach(p => {
+    data.forEach((p: any) => {
       listText += `🔹 Order: ${p.order_index} | Video ID: \`${p.video_id}\`\n`;
     });
     bot.sendMessage(chatId, listText, { parse_mode: "Markdown" });
   },
 
   async handleDelPlaylist(bot: TelegramBot, chatId: number) {
-    const { error } = await dbService.clearPlaylist();
-    if (error) {
-      bot.sendMessage(chatId, `❌ Error clearing playlist: ${error.message}`);
+    const response = await dbService.clearPlaylist();
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error clearing playlist: ${(response as any).error.message}`);
     } else {
       bot.sendMessage(chatId, "✅ Playlist cleared.");
     }
   },
 
   async handleBan(bot: TelegramBot, chatId: number, sessionId: string) {
-    const { error } = await dbService.banSession(sessionId);
-    if (error) {
-      bot.sendMessage(chatId, `❌ Error banning session: ${error.message}`);
+    const response = await dbService.banSession(sessionId);
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error banning session: ${(response as any).error.message}`);
     } else {
       bot.sendMessage(chatId, `✅ Session ID \`${sessionId}\` has been banned.`);
     }
   },
 
   async handleUnban(bot: TelegramBot, chatId: number, sessionId: string) {
-    const { error } = await dbService.unbanSession(sessionId);
-    if (error) {
-      bot.sendMessage(chatId, `❌ Error unbanning session: ${error.message}`);
+    const response = await dbService.unbanSession(sessionId);
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error unbanning session: ${(response as any).error.message}`);
     } else {
       bot.sendMessage(chatId, `✅ Session ID \`${sessionId}\` has been unbanned.`);
     }
   },
 
   async handleListBans(bot: TelegramBot, chatId: number) {
-    const { data, error } = await dbService.listBannedSessions();
-    if (error) {
-      bot.sendMessage(chatId, `❌ Error fetching bans: ${error.message}`);
+    const response = await dbService.listBannedSessions();
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error fetching bans: ${(response as any).error.message}`);
       return;
     }
+    const data = (response as any).data;
     if (!data || data.length === 0) {
       bot.sendMessage(chatId, "No banned sessions.");
       return;
     }
     let listText = "🚫 *Banned Sessions:*\n\n";
-    data.forEach(b => {
+    data.forEach((b: any) => {
       listText += `- \`${b.session_id}\` (since ${new Date(b.created_at).toLocaleDateString()})\n`;
     });
     bot.sendMessage(chatId, listText, { parse_mode: "Markdown" });
   },
 
   async handleCheckBan(bot: TelegramBot, chatId: number, sessionId: string) {
-    const { data, error } = await dbService.checkBan(sessionId);
-    if (error && error.code !== 'PGRST116') {
-      bot.sendMessage(chatId, `❌ Error checking ban: ${error.message}`);
-    } else if (data) {
+    const response = await dbService.checkBan(sessionId);
+    if ((response as any).error && (response as any).error.code !== 'PGRST116') {
+      bot.sendMessage(chatId, `❌ Error checking ban: ${(response as any).error.message}`);
+    } else if ((response as any).data) {
       bot.sendMessage(chatId, `🚫 Session ID \`${sessionId}\` is BANNED.`);
     } else {
       bot.sendMessage(chatId, `✅ Session ID \`${sessionId}\` is NOT banned.`);
