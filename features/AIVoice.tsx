@@ -96,7 +96,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [kcPronunciationOpen, setKcPronunciationOpen] = useState(false);
   const [kcManualText, setKcManualText] = useState(`Intro = အင်ထရို\nတူမလေး = တူ မ လေး`);
   const [kcLoading, setKcLoading] = useState(false);
-  const [kcResult, setKcResult] = useState<{ status: string; audio_url: string; srt_url: string } | null>(null);
+  const [kcResult, setKcResult] = useState<{ status: string; audio_url: string; srt_url: string; fileName?: string } | null>(null);
 
   const [history, setHistory] = useState<VoiceHistory[]>([]);
   const [currentAudio, setCurrentAudio] = useState<{ url: string; id: string } | null>(null);
@@ -1140,6 +1140,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                 <KCAudioPlayer 
                   audioUrl={kcResult.audio_url} 
                   srtUrl={kcResult.srt_url} 
+                  fileName={kcResult.fileName || 'KC_Voice'}
                   onDelete={() => setKcResult(null)}
                 />
               )}
@@ -1207,6 +1208,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                     <KCAudioPlayer 
                       audioUrl={item.kcResult.audio_url} 
                       srtUrl={item.kcResult.srt_url} 
+                      fileName={item.kcResult.fileName || 'KC_Voice'}
                       onDelete={() => handleDelete(item.id)}
                     />
                   </div>

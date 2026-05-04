@@ -4,17 +4,40 @@ import { Play, Pause, Download, Trash2 } from 'lucide-react';
 interface KCAudioPlayerProps {
   audioUrl: string;
   srtUrl: string;
+  fileName: string;
   onDelete: () => void;
 }
 
-export const KCAudioPlayer: React.FC<KCAudioPlayerProps> = ({ audioUrl, srtUrl, onDelete }) => {
+export const KCAudioPlayer: React.FC<KCAudioPlayerProps> = ({ audioUrl, srtUrl, fileName, onDelete }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isDownloading, setIsDownloading] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const [fileSize, setFileSize] = useState<string | null>(null);
   const [srtFileSize, setSrtFileSize] = useState<string | null>(null);
+
+  const handleDownload = async (url: string, extension: string) => {
+    try {
+      setIsDownloading(extension);
+      const name = fileName || 'KC_Voice';
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `${name}.${extension}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error(`Download failed for ${extension}:`, error);
+    } finally {
+      setIsDownloading(null);
+    }
+  };
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -95,7 +118,7 @@ export const KCAudioPlayer: React.FC<KCAudioPlayerProps> = ({ audioUrl, srtUrl, 
         >
           {isPlaying ? <Pause size={18} /> : <Play size={18} />}
         </button>
-        <span className="text-[10px] font-mono text-gray-500 min-w-[30px]">{formatTime(progress)}</span>
+        <span className="text-[10px] font-mono text-gray-500 w-9 text-center">{formatTime(progress)}</span>
         <input 
           type="range" 
           min="0" 
@@ -104,22 +127,49 @@ export const KCAudioPlayer: React.FC<KCAudioPlayerProps> = ({ audioUrl, srtUrl, 
           onChange={handleSeek}
           className="flex-grow h-1 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
         />
-        <span className="text-[10px] font-mono text-gray-500 min-w-[30px]">{formatTime(isNaN(duration) ? 0 : duration)}</span>
-        <button onClick={onDelete} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition">
+        <span className="text-[10px] font-mono text-gray-500 w-9 text-center">{formatTime(isNaN(duration) ? 0 : duration)}</span>
+        <button onClick={onDelete} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition flex-shrink-0">
           <Trash2 size={18} />
         </button>
       </div>
 
       {/* Downloads */}
-      <div className="flex justify-between items-center">
-        <a href={audioUrl} download target="_blank" className="flex flex-col items-center gap-1 text-xs font-bold text-gray-500 hover:text-indigo-600">
-          <div className="flex items-center gap-2"><Download size={14} /> Audio</div>
-          {fileSize && <span className="text-[10px] text-gray-400">{fileSize}</span>}
-        </a>
-        <a href={srtUrl} download target="_blank" className="flex flex-col items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800">
-          <div className="flex items-center gap-2"><Download size={14} /> SRT</div>
-          {srtFileSize && <span className="text-[10px] text-gray-400">{srtFileSize}</span>}
-        </a>
+      <div className="flex justify-between items-center px-1 pt-1 border-t border-gray-100">
+        <button 
+          onClick={() => handleDownload(audioUrl, 'wav')}
+          disabled={isDownloading !== null}
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-gray-500 hover:text-indigo-600 disabled:opacity-50"
+        >
+          <div className="flex items-center gap-1">
+            <Download size={12} className={isDownloading === 'wav' ? 'animate-bounce' : ''} />
+            {isDownloading === 'wav' ? 'Down...' : 'WAV'}
+          </div>
+          {fileSize && <span className="text-[9px] text-gray-400 font-normal">{fileSize}</span>}
+        </button>
+
+        <button 
+          onClick={() => handleDownload(audioUrl, 'mp3')}
+          disabled={isDownloading !== null}
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-gray-500 hover:text-indigo-600 disabled:opacity-50"
+        >
+          <div className="flex items-center gap-1">
+            <Download size={12} className={isDownloading === 'mp3' ? 'animate-bounce' : ''} />
+            {isDownloading === 'mp3' ? 'Down...' : 'MP3'}
+          </div>
+          {fileSize && <span className="text-[9px] text-gray-400 font-normal">{fileSize}</span>}
+        </button>
+
+        <button 
+          onClick={() => handleDownload(srtUrl, 'srt')}
+          disabled={isDownloading !== null}
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+        >
+          <div className="flex items-center gap-1">
+            <Download size={12} className={isDownloading === 'srt' ? 'animate-bounce' : ''} />
+            {isDownloading === 'srt' ? 'Down...' : 'SRT File'}
+          </div>
+          {srtFileSize && <span className="text-[9px] text-gray-400 font-normal">{srtFileSize}</span>}
+        </button>
       </div>
     </div>
   );

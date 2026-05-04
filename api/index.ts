@@ -16,8 +16,8 @@ const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Initialize Telegram Bot
-const botToken = process.env.TELEGRAM_BOT_TOKEN;
-const adminChatId = process.env.TELEGRAM_CHAT_ID;
+const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.VITE_TELEGRAM_BOT_TOKEN;
+const adminChatId = process.env.TELEGRAM_CHAT_ID || process.env.VITE_TELEGRAM_CHAT_ID;
 const appUrl = process.env.APP_URL; 
 let bot: TelegramBot | null = null;
 

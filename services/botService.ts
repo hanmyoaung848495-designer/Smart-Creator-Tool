@@ -69,7 +69,9 @@ export const botService = {
       return;
     }
     const [title, video_id, time_start, content, tool_key] = parts;
-    const response = await dbService.addTutorial(title, video_id, parseInt(time_start), content, tool_key || null);
+    const parsedTime = parseInt(time_start, 10);
+    const start = isNaN(parsedTime) ? 0 : parsedTime;
+    const response = await dbService.addTutorial(title, video_id, start, content, tool_key || null);
     if ((response as any).error) {
       bot.sendMessage(chatId, `❌ Error adding tutorial: ${(response as any).error.message}`);
     } else {
