@@ -1,4 +1,19 @@
 
+export interface UserAccount {
+  id: string; // userId
+  name: string;
+  username: string;
+  password: string;
+  role: 'admin' | 'user';
+  startDate: number;
+  expiredDate: number | null;
+  isLifetime: boolean;
+  telegram: string;
+  deviceId: string | null;
+  lastLogin?: number;
+  createdAt: number;
+}
+
 export type FeatureType = 
   | 'home' 
   | 'transcribe' 

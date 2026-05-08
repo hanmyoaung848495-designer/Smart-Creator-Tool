@@ -12,7 +12,7 @@ app.use(express.json());
 
 // Initialize Supabase
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Initialize Telegram Bot
@@ -187,40 +187,153 @@ import path from "path";
 app.post(["/api/login", "/login"], async (req, res) => {
   const id = req.body.id?.toString().trim();
   const password = req.body.password?.toString().trim();
+  const deviceId = req.body.deviceId?.toString().trim();
 
   if (!id || !password) {
     return res.status(400).json({ error: "ID and Password are required" });
   }
 
-  // Check if session is banned
-  if (supabase) {
-    const { data: banData } = await supabase.from('banned_sessions').select('id').eq('session_id', id).single();
-    if (banData) {
-      return res.status(403).json({ error: "This ID has been banned." });
-    }
-  }
-
+  // 1. Check fixed environment variables (Super Admin)
   let i = 1;
-  let foundKey = null;
-
+  let foundSuperKey = null;
   while (i <= 10) {
     const envId = process.env[`SYSTEM_KEY_${i}_ID`];
     const envPass = process.env[`SYSTEM_KEY_${i}_PASS`];
     const envValue = process.env[`SYSTEM_KEY_${i}_VALUE`];
-
     if (!envId) break;
-
     if (envId === id && envPass === password) {
-      foundKey = envValue;
+      foundSuperKey = envValue;
       break;
     }
     i++;
   }
 
-  if (foundKey) {
-    return res.json({ apiKey: foundKey });
-  } else {
-    return res.status(401).json({ error: "Invalid ID or Password" });
+  if (foundSuperKey) {
+    return res.json({ apiKey: foundSuperKey, role: 'admin' });
+  }
+
+  // 2. Check Supabase for user account
+  if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
+
+  try {
+    const { data: userData, error } = await supabase
+      .from('users_accounts')
+      .select('*')
+      .eq('username', id)
+      .eq('password', password)
+      .single();
+
+    if (error || !userData) {
+      return res.status(401).json({ error: "Invalid ID or Password" });
+    }
+
+    // Check expiration
+    if (!userData.is_lifetime && userData.expired_date) {
+      if (Date.now() > userData.expired_date) {
+        return res.status(403).json({ error: "Account has expired. Please contact admin." });
+      }
+    }
+
+    // Check start date
+    if (userData.start_date && Date.now() < userData.start_date) {
+      return res.status(403).json({ error: "Account is not active yet." });
+    }
+
+    // Check device binding
+    if (userData.device_id && deviceId && userData.device_id !== deviceId) {
+      return res.status(403).json({ error: "This ID is bound to another device." });
+    }
+
+    // Update device ID if not set
+    const updates: any = { last_login: Date.now() };
+    if (!userData.device_id && deviceId) {
+      updates.device_id = deviceId;
+    }
+
+    await supabase
+      .from('users_accounts')
+      .update(updates)
+      .eq('id', userData.id);
+
+    // For regular users, we return a system key if set, or just success
+    const systemApiKey = process.env.SYSTEM_KEY_1_VALUE || ''; 
+    return res.json({ 
+      apiKey: systemApiKey, 
+      role: userData.role || 'premium',
+      user: {
+        name: userData.name,
+        username: userData.username,
+        role: userData.role
+      }
+    });
+
+  } catch (error) {
+    console.error("Login Check Error:", error);
+    return res.status(500).json({ error: "Internal server error during login" });
+  }
+});
+
+// Admin API Routes
+app.get("/api/admin/users", async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
+
+  try {
+    const { data, error } = await supabase
+      .from('users_accounts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
+});
+
+app.post("/api/admin/users", async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
+
+  try {
+    const account = req.body;
+    // Map camalCase to snake_case for Supabase
+    const supabaseData = {
+      name: account.name,
+      username: account.username,
+      password: account.password,
+      role: account.role,
+      start_date: account.startDate,
+      expired_date: account.expiredDate,
+      is_lifetime: account.isLifetime,
+      telegram: account.telegram,
+      device_id: account.deviceId,
+      created_at: Date.now()
+    };
+
+    const { error } = await supabase
+      .from('users_accounts')
+      .upsert(supabaseData, { onConflict: 'username' });
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Add User Error:", error);
+    res.status(500).json({ error: "Failed to add user" });
+  }
+});
+
+app.delete("/api/admin/users/:username", async (req, res) => {
+  if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
+
+  try {
+    const { error } = await supabase
+      .from('users_accounts')
+      .delete()
+      .eq('username', req.params.username);
+
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete user" });
   }
 });
 

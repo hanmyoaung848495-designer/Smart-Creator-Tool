@@ -15,6 +15,7 @@ import Tutorial from './features/Tutorial';
 import APIGuide from './features/APIGuide';
 import NotePad from './features/NotePad';
 import CodeEditor from './features/CodeEditor';
+import AdminDashboard from './features/AdminDashboard';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import { FeedbackModal } from './components/FeedbackModal';
@@ -111,18 +112,22 @@ const App: React.FC = () => {
 
   const handleSystemLogin = async () => {
     try {
+      const { getDeviceId } = await import('./lib/device');
+      const deviceId = getDeviceId();
+      
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: loginId, password: loginPass })
+        body: JSON.stringify({ id: loginId, password: loginPass, deviceId })
       });
 
       if (response.ok) {
-        const { apiKey } = await response.json();
+        const { apiKey, role, user } = await response.json();
         handleUpdateSession({ 
-          useCustomKey: false, // Switch to System mode on successful login
+          useCustomKey: false, 
           systemApiKey: apiKey,
-          role: 'premium' 
+          role: role || 'premium',
+          user: user
         });
         setShowLoginModal(false);
         setLoginId('');
@@ -321,6 +326,7 @@ const App: React.FC = () => {
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
       case 'note-pad': return <NotePad onBack={() => setActiveFeature('home')} />;
       case 'code-editor': return <CodeEditor onBack={() => setActiveFeature('home')} />;
+      case 'admin': return <AdminDashboard onBack={() => setActiveFeature('home')} session={session} />;
       default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
     }
   };
@@ -424,6 +430,14 @@ const App: React.FC = () => {
                   <User size={18} className="text-purple-500" /> System Login
                 </button>
               )}
+              {session.role === 'admin' && (
+                <button 
+                  onClick={() => navigateTo('admin')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeFeature === 'admin' ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+                >
+                  <Shield size={18} className="text-orange-500" /> Admin Dashboard
+                </button>
+              )}
             </div>
 
             <div className="absolute bottom-8 left-6 right-6">
@@ -516,7 +530,7 @@ const App: React.FC = () => {
                 onError={() => setLogoError(true)}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-[#FF0000]">
+              <div className="w-full h-full flex items-center justify-center bg-[#1877F2]">
                 <span className="font-black text-lg text-[#FFD700] leading-none">$</span>
               </div>
             )}
@@ -611,7 +625,7 @@ const App: React.FC = () => {
                       onError={() => setLogoError(true)}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-[#FF0000]">
+                    <div className="w-full h-full flex items-center justify-center bg-[#1877F2]">
                       <span className="font-black text-sm text-[#FFD700] leading-none">$</span>
                     </div>
                   )}

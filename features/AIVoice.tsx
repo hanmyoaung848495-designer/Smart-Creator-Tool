@@ -32,9 +32,9 @@ interface AIVoiceProps {
 
 const VOICES = [
   'Zephyr', 'Charon', 'Kore', 'Fenrir', 'Leda', 'Orus', 'Aoede', 
-  'Callirrhoe', 'Autonoe', 'Enceladus', 'lapetus', 'Umbriel', 
-  'Algieba', 'Despina', 'Erinome', 'Algenib', 'Rasalgethi', 
-  'Laomedeia', 'Achernar', 'Alnilam', 'Schedar', 'Garcux', 
+  'Callirrhoe', 'Autonoe', 'Enceladus', 'Umbriel', 
+  'Algieba', 'Erinome', 'Algenib', 'Rasalgethi', 
+  'Laomedeia', 'Achernar', 'Alnilam', 'Schedar', 
   'Pulcherrima', 'Achird', 'Zubenelgenubi', 'Vindemiatrix', 
   'Sadachbia', 'Sadaltager', 'Sulafat'
 ];
@@ -187,6 +187,10 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [pickingVoiceFor, setPickingVoiceFor] = useState<'voice1' | 'voice2' | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -537,7 +541,10 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
     try {
       const apiUrl = import.meta.env.VITE_KC_TTS_API_URL;
-      const previewText = `မင်္ဂလာပါ ${charLabel} ပြောနေပါတယ်။ အသံကြိုက်ရင် သုံးနိုင်ပါတယ်။`;
+      let spokenLabel = charLabel;
+      if (spokenLabel === 'မသူဇာ') spokenLabel = 'မတ်သူဇာ';
+      
+      const previewText = `မင်္ဂလာပါ ${spokenLabel} ပြောနေပါတယ်။ အသံကြိုက်ရင် သုံးနိုင်ပါတယ်။`;
       
       const response = await fetch(`${apiUrl}/api/generate`, {
         method: 'POST',
@@ -714,7 +721,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             <p className="text-gray-600 leading-relaxed font-medium">
               လူကြီးမင်းထည့်ထားသော APIမှာ Quotaပြည့်သွားပါသဖြင့်အသုံးပြု၍မရတော့ပါ။ 
               <br/><br/>
-              <span className="text-indigo-600 font-bold">မှတ်ချက်:</span> Gemini AI model များသည် Free Tier တွင် အသုံးပြုမှု အကန့်အသတ် ရှိပါသည်။ ခဏစောင့်ပြီးမှ ပြန်လည်ကြိုးစားပေးပါ သို့မဟုတ် ပိုမိုမြန်ဆန်သော Flash model ကို ပြောင်းလဲအသုံးပြုပေးပါ။
+              <span className="text-indigo-600 font-bold">မှတ်ချက်:</span> Gemini AI model များသည် Free Tier တွင် အသုံးပြုမှု အကန့်အသတ် ရှိပါသည်။ ခဏစောင့်ပြီးမှ ပြန်လည်ကြိုးစားပေးပါ။
             </p>
             <Button 
               onClick={() => setIsQuotaModalOpen(false)}
@@ -1078,13 +1085,13 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ratio:</label>
                 <button
                   onClick={() => setKcRatio('16:9')}
-                  className={`px-4 py-1 rounded text-xs font-bold ${kcRatio === '16:9' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}
+                  className={`px-4 py-1 rounded text-xs font-bold transition-colors ${kcRatio === '16:9' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   16:9
                 </button>
                 <button
                   onClick={() => setKcRatio('9:16')}
-                  className={`px-4 py-1 rounded text-xs font-bold ${kcRatio === '9:16' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}
+                  className={`px-4 py-1 rounded text-xs font-bold transition-colors ${kcRatio === '9:16' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   9:16
                 </button>
