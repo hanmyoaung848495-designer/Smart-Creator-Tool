@@ -3,7 +3,7 @@ process.env.NTBA_FIX_319 = "1";
 process.env.NTBA_FIX_350 = "1";
 
 import express from "express";
-import { botService } from '../services/botService';
+import { botService } from '../services/botService.js';
 import TelegramBot from "node-telegram-bot-api";
 import { createClient } from "@supabase/supabase-js";
 
@@ -114,6 +114,32 @@ if (botToken) {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     await botService.handleListBans(bot, msg.chat.id);
   });
+
+  bot.onText(/\/users/, async (msg) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    await botService.handleListUsers(bot, msg.chat.id);
+  });
+
+  bot.onText(/\/adduser\s+(.*)/, async (msg, match) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    const input = match?.[1];
+    if (!input) return;
+    await botService.handleAddUserBot(bot, msg.chat.id, input);
+  });
+
+  bot.onText(/\/checkuser\s+(.*)/, async (msg, match) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    const id = match?.[1]?.trim();
+    if (!id) return;
+    await botService.handleCheckUserBot(bot, msg.chat.id, id);
+  });
+
+  bot.onText(/\/deluser\s+(.*)/, async (msg, match) => {
+    if (String(msg.chat.id) !== String(adminChatId).trim()) return;
+    const id = match?.[1]?.trim();
+    if (!id) return;
+    await botService.handleDeleteUserBot(bot, msg.chat.id, id);
+  });
 }
 
 // API routes
@@ -130,7 +156,7 @@ app.get("/api/set-webhook", async (req, res) => {
   }
 });
 
-app.post(["/api/telegram-webhook", "/telegram-webhook"], (req, res) => {
+app.post(["/api/telegram-webhook", "/telegram-webhook", "/api/webhook"], (req, res) => {
   console.log("[Webhook] Received update:", JSON.stringify(req.body));
   res.status(200).send("OK");
 

@@ -67,5 +67,23 @@ export const dbService = {
       query = query.like('timestamp', `${today}%`);
     }
     return await query;
+  },
+
+  // User Accounts
+  async listUsers() {
+    if (!supabase) return { error: "Supabase not configured" };
+    return await supabase.from('users_accounts').select('*').order('created_at', { ascending: false });
+  },
+  async addUser(data: any) {
+    if (!supabase) return { error: "Supabase not configured" };
+    return await supabase.from('users_accounts').upsert(data, { onConflict: 'username' });
+  },
+  async getUser(username: string) {
+    if (!supabase) return { error: "Supabase not configured" };
+    return await supabase.from('users_accounts').select('*').eq('username', username).single();
+  },
+  async deleteUser(username: string) {
+    if (!supabase) return { error: "Supabase not configured" };
+    return await supabase.from('users_accounts').delete().eq('username', username);
   }
 };

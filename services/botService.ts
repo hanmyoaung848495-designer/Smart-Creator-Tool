@@ -1,4 +1,4 @@
-import { dbService } from './dbService';
+import { dbService } from './dbService.js';
 import TelegramBot from 'node-telegram-bot-api';
 
 export const botService = {
@@ -36,6 +36,12 @@ export const botService = {
 /unban [session_id] - Unban a session ID
 /listbans - List all banned session IDs
 /checkban [session_id] - Check if a session ID is banned
+
+👤 *User Management:*
+/users - List all user accounts
+/adduser Name | ID | Password | Role | StartDate | Days / lifetime | Telegram
+/deluser [username] - Delete a user account
+/checkuser [username] - Check user account details
 
 ⚙️ *System:*
 /setwebhook - Set/Reset the bot webhook URL
@@ -219,6 +225,100 @@ ${data.content}
       bot.sendMessage(chatId, `🚫 Session ID \`${sessionId}\` is BANNED.`);
     } else {
       bot.sendMessage(chatId, `✅ Session ID \`${sessionId}\` is NOT banned.`);
+    }
+  },
+
+  async handleListUsers(bot: TelegramBot, chatId: number) {
+    const response = await dbService.listUsers();
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error fetching users: ${(response as any).error.message}`);
+      return;
+    }
+    const data = (response as any).data;
+    if (!data || data.length === 0) {
+      bot.sendMessage(chatId, "No user accounts found.");
+      return;
+    }
+    let listText = "👤 *User List:*\n\n";
+    data.forEach((u: any) => {
+      const status = u.is_lifetime ? "∞ Lifetime" : (u.expired_date < Date.now() ? "🔴 Expired" : "🟢 Active");
+      listText += `• *${u.name}* (\`${u.username}\`)\n  └ ${status} | Role: ${u.role}\n`;
+    });
+    bot.sendMessage(chatId, listText, { parse_mode: "Markdown" });
+  },
+
+  async handleAddUserBot(bot: TelegramBot, chatId: number, input: string) {
+    const parts = input.split('|').map(p => p.trim());
+    if (parts.length < 6) {
+      bot.sendMessage(chatId, "Invalid format. Use: /adduser Name | ID | Password | Role | StartDate | Days / lifetime | Telegram");
+      return;
+    }
+    const [name, username, password, role, start_date_str, duration, telegram] = parts;
+    
+    let is_lifetime = duration.toLowerCase() === 'lifetime';
+    let start_date = new Date(start_date_str).getTime() || Date.now();
+    let expired_date: number | null = null;
+    
+    if (!is_lifetime) {
+      const days = parseInt(duration, 10);
+      if (isNaN(days)) {
+        bot.sendMessage(chatId, "Invalid duration. Enter number of days or 'lifetime'.");
+        return;
+      }
+      expired_date = start_date + (days * 24 * 60 * 60 * 1000);
+    }
+
+    const userData = {
+      name,
+      username,
+      password,
+      role: role.toLowerCase() === 'admin' ? 'admin' : 'user',
+      start_date,
+      expired_date,
+      is_lifetime,
+      telegram,
+      created_at: Date.now()
+    };
+
+    const response = await dbService.addUser(userData);
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error adding user: ${(response as any).error.message}`);
+    } else {
+      bot.sendMessage(chatId, `✅ User \`${username}\` added successfully.`);
+    }
+  },
+
+  async handleCheckUserBot(bot: TelegramBot, chatId: number, username: string) {
+    const response = await dbService.getUser(username);
+    if ((response as any).error || !(response as any).data) {
+      bot.sendMessage(chatId, `❌ User \`${username}\` not found.`);
+      return;
+    }
+    const u = (response as any).data;
+    const expDate = u.is_lifetime ? "Lifetime" : new Date(u.expired_date).toLocaleDateString();
+    const startDate = new Date(u.start_date).toLocaleDateString();
+    
+    const text = `
+👤 *User Details:*
+🆔 *Username:* \`${u.username}\`
+🔑 *Password:* \`${u.password}\`
+📛 *Name:* ${u.name}
+🛡️ *Role:* ${u.role}
+📅 *Start:* ${startDate}
+⌛ *Expiry:* ${expDate}
+📱 *Device:* \`${u.device_id || "Not bound"}\`
+✈️ *Telegram:* ${u.telegram || "N/A"}
+🕒 *Last Login:* ${u.last_login ? new Date(u.last_login).toLocaleString() : "Never"}
+    `;
+    bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
+  },
+
+  async handleDeleteUserBot(bot: TelegramBot, chatId: number, username: string) {
+    const response = await dbService.deleteUser(username);
+    if ((response as any).error) {
+      bot.sendMessage(chatId, `❌ Error deleting user: ${(response as any).error.message}`);
+    } else {
+      bot.sendMessage(chatId, `✅ User \`${username}\` deleted.`);
     }
   }
 };
