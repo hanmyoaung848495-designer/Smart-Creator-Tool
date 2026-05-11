@@ -156,7 +156,7 @@ app.get("/api/set-webhook", async (req, res) => {
   }
 });
 
-app.post(["/api/telegram-webhook", "/telegram-webhook", "/api/webhook"], (req, res) => {
+app.post(/^\/(api\/)?(telegram-)?webhook$/, (req, res) => {
   console.log("[Webhook] Received update:", JSON.stringify(req.body));
   res.status(200).send("OK");
 
@@ -169,7 +169,7 @@ app.post(["/api/telegram-webhook", "/telegram-webhook", "/api/webhook"], (req, r
   }
 });
 
-app.post(["/api/feedback", "/feedback"], async (req, res) => {
+app.post(/^\/(api\/)?feedback$/, async (req, res) => {
   const { name, contact, message, sessionId } = req.body;
   console.log("[Feedback] Received:", { name, contact, message, sessionId });
 
@@ -210,7 +210,49 @@ app.post(["/api/feedback", "/feedback"], async (req, res) => {
 
 import path from "path";
 
-app.post(["/api/login", "/login"], async (req, res) => {
+app.post(/^\/(api\/)?kc-tts\/generate$/, async (req, res) => {
+  try {
+    const appUrl = process.env.APP_URL; // e.g., Hugging Face Space URL
+    const apiKey = process.env.TTS_API_KEY;
+
+    if (!appUrl) {
+      return res.status(500).json({ error: "APP_URL is not configured" });
+    }
+
+    const apiUrl = `${appUrl}/generate`;
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": apiKey || ""
+      },
+      body: JSON.stringify(req.body)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return res.status(response.status).send(errorText);
+    }
+
+    const data = await response.json();
+    
+    // Prefix relative URLs with APP_URL
+    if (data.audio_url && data.audio_url.startsWith('/')) {
+      data.audio_url = `${appUrl}${data.audio_url}`;
+    }
+    if (data.srt_url && data.srt_url.startsWith('/')) {
+      data.srt_url = `${appUrl}${data.srt_url}`;
+    }
+
+    return res.json(data);
+  } catch (error) {
+    console.error("KC TTS Proxy Error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+app.post(/^\/(api\/)?login$/, async (req, res) => {
   const id = req.body.id?.toString().trim();
   const password = req.body.password?.toString().trim();
   const deviceId = req.body.deviceId?.toString().trim();
@@ -375,7 +417,7 @@ async function setupVite() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get(/.*/, (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

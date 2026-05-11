@@ -46,21 +46,26 @@ const MODELS = [
 
 // KC TTS Constants
 const KC_CHARACTERS = [
-  { label: 'သီဟ', value: 'thiha' },
-  { label: 'နီလာ', value: 'nilar' },
-  { label: 'ဦးဘ', value: 'u_ba' },
-  { label: 'ဒေါ်မြ', value: 'daw_mya' },
-  { label: 'ကိုကျော်မင်း', value: 'ko_kyaw_min' },
-  { label: 'မသူဇာ', value: 'ma_thu_zar' },
-  { label: 'သန့်ဇင်', value: 'thant_zin' },
-  { label: 'သီတာ', value: 'thida' },
-  { label: 'ကျော်ကျော်', value: 'kyaw_kyaw' },
-  { label: 'သီရိ', value: 'thiri' }
+  { label: 'ဗန် (Myanmar)', value: 'ဗန်' },
+  { label: 'သူဇာ (Myanmar)', value: 'သူဇာ' },
+  { label: 'သန့်ဇင် (Myanmar)', value: 'သန့်ဇင်' },
+  { label: 'ကြည်ပြာ (Myanmar)', value: 'ကြည်ပြာ' },
+  { label: 'အောင်အောင် (Myanmar)', value: 'အောင်အောင်' },
+  { label: 'သီရိ (Myanmar)', value: 'သီရိ' },
+  { label: 'အောင်လ (Myanmar)', value: 'အောင်လ' },
+  { label: 'သက်ထား (Myanmar)', value: 'သက်ထား' },
+  { label: 'ဖြိုးမြတ်အောင် (Myanmar)', value: 'ဖြိုးမြတ်အောင်' },
+  { label: 'ချယ်ရီ (Myanmar)', value: 'ချယ်ရီ' },
+  { label: 'ဗျူဟာ (Myanmar)', value: 'ဗျူဟာ' },
+  { label: 'James (English)', value: 'James' },
+  { label: 'Sophia (English)', value: 'Sophia' },
+  { label: 'Michael (English)', value: 'Michael' },
+  { label: 'Jennifer (English)', value: 'Jennifer' }
 ];
 
 const KC_STYLES = [
   { label: 'Normal', value: 'normal' },
-  { label: 'Movie Recap', value: 'movie_recap' },
+  { label: 'Movie Recap (ဇာတ်လမ်းပြော)', value: 'Movie Recap (ဇာတ်လမ်းပြော)' },
   { label: 'Storytelling', value: 'storytelling' },
   { label: 'Documentary', value: 'documentary' },
   { label: 'Sad', value: 'sad' },
@@ -83,11 +88,14 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   
   // KC TTS State
   const [kcText, setKcText] = useState('');
-  const [kcCharacter, setKcCharacter] = useState('thiha');
-  const [kcStyle, setKcStyle] = useState('movie_recap');
-  const [kcCharOpen, setKcCharOpen] = useState(false);
+  const [kcMode, setKcMode] = useState<'single' | 'multi'>('single');
+  const [kcV1Voice, setKcV1Voice] = useState('ဗန်');
+  const [kcV2Voice, setKcV2Voice] = useState('သူဇာ');
+  const [kcV3Voice, setKcV3Voice] = useState('သန့်ဇင်');
+  const [kcStyle, setKcStyle] = useState('Movie Recap (ဇာတ်လမ်းပြော)');
+  const [kcCharOpen, setKcCharOpen] = useState<'v1' | 'v2' | 'v3' | null>(null);
   const [kcStyleOpen, setKcStyleOpen] = useState(false);
-  const [kcRatio, setKcRatio] = useState<'16:9' | '9:16'>('9:16'); // Default 9:16
+  const [kcRatio, setKcRatio] = useState<'TikTok' | 'YouTube'>('TikTok');
   const [kcFileName, setKcFileName] = useState('KC_Voice');
   const [kcPitch, setKcPitch] = useState(0);
   const [kcRate, setKcRate] = useState(0);
@@ -129,23 +137,27 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     setKcLoading(true);
     setKcResult(null);
     try {
-      const apiUrl = import.meta.env.VITE_KC_TTS_API_URL;
-      console.log('Generating with:', { apiUrl, processedText, kcCharacter, kcStyle, kcRatio });
+      const apiUrl = '/api/kc-tts/generate';
+      console.log('Generating with:', { processedText, kcV1Voice, kcV2Voice, kcV3Voice, kcStyle, kcRatio });
       
-      const response = await fetch(`${apiUrl}/api/generate`, {
+      const payload = {
+        text: processedText,
+        v1_voice: kcV1Voice,
+        v2_voice: kcMode === 'multi' ? kcV2Voice : '',
+        v3_voice: kcMode === 'multi' ? kcV3Voice : '',
+        style: kcStyle,
+        srt_ratio: kcRatio,
+        manual_pitch: kcPitch,
+        manual_rate: kcRate,
+        volume_boost: kcVolume
+      };
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          text: processedText,
-          character: kcCharacter,
-          style: kcStyle,
-          ratio: kcRatio,
-          manual_pitch: kcPitch,
-          manual_rate: kcRate,
-          manual_volume: kcVolume
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -162,8 +174,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         id: Math.random().toString(36).substr(2, 9),
         title: kcFileName || 'KC_Voice',
         text: kcText,
-        mode: 'single', // placeholder
-        voices: [kcCharacter],
+        mode: kcMode,
+        voices: kcMode === 'multi' ? [kcV1Voice, kcV2Voice, kcV3Voice] : [kcV1Voice],
         audioData: '', // Audio is fetched from URL, not base64 here
         timestamp: Date.now(),
         kcResult: resultWithFileName
@@ -229,7 +241,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('.character-dropdown-container')) {
-        setKcCharOpen(false);
+        setKcCharOpen(null);
       }
       if (!target.closest('.style-dropdown-container')) {
         setKcStyleOpen(false);
@@ -540,23 +552,29 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     setIsPreviewing(previewId);
 
     try {
-      const apiUrl = import.meta.env.VITE_KC_TTS_API_URL;
-      let spokenLabel = charLabel;
-      if (spokenLabel === 'မသူဇာ') spokenLabel = 'မတ်သူဇာ';
+      const apiUrl = '/api/kc-tts/generate';
+      const isEnglish = charLabel.includes('(English)');
+      let spokenLabel = charLabel.replace(/\s*\([^)]*\)/g, '');
       
-      const previewText = `မင်္ဂလာပါ ${spokenLabel} ပြောနေပါတယ်။ အသံကြိုက်ရင် သုံးနိုင်ပါတယ်။`;
+      let previewText = '';
+      if (isEnglish) {
+        previewText = `Hello, I am ${spokenLabel}. If you like my voice, you can use it.`;
+      } else {
+        if (spokenLabel === 'မသူဇာ') spokenLabel = 'မတ်သူဇာ';
+        previewText = `မင်္ဂလာပါ ${spokenLabel} ပြောနေပါတယ် အသံကြိုက်ရင် သုံးနိုင်ပါတယ်`;
+      }
       
-      const response = await fetch(`${apiUrl}/api/generate`, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           text: previewText,
-          character: charValue,
-          style: 'normal',
-          ratio: '9:16',
+          v1_voice: charValue,
+          style: 'Normal',
+          srt_ratio: 'TikTok',
           manual_pitch: 0,
           manual_rate: 0,
-          manual_volume: 0
+          volume_boost: 0
         }),
       });
 
@@ -975,6 +993,30 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           </>
         ) : (
           <div className="space-y-6">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-end">
+              <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
+                <button
+                  onClick={() => {
+                    setKcMode('single');
+                  }}
+                  className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${kcMode === 'single' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <User size={14} /> Single
+                </button>
+                <button
+                  onClick={() => {
+                    setKcMode('multi');
+                    if (!kcText.includes('[V1]')) {
+                      setKcText('[V1] မျှင်မျှင်ရေ [V2] ပြောပါကိုကိုတွတ်ရေ [V3] ဟာ ဒီလင်မယားကတော့ လာရိုပြနေတာပဲ');
+                    }
+                  }}
+                  className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${kcMode === 'multi' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  <Users size={14} /> Multi
+                </button>
+              </div>
+            </div>
+
             {/* Input and Selectors */}
             <div className="space-y-4">
               <Input
@@ -989,37 +1031,39 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                 placeholder="Enter text for KC Voice..."
                 rows={4}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`grid gap-4 ${kcMode === 'multi' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1 md:grid-cols-2'}`}>
+                {/* Character 1 */}
                 <div className="flex flex-col gap-1.5 relative character-dropdown-container">
-                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Character</label>
+                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    {kcMode === 'single' ? 'Character' : 'Speaker V1'}
+                  </label>
                   <button
-                    onClick={() => setKcCharOpen(!kcCharOpen)}
+                    onClick={() => setKcCharOpen(kcCharOpen === 'v1' ? null : 'v1')}
                     className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   >
                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                      {KC_CHARACTERS.find(c => c.value === kcCharacter)?.label}
+                      {KC_CHARACTERS.find(c => c.value === kcV1Voice)?.label || 'Select...'}
                     </span>
-                    <span className={`text-indigo-600 transition-transform duration-200 ${kcCharOpen ? 'rotate-180' : ''}`}>▼</span>
+                    <span className={`text-indigo-600 transition-transform duration-200 ${kcCharOpen === 'v1' ? 'rotate-180' : ''}`}>▼</span>
                   </button>
-                  
-                  {kcCharOpen && (
+                  {kcCharOpen === 'v1' && (
                     <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                       <div className="max-h-[200px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                         {KC_CHARACTERS.map((char) => (
                           <div
                             key={char.value}
                             onClick={() => {
-                              setKcCharacter(char.value);
-                              setKcCharOpen(false);
+                              setKcV1Voice(char.value);
+                              setKcCharOpen(null);
                             }}
                             className={`px-4 py-2.5 text-sm font-medium cursor-pointer transition-colors flex items-center justify-between group ${
-                              kcCharacter === char.value 
+                              kcV1Voice === char.value 
                                 ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' 
                                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                             }`}
                           >
                             <div className="flex items-center gap-2">
-                              <span>{char.label}</span>
+                              <span className="truncate">{char.label}</span>
                               <button
                                 onClick={(e) => previewKCCharacter(e, char.value, char.label)}
                                 disabled={isPreviewing !== null && isPreviewing !== `kc_${char.value}`}
@@ -1037,14 +1081,117 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                                 )}
                               </button>
                             </div>
-                            {kcCharacter === char.value && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600" />}
+                            {kcV1Voice === char.value && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0" />}
                           </div>
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col gap-1.5 relative style-dropdown-container">
+
+                {kcMode === 'multi' && (
+                  <>
+                    <div className="flex flex-col gap-1.5 relative character-dropdown-container">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Speaker V2</label>
+                      <button
+                        onClick={() => setKcCharOpen(kcCharOpen === 'v2' ? null : 'v2')}
+                        className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      >
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {KC_CHARACTERS.find(c => c.value === kcV2Voice)?.label || 'Select...'}
+                        </span>
+                        <span className={`text-indigo-600 transition-transform duration-200 ${kcCharOpen === 'v2' ? 'rotate-180' : ''}`}>▼</span>
+                      </button>
+                      {kcCharOpen === 'v2' && (
+                        <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="max-h-[200px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                            {KC_CHARACTERS.map((char) => (
+                              <div
+                                key={char.value}
+                                onClick={() => {
+                                  setKcV2Voice(char.value);
+                                  setKcCharOpen(null);
+                                }}
+                                className={`px-4 py-2.5 text-sm font-medium cursor-pointer transition-colors flex items-center justify-between group ${
+                                  kcV2Voice === char.value 
+                                    ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' 
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="truncate">{char.label}</span>
+                                  <button
+                                    onClick={(e) => previewKCCharacter(e, char.value, char.label)}
+                                    disabled={isPreviewing !== null && isPreviewing !== `kc_${char.value}`}
+                                    className={`p-1.5 rounded-md transition-all ${
+                                      isPreviewing === `kc_${char.value}`
+                                        ? 'bg-indigo-100 text-indigo-600'
+                                        : 'hover:bg-indigo-100 hover:text-indigo-600 text-gray-400'
+                                    }`}
+                                  >
+                                    {isPreviewing === `kc_${char.value}` ? <Loader2 size={14} className="animate-spin" /> : <Volume2 size={14} />}
+                                  </button>
+                                </div>
+                                {kcV2Voice === char.value && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0" />}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 relative character-dropdown-container">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Speaker V3</label>
+                      <button
+                        onClick={() => setKcCharOpen(kcCharOpen === 'v3' ? null : 'v3')}
+                        className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      >
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {KC_CHARACTERS.find(c => c.value === kcV3Voice)?.label || 'Select...'}
+                        </span>
+                        <span className={`text-indigo-600 transition-transform duration-200 ${kcCharOpen === 'v3' ? 'rotate-180' : ''}`}>▼</span>
+                      </button>
+                      {kcCharOpen === 'v3' && (
+                        <div className="absolute top-[calc(100%+4px)] left-0 right-0 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                          <div className="max-h-[200px] overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                            {KC_CHARACTERS.map((char) => (
+                              <div
+                                key={char.value}
+                                onClick={() => {
+                                  setKcV3Voice(char.value);
+                                  setKcCharOpen(null);
+                                }}
+                                className={`px-4 py-2.5 text-sm font-medium cursor-pointer transition-colors flex items-center justify-between group ${
+                                  kcV3Voice === char.value 
+                                    ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400' 
+                                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <span className="truncate">{char.label}</span>
+                                  <button
+                                    onClick={(e) => previewKCCharacter(e, char.value, char.label)}
+                                    disabled={isPreviewing !== null && isPreviewing !== `kc_${char.value}`}
+                                    className={`p-1.5 rounded-md transition-all ${
+                                      isPreviewing === `kc_${char.value}`
+                                        ? 'bg-indigo-100 text-indigo-600'
+                                        : 'hover:bg-indigo-100 hover:text-indigo-600 text-gray-400'
+                                    }`}
+                                  >
+                                    {isPreviewing === `kc_${char.value}` ? <Loader2 size={14} className="animate-spin" /> : <Volume2 size={14} />}
+                                  </button>
+                                </div>
+                                {kcV3Voice === char.value && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0" />}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <div className={`flex flex-col gap-1.5 relative style-dropdown-container ${kcMode === 'multi' ? 'md:col-span-3' : ''}`}>
                   <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Style</label>
                   <button
                     onClick={() => setKcStyleOpen(!kcStyleOpen)}
