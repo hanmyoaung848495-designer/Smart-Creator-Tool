@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserAccount, UserSession } from '../types';
 import { Card, Button, Input, Select, Modal, ConfirmModal } from '../components/Shared';
-import { Eye, EyeOff, Trash2, UserPlus, Users, Calendar, Shield, Smartphone, Send, Clock, Search, X } from 'lucide-react';
+import { Eye, EyeOff, Trash2, UserPlus, Users, Calendar, Shield, Smartphone, Send, Clock, Search, X, Video, Play, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
@@ -11,12 +11,29 @@ interface Props {
 }
 
 const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
+  const [activeTab, setActiveTab] = useState<'users' | 'tutorials'>('users');
+  
+  // Users state
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userToDelete, setUserToDelete] = useState<UserAccount | null>(null);
+
+  // Tutorials state
+  const [tutorials, setTutorials] = useState<any[]>([]);
+  const [tutorialsLoading, setTutorialsLoading] = useState(false);
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
+  const [tutorialToDelete, setTutorialToDelete] = useState<any | null>(null);
+  const [tutorialFormData, setTutorialFormData] = useState({
+    id: '',
+    title: '',
+    video_id: '',
+    time_start: 0,
+    content: '',
+    tool_key: ''
+  });
 
   // New User Form State
   const [formData, setFormData] = useState({
@@ -62,8 +79,26 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     }
   };
 
+  const fetchTutorials = async () => {
+    setTutorialsLoading(true);
+    try {
+      const response = await fetch('/api/admin/tutorials');
+      if (response.ok) {
+        setTutorials(await response.json());
+      } else {
+        throw new Error('Failed to fetch tutorials');
+      }
+    } catch (err) {
+      toast.error('Failed to fetch tutorials');
+      console.error(err);
+    } finally {
+      setTutorialsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchTutorials();
   }, []);
 
   const handleAddUser = async (e: React.FormEvent) => {
@@ -116,6 +151,7 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
       });
       if (response.ok) {
         toast.success('User deleted successfully');
+        setUserToDelete(null);
         fetchUsers();
       } else {
         throw new Error('Failed to delete user');
@@ -126,10 +162,64 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     }
   };
 
+  const handleSaveTutorial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/admin/tutorials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: tutorialFormData.id || undefined,
+          title: tutorialFormData.title,
+          video_id: tutorialFormData.video_id,
+          time_start: tutorialFormData.time_start,
+          content: tutorialFormData.content,
+          tool_key: tutorialFormData.tool_key || null
+        })
+      });
+
+      if (response.ok) {
+        toast.success(tutorialFormData.id ? 'Tutorial updated' : 'Tutorial added');
+        setShowTutorialModal(false);
+        setTutorialFormData({ id: '', title: '', video_id: '', time_start: 0, content: '', tool_key: '' });
+        fetchTutorials();
+      } else {
+        throw new Error('Failed to save tutorial');
+      }
+    } catch (err) {
+      toast.error('Failed to save tutorial');
+      console.error(err);
+    }
+  };
+
+  const handleDeleteTutorialConfirm = async () => {
+    if (!tutorialToDelete) return;
+    try {
+      const response = await fetch(`/api/admin/tutorials/${tutorialToDelete.id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        toast.success('Tutorial deleted successfully');
+        setTutorialToDelete(null);
+        fetchTutorials();
+      } else {
+        throw new Error('Failed to delete tutorial');
+      }
+    } catch (err) {
+      toast.error('Failed to delete tutorial');
+      console.error(err);
+    }
+  };
+
   const filteredUsers = users.filter(u => 
     u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.telegram.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredTutorials = tutorials.filter(t => 
+    t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (t.tool_key && t.tool_key.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const getStatus = (user: UserAccount) => {
@@ -157,11 +247,42 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
             <p className="text-sm text-gray-500 font-medium">Manage user accounts and system configuration</p>
           </div>
         </div>
-        <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-6">
-          <UserPlus size={18} /> Add New User
-        </Button>
+        {activeTab === 'users' ? (
+          <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-6">
+            <UserPlus size={18} /> Add New User
+          </Button>
+        ) : (
+          <Button onClick={() => setShowTutorialModal(true)} className="flex items-center gap-2 px-6 bg-purple-600 hover:bg-purple-700">
+            <Video size={18} /> Add Tutorial
+          </Button>
+        )}
       </div>
 
+      <div className="flex bg-gray-100 dark:bg-gray-800 p-1 flex-wrap rounded-xl w-full max-w-sm">
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+            activeTab === 'users'
+              ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
+              : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          Users
+        </button>
+        <button
+          onClick={() => setActiveTab('tutorials')}
+          className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+            activeTab === 'tutorials'
+              ? 'bg-white dark:bg-gray-700 text-purple-600 dark:text-purple-400 shadow-sm'
+              : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          Tutorials
+        </button>
+      </div>
+
+      {activeTab === 'users' && (
+      <>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="p-6 flex items-center gap-4 border-l-4 border-l-blue-500">
           <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
@@ -315,6 +436,110 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
           </table>
         </div>
       </Card>
+      </>
+      )}
+
+      {activeTab === 'tutorials' && (
+      <>
+      <Card className="overflow-hidden">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-800/50">
+          <div className="relative flex-grow max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input 
+              type="text" 
+              placeholder="Search tutorials by title or tool..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="secondary" onClick={fetchTutorials} className="p-2 h-10 w-10 text-purple-600">
+              <Clock size={18} />
+            </Button>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">ID</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 w-1/3">Title & Tool</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Video Content</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+              {tutorialsLoading ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span className="font-bold uppercase tracking-widest text-[10px]">Loading tutorials...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredTutorials.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-gray-400">
+                    <p className="font-bold uppercase tracking-widest text-[10px]">No tutorials found</p>
+                  </td>
+                </tr>
+              ) : filteredTutorials.map((tut) => (
+                <tr key={tut.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                  <td className="px-6 py-4">
+                    <span className="text-sm font-bold text-gray-900 dark:text-gray-100">#{tut.id}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-bold text-gray-900 dark:text-gray-100 line-clamp-2">{tut.title}</span>
+                      {tut.tool_key && (
+                        <span className="text-[10px] font-bold text-purple-600 bg-purple-50 dark:bg-purple-900/30 w-fit px-2 py-0.5 rounded-md uppercase tracking-wider">
+                          {tut.tool_key}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-1.5">
+                        <Video size={12} className="text-gray-400" />
+                        <span className="font-mono">{tut.video_id}</span>
+                        {tut.time_start > 0 && <span className="bg-gray-100 dark:bg-gray-800 px-1 rounded text-[10px]">@ {tut.time_start}s</span>}
+                      </div>
+                      {tut.content && (
+                        <p className="line-clamp-2 text-xs italic opacity-75 mt-1 max-w-xs">{tut.content}</p>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => {
+                          setTutorialFormData(tut);
+                          setShowTutorialModal(true);
+                        }}
+                        className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                      >
+                        <Edit size={18} />
+                      </button>
+                      <button 
+                        onClick={() => setTutorialToDelete(tut)}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+      </>
+      )}
 
       <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add User Account">
         <form onSubmit={handleAddUser} className="space-y-6">
@@ -404,6 +629,83 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
         confirmText="Delete Account"
         variant="danger"
       />
+
+      {/* Tutorial Modals */}
+      <Modal 
+        isOpen={showTutorialModal} 
+        onClose={() => setShowTutorialModal(false)} 
+        title={tutorialFormData.id ? "Edit Tutorial" : "Add Tutorial"}
+        contentClassName="[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+      >
+        <form onSubmit={handleSaveTutorial} className="space-y-6">
+          <Input 
+            label="Title" 
+            placeholder="e.g. How to use AI Voice" 
+            value={tutorialFormData.title} 
+            onChange={(val) => setTutorialFormData({...tutorialFormData, title: val})} 
+            required
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Input 
+              label="YouTube Video ID" 
+              placeholder="e.g. dQw4w9WgXcQ" 
+              value={tutorialFormData.video_id} 
+              onChange={(val) => setTutorialFormData({...tutorialFormData, video_id: val})} 
+              required
+            />
+            <Input 
+              label="Start Time (seconds)" 
+              type="number"
+              placeholder="0" 
+              value={tutorialFormData.time_start.toString()} 
+              onChange={(val) => setTutorialFormData({...tutorialFormData, time_start: parseInt(val) || 0})} 
+            />
+          </div>
+          <Select 
+            label="Tool / Feature Key" 
+            value={tutorialFormData.tool_key || ''} 
+            onChange={(val) => setTutorialFormData({...tutorialFormData, tool_key: val})} 
+            options={[
+              { label: 'None (Global)', value: '' },
+              { label: 'AI Voice', value: 'ai-voice' },
+              { label: 'Transcribe', value: 'transcribe' },
+              { label: 'Translate', value: 'translate' },
+              { label: 'SRT Generator', value: 'sub-generator' },
+              { label: 'SRT Translate', value: 'srt-translate' },
+              { label: 'AI Script Writer', value: 'script-writer' },
+              { label: 'Teleprompter', value: 'teleprompter' },
+              { label: 'Text to SRT', value: 'text-to-srt' },
+              { label: 'Note Pad', value: 'note-pad' }
+            ]}
+          />
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest">
+              Description / Content
+            </label>
+            <textarea
+              value={tutorialFormData.content || ''}
+              onChange={(e) => setTutorialFormData({...tutorialFormData, content: e.target.value})}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all text-gray-900"
+              rows={4}
+              placeholder="Any additional notes or descriptions..."
+            />
+          </div>
+          <Button type="submit" className="w-full py-4 mt-4 shadow-xl bg-purple-600 hover:bg-purple-700">
+            {tutorialFormData.id ? "Save Changes" : "Create Tutorial"}
+          </Button>
+        </form>
+      </Modal>
+
+      <ConfirmModal 
+        isOpen={!!tutorialToDelete}
+        onClose={() => setTutorialToDelete(null)}
+        onConfirm={handleDeleteTutorialConfirm}
+        title="Delete Tutorial"
+        message={`Are you sure you want to delete "${tutorialToDelete?.title}"? This action cannot be undone.`}
+        confirmText="Delete Tutorial"
+        variant="danger"
+      />
+
     </div>
   );
 };

@@ -86,39 +86,60 @@ export const transcribeMedia = async (fileBase64: string, mimeType: string, apiK
     contents: {
       parts: [
         { inlineData: { data: fileBase64, mimeType } },
-        { text: "Please listen to and watch this media file carefully. Your task is to generate an interesting, engaging, and attractive speaking script (စကားပြော script) based on the content. Do not just provide a raw transcription; instead, create a script that is well-structured and compelling for an audience. Output the script in the same language as the media, unless it's Burmese, in which case keep it in Burmese." }
+        { text: "Please transcribe the content of this media file directly into text. Output only the raw transcription without any extra explanations or restructuring. Use the same language as the spoken words in the media. (အသံတွင် ပါဝင်သော စကားလုံးများကို စာသားအဖြစ် တိုက်ရိုက် ပြန်ဆိုပေးပါ)" }
       ]
     }
   });
-  return response.text || "Failed to generate script.";
+  return response.text || "Failed to transcribe media.";
 };
 
 export const transcribeYoutubeLink = async (url: string, apiKey?: string, translateToBurmese?: boolean): Promise<{text: string, sources: any[]}> => {
-  const ai = getAIClient(apiKey);
+  // Try server-side proxy first (for audio-based transcription)
+  const apiUrl = '/api/youtube-transcribe';
   
-  const systemPrompt = `You are a specialized AI Content Script Writer. Your task is to process video links from platforms like YouTube, TikTok, and Facebook.
-  
-  Instructions:
-  1. Analyze: Access and understand the content of the provided link: ${url}
-  2. Generate Script: Instead of a raw transcript, create an interesting, engaging, and attractive speaking script (စကားပြော script) based on the video's content.
-  3. Structure: Organize the script with clear sections, speaker labels if applicable, and engaging transitions.
-  4. Language: Provide the script in the original language of the video. 
-  ${translateToBurmese ? "CRITICAL: The user has requested a translation. Please translate the entire generated script into Burmese while maintaining its engaging and attractive tone." : ""}
-  
-  If the content is inaccessible, provide a high-fidelity summary and a reconstructed script based on available metadata and search results.`;
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url, apiKey, translateToBurmese })
+    });
 
-  const response = await generateWithFallback(ai, 'gemini-3-flash-preview', {
-    contents: systemPrompt,
-    config: {
-      tools: [{ googleSearch: {} }, { urlContext: {} }]
+    if (response.ok) {
+      return await response.json();
     }
-  });
-  
-  const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-  return {
-    text: response.text || "Failed to fetch video transcription information.",
-    sources
-  };
+    
+    const errorText = await response.text();
+    console.warn("YouTube Proxy failed, falling back to direct Gemini processing:", errorText);
+  } catch (error) {
+    console.error("YouTube Proxy network error, falling back to direct Gemini processing:", error);
+  }
+
+  // Fallback: Direct Gemini processing using tools
+  try {
+    const ai = getAIClient(apiKey);
+    const systemPrompt = `Analyze the video at ${url}.
+    Please provide a raw transcription of the spoken content directly into text. 
+    ${translateToBurmese ? "Output only the Burmese translation." : "Output only the raw transcription."}
+    (အသံတွင် ပါဝင်သော စကားလုံးများကို စာသားအဖြစ် တိုက်ရိုက် ပြန်ဆိုပေးပါ)`;
+
+    const response = await generateWithFallback(ai, 'gemini-3-flash-preview', {
+      contents: systemPrompt,
+      config: {
+        tools: [{ googleSearch: {} }, { urlContext: {} }]
+      }
+    });
+    
+    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    return {
+      text: response.text || "Failed to fetch transcription even with fallback.",
+      sources
+    };
+  } catch (fbError) {
+    console.error("YouTube Transcription Fallback Error:", fbError);
+    return { text: "Failed to transcribe YouTube video. This might be due to YouTube's bot protection or the video being restricted. Please try downloading the audio and uploading it manually.", sources: [] };
+  }
 };
 
 export const translateText = async (text: string, targetLang: string, apiKey?: string): Promise<string> => {

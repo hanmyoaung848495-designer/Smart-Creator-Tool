@@ -235,7 +235,8 @@ export const Modal: React.FC<{
   hideBottomClose?: boolean;
   maxWidth?: string;
   compact?: boolean;
-}> = ({ isOpen, onClose, title, children, hideClose, hideBottomClose, maxWidth = "max-w-2xl", compact }) => {
+  contentClassName?: string;
+}> = ({ isOpen, onClose, title, children, hideClose, hideBottomClose, maxWidth = "max-w-2xl", compact, contentClassName = "" }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
@@ -248,7 +249,7 @@ export const Modal: React.FC<{
             </button>
           )}
         </div>
-        <div className={`${compact ? 'p-0' : 'p-8'} overflow-y-auto text-gray-600 dark:text-gray-300 leading-relaxed text-sm`}>
+        <div className={`${compact ? 'p-0' : 'p-8'} overflow-y-auto text-gray-600 dark:text-gray-300 leading-relaxed text-sm ${contentClassName}`}>
           {children}
         </div>
         {!hideClose && !hideBottomClose && !compact && (

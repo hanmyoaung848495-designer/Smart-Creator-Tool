@@ -4,6 +4,12 @@ import { FeatureCardData, AdminSettings } from './types';
 
 export const FEATURES: FeatureCardData[] = [
   {
+    id: 'ai-voice',
+    title: 'AI Voice',
+    description: 'Generate high-quality AI voices from your text.',
+    icon: '🗣️'
+  },
+  {
     id: 'transcribe',
     title: 'Transcribe',
     description: 'Generate engaging speaking scripts from audio, video, or links.',
@@ -16,16 +22,16 @@ export const FEATURES: FeatureCardData[] = [
     icon: '🌐'
   },
   {
-    id: 'srt-translate',
-    title: 'SRT Translate',
-    description: 'Translate subtitle files while preserving timestamps.',
-    icon: '🎞️'
-  },
-  {
     id: 'sub-generator',
     title: 'SRT Generator',
     description: 'Automatically generate SRT files from media with accurate timestamps.',
     icon: '📝'
+  },
+  {
+    id: 'srt-translate',
+    title: 'SRT Translate',
+    description: 'Translate subtitle files while preserving timestamps.',
+    icon: '🎞️'
   },
   {
     id: 'script-writer',
@@ -34,22 +40,16 @@ export const FEATURES: FeatureCardData[] = [
     icon: '🖋️'
   },
   {
-    id: 'text-to-srt',
-    title: 'Text To SRT',
-    description: 'Convert Gemini output text into downloadable SRT subtitle files.',
-    icon: '📄'
-  },
-  {
     id: 'teleprompter',
     title: 'Teleprompter',
     description: 'စကားပြောစာသားများကို အနှေးအမြန်ထိန်းညှိပြီး ဖတ်ရှုနိုင်ပါသည်။',
     icon: '📜'
   },
   {
-    id: 'ai-voice',
-    title: 'AI Voice',
-    description: 'Generate high-quality AI voices from your text.',
-    icon: '🗣️'
+    id: 'text-to-srt',
+    title: 'Text To SRT',
+    description: 'Convert Gemini output text into downloadable SRT subtitle files.',
+    icon: '📄'
   },
   {
     id: 'note-pad',

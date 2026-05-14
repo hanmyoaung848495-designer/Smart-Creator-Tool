@@ -50,17 +50,20 @@ const KC_CHARACTERS = [
   { label: 'သူဇာ (Myanmar)', value: 'သူဇာ' },
   { label: 'သန့်ဇင် (Myanmar)', value: 'သန့်ဇင်' },
   { label: 'ကြည်ပြာ (Myanmar)', value: 'ကြည်ပြာ' },
+  { label: 'မောင်မှိုင်း (Myanmar)', value: 'မောင်မှိုင်း' },
+  { label: 'သီတာ (Myanmar)', value: 'သီတာ' },
   { label: 'အောင်အောင် (Myanmar)', value: 'အောင်အောင်' },
   { label: 'သီရိ (Myanmar)', value: 'သီရိ' },
   { label: 'အောင်လ (Myanmar)', value: 'အောင်လ' },
   { label: 'သက်ထား (Myanmar)', value: 'သက်ထား' },
-  { label: 'ဖြိုးမြတ်အောင် (Myanmar)', value: 'ဖြိုးမြတ်အောင်' },
+  { label: 'တာတီး (Myanmar)', value: 'တာတီး' },
   { label: 'ချယ်ရီ (Myanmar)', value: 'ချယ်ရီ' },
   { label: 'ဗျူဟာ (Myanmar)', value: 'ဗျူဟာ' },
-  { label: 'James (English)', value: 'James' },
-  { label: 'Sophia (English)', value: 'Sophia' },
-  { label: 'Michael (English)', value: 'Michael' },
-  { label: 'Jennifer (English)', value: 'Jennifer' }
+  { label: 'အောင်ဒင် (Myanmar)', value: 'အောင်ဒင်' },
+  { label: 'John (English)', value: 'John' },
+  { label: 'Monica (English)', value: 'Monica' },
+  { label: 'David (English)', value: 'David' },
+  { label: 'Julia (English)', value: 'Julia' }
 ];
 
 const KC_STYLES = [
