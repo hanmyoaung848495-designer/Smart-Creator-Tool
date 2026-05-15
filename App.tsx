@@ -326,7 +326,11 @@ const App: React.FC = () => {
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
       case 'note-pad': return <NotePad onBack={() => setActiveFeature('home')} />;
       case 'code-editor': return <CodeEditor onBack={() => setActiveFeature('home')} />;
-      case 'admin': return <AdminDashboard onBack={() => setActiveFeature('home')} session={session} />;
+      case 'admin': 
+        if (session.role !== 'admin') {
+          return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
+        }
+        return <AdminDashboard onBack={() => setActiveFeature('home')} session={session} />;
       default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
     }
   };
@@ -417,6 +421,9 @@ const App: React.FC = () => {
                     setToastMessage({ title: 'Logout အောင်မြင်ပါတယ်။', type: 'success' });
                     setTimeout(() => setToastMessage(null), 3000);
                     setIsMenuOpen(false);
+                    if (activeFeature === 'admin') {
+                      setActiveFeature('home');
+                    }
                   }}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
                 >

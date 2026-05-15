@@ -84,24 +84,24 @@ const PersistentResults: React.FC<Props> = ({ results, activeType, onDelete, onC
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="ghost" onClick={() => onCopy(result.content)} className="text-[10px] font-bold h-8 px-3 uppercase">
+                <div className="flex flex-wrap items-center gap-2 mt-2 md:mt-0 shrink-0">
+                  <Button variant="ghost" onClick={() => onCopy(result.content)} className="text-[10px] font-bold h-7 px-2.5 uppercase tracking-tighter whitespace-nowrap">
                     📋 Copy
                   </Button>
-                  <Button variant="secondary" onClick={() => onDownload(result)} className="text-[10px] font-bold h-8 px-3 uppercase">
+                  <Button variant="secondary" onClick={() => onDownload(result)} className="text-[10px] font-bold h-7 px-2.5 uppercase tracking-tighter whitespace-nowrap">
                     💾 Save
                   </Button>
                   <Button 
                     variant="ghost" 
                     onClick={() => setExpandedId(expandedId === result.id ? null : result.id)} 
-                    className="text-[10px] font-bold h-8 px-3 uppercase"
+                    className="text-[10px] font-bold h-7 px-2.5 uppercase tracking-tighter whitespace-nowrap"
                   >
                     {expandedId === result.id ? '🔼 Hide' : '🔽 View'}
                   </Button>
                   <Button 
                     variant="ghost" 
                     onClick={() => handleDelete(result.id)} 
-                    className="text-[10px] font-bold h-8 px-3 uppercase text-red-500 hover:bg-red-50"
+                    className="text-[10px] font-bold h-7 px-2.5 uppercase tracking-tighter text-red-500 hover:bg-red-50 whitespace-nowrap"
                   >
                     🗑️ Delete
                   </Button>

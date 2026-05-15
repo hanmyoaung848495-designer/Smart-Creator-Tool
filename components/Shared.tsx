@@ -77,7 +77,17 @@ export const ApiKeyManager: React.FC<{
             onChange={(e) => onUpdate({ customApiKey: e.target.value })}
             className="flex-grow w-full px-4 py-2 text-xs rounded-xl border border-blue-200 dark:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:text-gray-100"
           />
-          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" label="API Key ယူနည်း" toolKey="api_key" />
+          <div className="flex items-center gap-2 shrink-0">
+            <TutorialButton videoId="sGHe7nhThwo" timestamp="30" label="API Key ယူနည်း" toolKey="api_key" />
+            <a 
+              href="https://aistudio.google.com/app/apikey" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 text-[10px] h-[36px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold uppercase rounded-xl transition-all whitespace-nowrap shadow-sm shadow-indigo-100 dark:shadow-none"
+            >
+              Get API Key 🔑
+            </a>
+          </div>
         </div>
       )}
     </div>
@@ -201,19 +211,19 @@ export const ResultBox: React.FC<{
 
   return (
     <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-800 dark:text-gray-100">{title}</h3>
-        <div className="flex gap-2">
-          <Button variant="secondary" onClick={onCopy} className="text-xs px-3 py-1.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
+        <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-gray-100 truncate pr-2">{title}</h3>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <Button variant="secondary" onClick={onCopy} className="text-[10px] h-8 px-3 uppercase font-bold tracking-widest whitespace-nowrap">
             📋 Copy
           </Button>
           {onDownload && (
-            <Button variant="primary" onClick={onDownload} className="text-xs px-3 py-1.5">
+            <Button variant="primary" onClick={onDownload} className="text-[10px] h-8 px-3 uppercase font-bold tracking-widest whitespace-nowrap">
               💾 Download
             </Button>
           )}
           {onClear && (
-            <Button variant="ghost" onClick={onClear} className="text-xs px-3 py-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
+            <Button variant="ghost" onClick={onClear} className="text-[10px] h-8 px-3 uppercase font-bold tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 whitespace-nowrap">
               🗑️ Clear
             </Button>
           )}

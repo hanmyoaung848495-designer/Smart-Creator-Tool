@@ -94,7 +94,6 @@ export const transcribeMedia = async (fileBase64: string, mimeType: string, apiK
 };
 
 export const transcribeYoutubeLink = async (url: string, apiKey?: string, translateToBurmese?: boolean): Promise<{text: string, sources: any[]}> => {
-  // Try server-side proxy first (for audio-based transcription)
   const apiUrl = '/api/youtube-transcribe';
   
   try {
@@ -110,35 +109,15 @@ export const transcribeYoutubeLink = async (url: string, apiKey?: string, transl
       return await response.json();
     }
     
-    const errorText = await response.text();
-    console.warn("YouTube Proxy failed, falling back to direct Gemini processing:", errorText);
-  } catch (error) {
-    console.error("YouTube Proxy network error, falling back to direct Gemini processing:", error);
-  }
-
-  // Fallback: Direct Gemini processing using tools
-  try {
-    const ai = getAIClient(apiKey);
-    const systemPrompt = `Analyze the video at ${url}.
-    Please provide a raw transcription of the spoken content directly into text. 
-    ${translateToBurmese ? "Output only the Burmese translation." : "Output only the raw transcription."}
-    (အသံတွင် ပါဝင်သော စကားလုံးများကို စာသားအဖြစ် တိုက်ရိုက် ပြန်ဆိုပေးပါ)`;
-
-    const response = await generateWithFallback(ai, 'gemini-3-flash-preview', {
-      contents: systemPrompt,
-      config: {
-        tools: [{ googleSearch: {} }, { urlContext: {} }]
-      }
-    });
-    
-    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    return {
-      text: response.text || "Failed to fetch transcription even with fallback.",
-      sources
-    };
-  } catch (fbError) {
-    console.error("YouTube Transcription Fallback Error:", fbError);
-    return { text: "Failed to transcribe YouTube video. This might be due to YouTube's bot protection or the video being restricted. Please try downloading the audio and uploading it manually.", sources: [] };
+    const status = response.status;
+    const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+    const error = new Error(errorData.error || "Failed to fetch transcription");
+    (error as any).status = status;
+    throw error;
+  } catch (error: any) {
+    if (error.status) throw error;
+    console.error("YouTube Transcription Error:", error);
+    throw error;
   }
 };
 

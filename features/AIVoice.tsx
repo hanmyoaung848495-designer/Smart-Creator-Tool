@@ -83,7 +83,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     { id: '2', speaker: 'Speaker 2', text: '' }
   ]);
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-preview-tts');
-  const [voiceEngine, setVoiceEngine] = useState<'gemini' | 'kc_tts'>('gemini');
+  const [voiceEngine, setVoiceEngine] = useState<'gemini' | 'kc_tts'>('kc_tts');
   const [voice1, setVoice1] = useState('Kore');
   const [voice2, setVoice2] = useState('Charon');
   const [styleInstruction, setStyleInstruction] = useState('Read aloud in a warm and friendly tone: ');
@@ -152,7 +152,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         srt_ratio: kcRatio,
         manual_pitch: kcPitch,
         manual_rate: kcRate,
-        volume_boost: kcVolume
+        volume_boost: kcVolume,
+        pronunciation_rules: kcManualText
       };
 
       const response = await fetch(apiUrl, {
@@ -815,16 +816,16 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         {/* Voice Engine Tabs */}
         <div className="flex bg-gray-100 p-1 rounded-xl w-fit ml-14 mb-4">
           <button
-            onClick={() => setVoiceEngine('gemini')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${voiceEngine === 'gemini' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Gemini Voice
-          </button>
-          <button
             onClick={() => setVoiceEngine('kc_tts')}
             className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${voiceEngine === 'kc_tts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             KC Voice
+          </button>
+          <button
+            onClick={() => setVoiceEngine('gemini')}
+            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${voiceEngine === 'gemini' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Gemini Voice
           </button>
         </div>
       </div>
@@ -1306,6 +1307,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         )}
         
         {/* Pronunciation Rules */}
+        {voiceEngine === 'kc_tts' && (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-4">
           <button
             onClick={() => setKcPronunciationOpen(!kcPronunciationOpen)}
@@ -1330,6 +1332,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             </div>
           )}
         </div>
+        )}
       </Card>
 
       {/* History */}

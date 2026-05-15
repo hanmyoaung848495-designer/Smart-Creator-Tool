@@ -212,8 +212,15 @@ import path from "path";
 import ytdl from "@distube/ytdl-core";
 import { GoogleGenAI } from "@google/genai";
 
+function extractVideoId(url: string) {
+  // Enhanced regex to handle watch?v=, youtu.be/, shorts/, embed/, etc.
+  const regExp = /^.*(?:(?:youtu\.be\/|v\/|vi\/|u\/\w\/|embed\/|shorts\/)|(?:(?:watch)?\?v(?:i)?=|\&v(?:i)?=))([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[1] && match[1].length === 11) ? match[1] : null;
+}
+
 app.post(/^\/(api\/)?youtube-transcribe$/, async (req, res) => {
-  const { url, apiKey, translateToBurmese } = req.body;
+  const { url } = req.body;
 
   if (!url) {
     return res.status(400).json({ error: "URL is required" });
@@ -222,62 +229,48 @@ app.post(/^\/(api\/)?youtube-transcribe$/, async (req, res) => {
   try {
     console.log(`[YouTube Transcribe] Processing URL: ${url}`);
     
-    // 1. Download YouTube Audio with headers to avoid bot detection
-    const info = await ytdl.getInfo(url, {
-      requestOptions: {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-        }
-      }
-    });
-    const audioFormat = ytdl.chooseFormat(info.formats, { quality: 'lowestaudio', filter: 'audioonly' });
-    
-    if (!audioFormat) {
-      throw new Error("No suitable audio format found");
+    const videoId = extractVideoId(url);
+    if (!videoId) {
+      throw new Error("Invalid YouTube URL. Could not extract Video ID.");
     }
 
-    console.log(`[YouTube Transcribe] Downloading audio format: ${audioFormat.container}`);
-    
-    const chunks: any[] = [];
-    const stream = ytdl.downloadFromInfo(info, { format: audioFormat });
-    
-    for await (const chunk of stream) {
-      chunks.push(chunk);
+    const transcriptApiKey = process.env.TRANSCRIPT_API_KEY;
+    if (!transcriptApiKey) {
+      throw new Error("TRANSCRIPT_API_KEY is not configured on the server.");
     }
-    
-    const buffer = Buffer.concat(chunks);
-    const base64Audio = buffer.toString('base64');
-    const mimeType = audioFormat.mimeType?.split(';')[0] || 'audio/mp4';
 
-    console.log(`[YouTube Transcribe] Downloaded ${buffer.length} bytes. Transcription starting...`);
-
-    // 2. Transcribe with Gemini
-    const finalApiKey = apiKey || process.env.GEMINI_API_KEY || '';
-    const genAI = new GoogleGenAI({ apiKey: finalApiKey });
-    
-    const prompt = translateToBurmese 
-      ? "Please transcribe this audio exactly and then translate the transcription into Burmese. Output only the Burmese translation. (အသံဖိုင်ကို နားထောင်ပြီး စာသားအဖြစ် တိုက်ရိုက် ပြန်ဆို၍ မြန်မာဘာသာသို့ ပြန်ပေးပါ)"
-      : "Please transcribe this audio exactly. Output only the raw transcription. (အသံဖိုင်ကို နားထောင်ပြီး စာသားအဖြစ် တိုက်ရိုက် ပြန်ဆိုပေးပါ)";
-
-    const response = await (genAI as any).models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType: mimeType,
-              data: base64Audio
-            }
-          },
-          { text: prompt }
-        ]
+    // Call TranscriptAPI.com - V2 Endpoint as per PDF
+    const response = await fetch(`https://transcriptapi.com/api/v2/youtube/transcript?video_url=${encodeURIComponent(url)}`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${transcriptApiKey}`,
+        "Accept": "application/json"
       }
     });
 
-    const transcribedText = response.text || "Failed to transcribe.";
-    
-    console.log(`[YouTube Transcribe] Success.`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      // Forward the exact status code so frontend can handle it
+      return res.status(response.status).json({
+        error: errorData.error || `TranscriptAPI failed with status ${response.status}`,
+        detail: errorData.detail || errorData.error
+      });
+    }
+
+    const data = await response.json();
+    console.log(`[YouTube Transcribe] Success using TranscriptAPI V2.`);
+
+    // Handle V2 response which might return segments or a single string
+    let transcribedText = "";
+    if (Array.isArray(data.transcript)) {
+      transcribedText = data.transcript.map((segment: any) => segment.text).join(" ");
+    } else if (data.transcript && typeof data.transcript === "string") {
+      transcribedText = data.transcript;
+    } else if (data.text) {
+      transcribedText = typeof data.text === "string" ? data.text : JSON.stringify(data.text);
+    } else {
+      transcribedText = "No transcript found for this video.";
+    }
 
     return res.json({
       text: transcribedText,

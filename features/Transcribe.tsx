@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { UserSession, FeatureType, StoredResult, ProcessingTask } from '../types';
-import { Card, Button, ProgressBar, Input, ResultBox, TutorialButton } from '../components/Shared';
+import { Card, Button, ProgressBar, Input, ResultBox, TutorialButton, Modal } from '../components/Shared';
 import { transcribeMedia, transcribeYoutubeLink } from '../services/gemini';
 import PersistentResults from '../components/PersistentResults';
 
@@ -30,6 +30,7 @@ const Transcribe: React.FC<Props> = ({
   const [ytUrl, setYtUrl] = useState('');
   const [translateBurmese, setTranslateBurmese] = useState(false);
   const [result, setResult] = useState('');
+  const [apiError, setApiError] = useState<{ status: number; message: string; title: string } | null>(null);
 
   const activeTask = useMemo(() => 
     tasks.find(t => t.type === 'transcribe' && t.status !== 'completed' && t.status !== 'failed'),
@@ -91,19 +92,63 @@ const Transcribe: React.FC<Props> = ({
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
     onStartTask('transcribe', `Transcribing Video: ${ytUrl.substring(0, 30)}...`, async () => {
-      const resData = await transcribeYoutubeLink(ytUrl, apiKey, translateBurmese);
-      let content = resData.text;
-      if (resData.sources && resData.sources.length > 0) {
-        content += "\n\n--- Search References ---\n" + resData.sources.map((s: any) => s.web?.uri || "").filter(Boolean).join("\n");
+      try {
+        const resData = await transcribeYoutubeLink(ytUrl, apiKey, translateBurmese);
+        
+        // Ensure content is a string to avoid React rendering errors
+        let content = typeof resData.text === 'string' 
+          ? resData.text 
+          : JSON.stringify(resData.text);
+
+        if (resData.sources && resData.sources.length > 0) {
+          content += "\n\n--- Search References ---\n" + resData.sources.map((s: any) => s.web?.uri || "").filter(Boolean).join("\n");
+        }
+        
+        setResult(content);
+        onSaveResult({
+          type: 'transcribe',
+          title: `Video Transcription: ${ytUrl}`,
+          content: content,
+          fileName: `video_transcription.txt`
+        });
+        return content;
+      } catch (err: any) {
+        if (err.status) {
+          let errorTitle = "Transcription Error";
+          let userMsg = err.message || "An unexpected error occurred.";
+
+          switch (err.status) {
+            case 400:
+              errorTitle = "Invalid Link";
+              userMsg = "Invalid YouTube URL. Please check the link for errors.";
+              break;
+            case 401:
+              errorTitle = "Authentication Error";
+              userMsg = "System configuration error (Unauthorized). Please contact support.";
+              break;
+            case 402:
+              errorTitle = "Credits Exhausted";
+              userMsg = "Service limit reached (Credits exhausted). Please try again later or top up your credits.";
+              break;
+            case 404:
+              errorTitle = "No Captions Found";
+              userMsg = "Transcript not found. This video might not have captions or is restricted.";
+              break;
+            case 429:
+              errorTitle = "Rate Limited";
+              userMsg = "Too many requests. Please wait a moment before trying again.";
+              break;
+            case 500:
+            case 503:
+              errorTitle = "Service Unavailable";
+              userMsg = "The transcript service is currently unavailable. Please try again later.";
+              break;
+          }
+          
+          setApiError({ status: err.status, message: userMsg, title: errorTitle });
+        }
+        throw err;
       }
-      setResult(content);
-      onSaveResult({
-        type: 'transcribe',
-        title: `Video Transcription: ${ytUrl}`,
-        content: content,
-        fileName: `video_transcription.txt`
-      });
-      return content;
     });
   };
 
@@ -169,6 +214,7 @@ const Transcribe: React.FC<Props> = ({
                     onChange={setYtUrl} 
                   />
                   
+{/* 
                   <div className="mt-6 flex items-center justify-between p-4 bg-white rounded-xl border border-indigo-100 shadow-sm">
                     <div>
                       <p className="text-xs font-bold text-indigo-900 uppercase tracking-widest">Translate Transcription to Burmese</p>
@@ -184,9 +230,10 @@ const Transcribe: React.FC<Props> = ({
                       <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                     </label>
                   </div>
+                  */}
 
                   <p className="mt-4 text-[10px] text-indigo-400 font-bold uppercase tracking-widest italic">
-                    AI will download the audio and transcribe it directly into text.
+                    Fast and accurate transcription of video content directly into text.
                   </p>
                 </div>
                 <Button variant="primary" onClick={processYoutubeLink} disabled={!ytUrl} className="w-full py-4 text-xs font-bold uppercase tracking-widest">
@@ -208,6 +255,30 @@ const Transcribe: React.FC<Props> = ({
           })}
         />
       </Card>
+
+      <Modal 
+        isOpen={!!apiError} 
+        onClose={() => setApiError(null)} 
+        title={apiError?.title || "Error"}
+        maxWidth="max-w-md"
+      >
+        <div className="flex flex-col items-center text-center gap-4 py-4">
+          <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center text-3xl">
+            {apiError?.status === 402 ? '💳' : apiError?.status === 404 ? '🔇' : '⚠️'}
+          </div>
+          <div className="space-y-2">
+            <h4 className="text-lg font-bold text-gray-900 dark:text-white">{apiError?.title}</h4>
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
+              {apiError?.message}
+            </p>
+          </div>
+          <div className="pt-4 w-full">
+            <Button onClick={() => setApiError(null)} className="w-full shadow-lg shadow-blue-100 dark:shadow-none">
+              Got it
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <PersistentResults 
         results={results} 

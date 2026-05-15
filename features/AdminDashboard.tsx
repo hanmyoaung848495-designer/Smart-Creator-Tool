@@ -17,6 +17,7 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
   const [showCredentials, setShowCredentials] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userToDelete, setUserToDelete] = useState<UserAccount | null>(null);
@@ -101,6 +102,21 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     fetchTutorials();
   }, []);
 
+  const handleEditUser = (user: UserAccount) => {
+    setEditingUser(user);
+    setFormData({
+      name: user.name,
+      username: user.username,
+      password: user.password,
+      role: user.role,
+      startDate: new Date(user.startDate).toISOString().split('T')[0],
+      expiredDate: user.expiredDate ? new Date(user.expiredDate).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      isLifetime: user.isLifetime,
+      telegram: user.telegram || ''
+    });
+    setShowAddModal(true);
+  };
+
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -116,13 +132,14 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
           expiredDate: formData.isLifetime ? null : new Date(formData.expiredDate).getTime(),
           isLifetime: formData.isLifetime,
           telegram: formData.telegram,
-          deviceId: null
+          deviceId: editingUser?.deviceId || null
         })
       });
 
       if (response.ok) {
-        toast.success('User added successfully');
+        toast.success(editingUser ? 'User updated successfully' : 'User added successfully');
         setShowAddModal(false);
+        setEditingUser(null);
         setFormData({
           name: '',
           username: '',
@@ -135,10 +152,38 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
         });
         fetchUsers();
       } else {
-        throw new Error('Failed to add user');
+        throw new Error('Failed to save user');
       }
     } catch (err) {
-      toast.error('Failed to add user');
+      toast.error('Failed to save user');
+      console.error(err);
+    }
+  };
+
+  const handleResetDevice = async (username: string) => {
+    try {
+      const user = users.find(u => u.username === username);
+      if (!user) return;
+
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...user,
+          startDate: user.startDate, // already numeric from mapped users
+          expiredDate: user.expiredDate,
+          deviceId: null // Resetting device ID
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Device bound reset successfully');
+        fetchUsers();
+      } else {
+        throw new Error('Failed to reset device');
+      }
+    } catch (err) {
+      toast.error('Failed to reset device');
       console.error(err);
     }
   };
@@ -332,13 +377,14 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setShowCredentials(!showCredentials)}
-              className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-blue-600 transition-colors"
+              className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
             >
               {showCredentials ? <EyeOff size={16} /> : <Eye size={16} />}
               {showCredentials ? 'Hide IDs' : 'Show IDs'}
             </button>
-            <Button variant="secondary" onClick={fetchUsers} className="p-2 h-10 w-10">
+            <Button variant="secondary" onClick={fetchUsers} className="flex items-center gap-2 px-4 shadow-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50">
               <Clock size={18} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Refresh</span>
             </Button>
           </div>
         </div>
@@ -421,10 +467,18 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right space-x-2">
+                      <button 
+                         onClick={() => handleEditUser(user)}
+                         className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                         title="Edit User"
+                      >
+                        <Edit size={18} />
+                      </button>
                       <button 
                         onClick={() => setUserToDelete(user)}
                         className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        title="Delete User"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -454,8 +508,9 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
             />
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="secondary" onClick={fetchTutorials} className="p-2 h-10 w-10 text-purple-600">
+            <Button variant="secondary" onClick={fetchTutorials} className="flex items-center gap-2 px-4 shadow-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 text-purple-600">
               <Clock size={18} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Refresh</span>
             </Button>
           </div>
         </div>
@@ -541,7 +596,14 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
       </>
       )}
 
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Add User Account">
+      <Modal 
+        isOpen={showAddModal} 
+        onClose={() => {
+          setShowAddModal(false);
+          setEditingUser(null);
+        }} 
+        title={editingUser ? "Edit User Account" : "Add User Account"}
+      >
         <form onSubmit={handleAddUser} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input 
@@ -556,10 +618,23 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
               placeholder="e.g. user_001" 
               value={formData.username} 
               onChange={(val) => setFormData({...formData, username: val})} 
+              disabled={!!editingUser}
             />
+            {editingUser && (
+              <div className="flex items-end pb-1">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={() => handleResetDevice(editingUser.username)}
+                  className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 py-1"
+                >
+                  Reset Device Lock
+                </Button>
+              </div>
+            )}
             <Input 
               label="Password" 
-              type="password"
+              type="text"
               placeholder="Enter password" 
               value={formData.password} 
               onChange={(val) => setFormData({...formData, password: val})} 
@@ -583,7 +658,12 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
 
           <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">License Type</label>
+              <div>
+                <label className="text-sm font-bold text-gray-500 uppercase tracking-wider">License Type</label>
+                {editingUser && !formData.isLifetime && (
+                  <p className="text-[10px] text-gray-400 mt-1">Set expire date to extend subscription</p>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Lifetime</span>
                 <button 
@@ -614,8 +694,8 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
             </div>
           </div>
 
-          <Button type="submit" className="w-full py-4 mt-4 shadow-xl">
-            Create Account
+          <Button type="submit" className={`w-full py-4 mt-4 shadow-xl ${editingUser ? 'bg-blue-600 hover:bg-blue-700' : ''}`}>
+            {editingUser ? 'Update Account' : 'Create Account'}
           </Button>
         </form>
       </Modal>
@@ -675,7 +755,8 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
               { label: 'AI Script Writer', value: 'script-writer' },
               { label: 'Teleprompter', value: 'teleprompter' },
               { label: 'Text to SRT', value: 'text-to-srt' },
-              { label: 'Note Pad', value: 'note-pad' }
+              { label: 'Note Pad', value: 'note-pad' },
+              { label: 'Home API Key', value: 'api_key' }
             ]}
           />
           <div className="space-y-2">
