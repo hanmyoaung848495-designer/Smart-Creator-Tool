@@ -322,7 +322,6 @@ const NotePad: React.FC<NotePadProps> = ({ onBack }) => {
             <Button 
               onClick={handleSaveNote} 
               className="flex items-center gap-2 px-4 py-2.5 shadow-lg shadow-indigo-100 dark:shadow-none shrink-0 rounded-xl"
-              title="Save Note"
             >
               <Save size={20} />
               <span className="hidden sm:inline">Save</span>

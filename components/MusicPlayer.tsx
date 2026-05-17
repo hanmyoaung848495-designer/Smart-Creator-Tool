@@ -38,12 +38,13 @@ const MusicPlayer: React.FC = () => {
     const fetchPlaylist = async () => {
       if (!supabase) return;
       const { data, error } = await supabase
-        .from('playlists')
+        .from('tutorials')
         .select('*')
-        .order('order_index', { ascending: true });
+        .eq('tool_key', 'music_playlist')
+        .order('id', { ascending: true });
       
       if (!error && data && data.length > 0) {
-        setPlaylist(data.map(item => ({ id: item.video_id, start: item.time_start })));
+        setPlaylist(data.map(item => ({ id: item.video_id, start: item.time_start || 0 })));
       }
     };
     fetchPlaylist();

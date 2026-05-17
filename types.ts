@@ -30,7 +30,8 @@ export type FeatureType =
   | 'tutorial'
   | 'api-guide'
   | 'note-pad'
-  | 'code-editor';
+  | 'code-editor'
+  | 'pricing';
 
 export type TaskStatus = 'uploading' | 'processing' | 'completed' | 'failed';
 

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { FeatureType, AdminSettings, UserSession, ActivityRecord, StoredResult, ProcessingTask } from './types';
 import { FEATURES, DEFAULT_ADMIN_SETTINGS } from './constants';
 import { Card, Button, ProgressBar, ApiKeyManager, Modal, ConfirmModal } from './components/Shared';
@@ -15,11 +16,12 @@ import Tutorial from './features/Tutorial';
 import APIGuide from './features/APIGuide';
 import NotePad from './features/NotePad';
 import CodeEditor from './features/CodeEditor';
+import Pricing from './features/Pricing';
 import AdminDashboard from './features/AdminDashboard';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import { FeedbackModal } from './components/FeedbackModal';
-import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText, Download } from 'lucide-react';
+import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText, Download, Crown } from 'lucide-react';
 import { trackEvent } from './lib/analytics';
 import { Toaster, toast } from 'sonner';
 
@@ -326,6 +328,7 @@ const App: React.FC = () => {
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
       case 'note-pad': return <NotePad onBack={() => setActiveFeature('home')} />;
       case 'code-editor': return <CodeEditor onBack={() => setActiveFeature('home')} />;
+      case 'pricing': return <Pricing onBack={() => setActiveFeature('home')} />;
       case 'admin': 
         if (session.role !== 'admin') {
           return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
@@ -395,6 +398,12 @@ const App: React.FC = () => {
                 <HomeIcon size={18} className="text-blue-500" /> Home
               </button>
               <button 
+                onClick={() => navigateTo('pricing')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeFeature === 'pricing' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
+              >
+                <Crown size={18} className="text-pink-500" /> Premium Plan
+              </button>
+              <button 
                 onClick={() => navigateTo('tutorial')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all ${activeFeature === 'tutorial' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
               >
@@ -414,10 +423,10 @@ const App: React.FC = () => {
               >
                 <Send size={18} className="text-sky-500" /> Contact
               </a>
-              {session.useCustomKey === false ? (
+              {session.role !== 'free' ? (
                 <button 
                   onClick={() => {
-                    handleUpdateSession({ useCustomKey: true, role: 'free' });
+                    handleUpdateSession({ useCustomKey: true, role: 'free', systemApiKey: undefined });
                     setToastMessage({ title: 'Logout အောင်မြင်ပါတယ်။', type: 'success' });
                     setTimeout(() => setToastMessage(null), 3000);
                     setIsMenuOpen(false);
@@ -471,7 +480,7 @@ const App: React.FC = () => {
       >
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            System API ကို အသုံးပြုရန် ID နှင့် Password ထည့်ပါ။
+            System Key ကိုအသုံးပြုရန် Admin account ဖြင့် Login ဝင်ပါ။
           </p>
           
           {loginError && (
@@ -702,25 +711,50 @@ const Home: React.FC<{
   session: UserSession;
   onUpdateSession: (updates: Partial<UserSession>) => void;
   onRequireLogin: () => void;
-}> = ({ onSelect, settings, activeTasks, session, onUpdateSession, onRequireLogin }) => (
-  <div className="space-y-12">
-    <div className="text-center max-w-3xl mx-auto">
-      <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tighter leading-normal px-4 py-2 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928]"
-          style={{ 
-            filter: 'drop-shadow(2px 2px 0px #b8860b) drop-shadow(4px 4px 4px rgba(0,0,0,0.15))',
-          }}>
-        {settings.welcomeMessage}
-      </h1>
-      <div className="mb-6 flex flex-col items-center">
-        <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Designed and Developed</p>
-        <p className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">By KC Team</p>
-      </div>
-      <p className="text-slate-900 dark:text-gray-300 text-lg md:text-xl font-bold uppercase tracking-[0.15em]">
-        အသက်ရှုတိုင်းငွေဝင်ပါစေ
-      </p>
-    </div>
+}> = ({ onSelect, settings, activeTasks, session, onUpdateSession, onRequireLogin }) => {
+  const [messageIndex, setMessageIndex] = useState(0);
+  const messages = useMemo(() => [
+    "အသက်ရှူတိုင်းငွေဝင်ပါစေ",
+    "ကြော်ငြာမပါဘဲ Unlimited Voice တွေ ထုတ်ယူဖို့ Premium Planရယူပါ"
+  ], []);
 
-    <div className="max-w-4xl mx-auto">
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setMessageIndex(prev => (prev + 1) % messages.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [messages.length]);
+
+  return (
+    <div className="space-y-12">
+      <div className="text-center max-w-3xl mx-auto">
+        <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tighter leading-normal px-4 py-2 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928]"
+            style={{ 
+              filter: 'drop-shadow(2px 2px 0px #b8860b) drop-shadow(4px 4px 4px rgba(0,0,0,0.15))',
+            }}>
+          {settings.welcomeMessage}
+        </h1>
+        <div className="mb-6 flex flex-col items-center">
+          <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Designed and Developed</p>
+          <p className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">By KC Team</p>
+        </div>
+        <div className="h-12 flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={messageIndex}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent text-sm md:text-lg font-black uppercase tracking-[0.15em] px-4"
+            >
+              {messages[messageIndex]}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto">
       <ApiKeyManager session={session} onUpdate={onUpdateSession} onRequireLogin={onRequireLogin} />
     </div>
 
@@ -774,6 +808,7 @@ const Home: React.FC<{
       </div>
     )}
   </div>
-);
+  );
+};
 
 export default App;

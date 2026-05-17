@@ -40,8 +40,10 @@ const VOICES = [
 ];
 
 const MODELS = [
+  { label: 'Gemini 3.1 Flash (TTS Preview)', value: 'gemini-3.1-flash-preview-tts' },
   { label: 'Gemini 2.5 Preview (High Quality)', value: 'gemini-2.5-preview-tts' },
-  { label: 'Gemini 2.5 Flash (Fast)', value: 'gemini-2.5-flash-preview-tts' }
+  { label: 'Gemini 2.5 Flash (Fast)', value: 'gemini-2.5-flash-preview-tts' },
+  { label: 'Gemini 1.5 Flash (TTS Preview)', value: 'gemini-1.5-flash-preview-tts' }
 ];
 
 // KC TTS Constants
@@ -78,14 +80,16 @@ const KC_STYLES = [
 const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, onRequireApiKey }) => {
   const [mode, setMode] = useState<'single' | 'multi'>('single');
   const [isDialogMode, setIsDialogMode] = useState(false);
-  const [dialogBlocks, setDialogBlocks] = useState<{ id: string; speaker: 'Speaker 1' | 'Speaker 2'; text: string }[]>([
+  const [dialogBlocks, setDialogBlocks] = useState<{ id: string; speaker: 'Speaker 1' | 'Speaker 2' | 'Speaker 3'; text: string }[]>([
     { id: '1', speaker: 'Speaker 1', text: '' },
-    { id: '2', speaker: 'Speaker 2', text: '' }
+    { id: '2', speaker: 'Speaker 2', text: '' },
+    { id: '3', speaker: 'Speaker 3', text: '' }
   ]);
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-preview-tts');
   const [voiceEngine, setVoiceEngine] = useState<'gemini' | 'kc_tts'>('kc_tts');
   const [voice1, setVoice1] = useState('Kore');
   const [voice2, setVoice2] = useState('Charon');
+  const [voice3, setVoice3] = useState('Zephyr');
   const [styleInstruction, setStyleInstruction] = useState('Read aloud in a warm and friendly tone: ');
   const [text, setText] = useState('');
   
@@ -125,6 +129,14 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const handleGenerateKCTTS = async () => {
     if (!kcText.trim()) {
       toast.error('Please enter text for KC Voice.');
+      return;
+    }
+
+    const { checkAndIncrementUsage } = await import('../services/usageService');
+    const { allowed, message } = await checkAndIncrementUsage('ai_voice', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
+    
+    if (!allowed) {
+      toast.error(message || 'Daily limit exceeded');
       return;
     }
 
@@ -200,7 +212,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [isPreviewing, setIsPreviewing] = useState<string | null>(null);
   const [kcPreviewUrls, setKcPreviewUrls] = useState<Record<string, string>>({});
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false);
-  const [pickingVoiceFor, setPickingVoiceFor] = useState<'voice1' | 'voice2' | null>(null);
+  const [pickingVoiceFor, setPickingVoiceFor] = useState<'voice1' | 'voice2' | 'voice3' | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -329,94 +341,105 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
 
+    const { checkAndIncrementUsage } = await import('../services/usageService');
+    const { allowed, message } = await checkAndIncrementUsage('ai_voice', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
+    
+    if (!allowed) {
+      toast.error(message || 'Daily limit exceeded');
+      return;
+    }
+
     const displayTitle = mode === 'multi' && isDialogMode 
       ? dialogBlocks.find(b => b.text.trim())?.text.slice(0, 30) || 'Multi-speaker Dialog'
       : text.slice(0, 30);
     const title = displayTitle + (displayTitle.length >= 30 ? '...' : '');
     
     onStartTask('ai-voice', title, async (taskId) => {
-      const ai = getAIClient(apiKey);
-      
-      let config: any = {
-        responseModalities: [Modality.AUDIO],
-      };
-
-      if (mode === 'single') {
-        config.speechConfig = {
-          voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: voice1 },
-          },
+      try {
+        const ai = getAIClient(apiKey);
+        
+        let config: any = {
+          responseModalities: [Modality.AUDIO],
         };
-      } else {
-        config.speechConfig = {
-          multiSpeakerVoiceConfig: {
-            speakerVoiceConfigs: [
-              { speaker: 'Speaker 1', voiceConfig: { prebuiltVoiceConfig: { voiceName: voice1 } } },
-              { speaker: 'Speaker 2', voiceConfig: { prebuiltVoiceConfig: { voiceName: voice2 } } },
-            ],
-          },
-        };
-      }
 
-      let prompt = '';
-      
-      // Parse custom pronunciation from KC TTS manual text if in multi-speaker/gemini mode too
-      const customMap: Record<string, string> = {};
-      kcManualText.split('\n').filter(line => line.includes('=')).forEach(line => {
-          const [key, val] = line.split('=').map(s => s.trim());
-          if (key && val) customMap[key] = val;
-      });
+        if (mode === 'single') {
+          config.speechConfig = {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: voice1 },
+            },
+          };
+        } else {
+          config.speechConfig = {
+            multiSpeakerVoiceConfig: {
+              speakerVoiceConfigs: [
+                { speaker: 'Speaker 1', voiceConfig: { prebuiltVoiceConfig: { voiceName: voice1 } } },
+                { speaker: 'Speaker 2', voiceConfig: { prebuiltVoiceConfig: { voiceName: voice2 } } },
+                { speaker: 'Speaker 3', voiceConfig: { prebuiltVoiceConfig: { voiceName: voice3 } } },
+              ],
+            },
+          };
+        }
 
-      if (mode === 'multi' && isDialogMode) {
-        const processedDialog = dialogBlocks.map(b => `${b.speaker}: ${applyPronunciation(b.text, customMap)}`).join('\n');
-        prompt = styleInstruction + "\n\n" + processedDialog;
-      } else {
-        prompt = styleInstruction + "\n\n" + applyPronunciation(text, customMap);
-      }
-
-      const response = await ai.models.generateContent({
-        model: selectedModel,
-        contents: [{ parts: [{ text: prompt }] }],
-        config,
-      });
-
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (!base64Audio) throw new Error('Failed to generate audio');
-
-      const wavBlob = base64PcmToWavBlob(base64Audio, 24000);
-      const reader = new FileReader();
-      const audioDataPromise = new Promise<string>((resolve) => {
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(wavBlob);
-      });
-      const wavBase64 = await audioDataPromise;
-
-      const newItem: VoiceHistory = {
-        id: Math.random().toString(36).substr(2, 9),
-        title,
-        text,
-        mode,
-        voices: mode === 'single' ? [voice1] : [voice1, voice2],
-        audioData: wavBase64,
-        timestamp: Date.now(),
-      };
-
-      const updatedHistory = [newItem, ...history];
-      saveHistory(updatedHistory);
-      
-      const url = URL.createObjectURL(wavBlob);
-      setCurrentAudio({ url, id: newItem.id });
-      playAudio(url);
-
-      return newItem;
-    }).catch(err => {
-      const errMsg = err instanceof Error ? err.message : String(err);
-      if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
-        setIsQuotaModalOpen(true);
-      } else {
-        toast.error('Generation failed: ' + errMsg, {
-          style: { borderRadius: '1rem' }
+        let prompt = '';
+        
+        // Parse custom pronunciation from KC TTS manual text if in multi-speaker/gemini mode too
+        const customMap: Record<string, string> = {};
+        kcManualText.split('\n').filter(line => line.includes('=')).forEach(line => {
+            const [key, val] = line.split('=').map(s => s.trim());
+            if (key && val) customMap[key] = val;
         });
+
+        if (mode === 'multi' && isDialogMode) {
+          const processedDialog = dialogBlocks.map(b => `${b.speaker}: ${applyPronunciation(b.text, customMap)}`).join('\n');
+          prompt = styleInstruction + "\n\n" + processedDialog;
+        } else {
+          prompt = styleInstruction + "\n\n" + applyPronunciation(text, customMap);
+        }
+
+        const response = await ai.models.generateContent({
+          model: selectedModel,
+          contents: [{ parts: [{ text: prompt }] }],
+          config,
+        });
+
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (!base64Audio) throw new Error('Failed to generate audio');
+
+        const wavBlob = base64PcmToWavBlob(base64Audio, 24000);
+        const reader = new FileReader();
+        const audioDataPromise = new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(wavBlob);
+        });
+        const wavBase64 = await audioDataPromise;
+
+        const newItem: VoiceHistory = {
+          id: Math.random().toString(36).substr(2, 9),
+          title,
+          text,
+          mode,
+          voices: mode === 'single' ? [voice1] : [voice1, voice2, voice3],
+          audioData: wavBase64,
+          timestamp: Date.now(),
+        };
+
+        const updatedHistory = [newItem, ...history];
+        saveHistory(updatedHistory);
+        
+        const url = URL.createObjectURL(wavBlob);
+        setCurrentAudio({ url, id: newItem.id });
+        playAudio(url);
+
+        return newItem;
+      } catch (err: any) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+          setIsQuotaModalOpen(true);
+        } else {
+          toast.error('Generation failed: ' + errMsg, {
+            style: { borderRadius: '1rem' }
+          });
+        }
       }
     });
   };
@@ -517,14 +540,15 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   };
 
   const addDialogBlock = () => {
+    const nextSpeaker = (dialogBlocks.length % 3 === 0) ? 'Speaker 1' : (dialogBlocks.length % 3 === 1 ? 'Speaker 2' : 'Speaker 3');
     setDialogBlocks([...dialogBlocks, { 
       id: Math.random().toString(36).substr(2, 9), 
-      speaker: dialogBlocks.length % 2 === 0 ? 'Speaker 1' : 'Speaker 2', 
+      speaker: nextSpeaker, 
       text: '' 
     }]);
   };
 
-  const updateDialogBlock = (id: string, updates: Partial<{ speaker: 'Speaker 1' | 'Speaker 2'; text: string }>) => {
+  const updateDialogBlock = (id: string, updates: Partial<{ speaker: 'Speaker 1' | 'Speaker 2' | 'Speaker 3'; text: string }>) => {
     setDialogBlocks(dialogBlocks.map(b => b.id === id ? { ...b, ...updates } : b));
   };
 
@@ -706,7 +730,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const VoiceSelector = ({ value, onChange, label, id }: { value: string; onChange: (v: string) => void; label: string; id: 'voice1' | 'voice2' }) => (
+  const VoiceSelector = ({ value, onChange, label, id }: { value: string; onChange: (v: string) => void; label: string; id: 'voice1' | 'voice2' | 'voice3' }) => (
     <div className="space-y-1.5">
       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{label}</label>
       <button 
@@ -770,13 +794,14 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             </div>
             <div className="flex-grow overflow-y-auto p-3 space-y-1.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {VOICES.map(voice => {
-                const isSelected = (pickingVoiceFor === 'voice1' ? voice1 : voice2) === voice;
+                const isSelected = (pickingVoiceFor === 'voice1' ? voice1 : (pickingVoiceFor === 'voice2' ? voice2 : voice3)) === voice;
                 return (
                   <div 
                     key={voice}
                     onClick={() => {
                       if (pickingVoiceFor === 'voice1') setVoice1(voice);
-                      else setVoice2(voice);
+                      else if (pickingVoiceFor === 'voice2') setVoice2(voice);
+                      else setVoice3(voice);
                       setPickingVoiceFor(null);
                     }}
                     className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all group ${isSelected ? 'bg-indigo-600 text-white shadow-md shadow-indigo-100' : 'hover:bg-gray-50 text-gray-700'}`}
@@ -866,7 +891,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             </div>
 
             {/* Voice Selectors & Input */}
-            <div className={`grid gap-6 ${mode === 'multi' ? 'md:grid-cols-2' : ''}`}>
+            <div className={`grid gap-6 ${mode === 'multi' ? 'md:grid-cols-3' : ''}`}>
               <VoiceSelector 
                 label={mode === 'multi' ? 'Speaker 1 Voice' : 'Select Voice'}
                 value={voice1}
@@ -875,12 +900,20 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               />
 
               {mode === 'multi' && (
-                <VoiceSelector 
-                  label="Speaker 2 Voice"
-                  value={voice2}
-                  onChange={setVoice2}
-                  id="voice2"
-                />
+                <>
+                  <VoiceSelector 
+                    label="Speaker 2 Voice"
+                    value={voice2}
+                    onChange={setVoice2}
+                    id="voice2"
+                  />
+                  <VoiceSelector 
+                    label="Speaker 3 Voice"
+                    value={voice3}
+                    onChange={setVoice3}
+                    id="voice3"
+                  />
+                </>
               )}
             </div>
 
@@ -919,7 +952,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                               onChange={(val) => updateDialogBlock(block.id, { speaker: val as any })}
                               options={[
                                 { label: 'Speaker 1', value: 'Speaker 1' },
-                                { label: 'Speaker 2', value: 'Speaker 2' }
+                                { label: 'Speaker 2', value: 'Speaker 2' },
+                                { label: 'Speaker 3', value: 'Speaker 3' }
                               ]}
                             />
                           </div>
@@ -933,7 +967,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                         <TextArea
                           value={block.text}
                           onChange={(val) => updateDialogBlock(block.id, { text: val })}
-                          placeholder={`What Speaker ${block.speaker === 'Speaker 1' ? '1' : '2'} says...`}
+                          placeholder={`What ${block.speaker} says...`}
                           rows={2}
                         />
                       </div>
@@ -1235,14 +1269,14 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               <div className="flex gap-4 items-center">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ratio:</label>
                 <button
-                  onClick={() => setKcRatio('16:9')}
-                  className={`px-4 py-1 rounded text-xs font-bold transition-colors ${kcRatio === '16:9' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  onClick={() => setKcRatio('YouTube')}
+                  className={`px-4 py-1 rounded text-xs font-bold transition-colors ${kcRatio === 'YouTube' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   16:9
                 </button>
                 <button
-                  onClick={() => setKcRatio('9:16')}
-                  className={`px-4 py-1 rounded text-xs font-bold transition-colors ${kcRatio === '9:16' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  onClick={() => setKcRatio('TikTok')}
+                  className={`px-4 py-1 rounded text-xs font-bold transition-colors ${kcRatio === 'TikTok' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   9:16
                 </button>

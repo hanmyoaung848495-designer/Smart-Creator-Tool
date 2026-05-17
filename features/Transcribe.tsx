@@ -61,6 +61,15 @@ const Transcribe: React.FC<Props> = ({
   const processFileUpload = async () => {
     if (!file || activeTask) return;
     if (!checkApiKey()) return;
+
+    const { checkAndIncrementUsage } = await import('../services/usageService');
+    const { allowed, message } = await checkAndIncrementUsage('transcribe', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
+    
+    if (!allowed) {
+      setApiError({ status: 402, message: message || 'Daily limit exceeded', title: 'Usage Limit Reached' });
+      return;
+    }
+
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
     onStartTask('transcribe', `Transcribing ${file.name}`, async (taskId) => {
@@ -88,7 +97,15 @@ const Transcribe: React.FC<Props> = ({
 
   const processYoutubeLink = async () => {
     if (!ytUrl || activeTask) return;
-    if (!checkApiKey()) return;
+
+    const { checkAndIncrementUsage } = await import('../services/usageService');
+    const { allowed, message } = await checkAndIncrementUsage('transcribe', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
+    
+    if (!allowed) {
+      setApiError({ status: 402, message: message || 'Daily limit exceeded', title: 'Usage Limit Reached' });
+      return;
+    }
+
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
     onStartTask('transcribe', `Transcribing Video: ${ytUrl.substring(0, 30)}...`, async () => {

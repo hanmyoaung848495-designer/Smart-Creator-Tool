@@ -1,7 +1,8 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, UserSession } from '../types';
 import { Play, Minus } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 
 export const Card: React.FC<{ children: React.ReactNode; className?: string; onClick?: () => void }> = ({ children, className, onClick }) => (
@@ -35,50 +36,92 @@ export const UsageCounter: React.FC<{ user?: UserProfile; limits: { app: number;
   );
 };
 
+export const FadeMessages: React.FC<{ className?: string }> = ({ className = "" }) => {
+  const [messageIndex, setMessageIndex] = useState(0);
+  const messages = useMemo(() => [
+    "Free Plan တွင် တစ်ရက် ၂ ကြိမ်သာ ခွင့်ပြုထားပါသည်။",
+    "ကြော်ငြာမပါဘဲ အကန့်အသတ်မရှိ သုံးနိုင်ရန် Premium Plan ကို ရယူပါ။"
+  ], []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setMessageIndex(prev => (prev + 1) % messages.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [messages.length]);
+
+  return (
+    <div className={`h-6 flex items-center ${className}`}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={messageIndex}
+          initial={{ opacity: 0, y: 10, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          exit={{ opacity: 0, y: -10, filter: 'blur(10px)' }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          className="flex items-center gap-2.5"
+        >
+          <div className="relative flex items-center justify-center">
+            <div className="absolute inset-0 bg-indigo-500/30 blur-md rounded-full animate-pulse capitalize" />
+            <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 relative z-10 shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
+          </div>
+          <p className="text-[10px] font-black tracking-[0.25em] bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.05)]">
+            {messages[messageIndex]}
+          </p>
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+};
+
 export const ApiKeyManager: React.FC<{
   session: UserSession;
   onUpdate: (updates: Partial<UserSession>) => void;
   onRequireLogin?: () => void;
 }> = ({ session, onUpdate, onRequireLogin }) => {
   return (
-    <div className="mb-6 p-4 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-col sm:flex-row items-center gap-4 relative">
-      <div className="flex items-center gap-3 shrink-0">
-        <label className="text-xs font-bold text-blue-900 dark:text-blue-300 uppercase tracking-widest">API Engine:</label>
-        <div className="flex bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm border border-blue-100 dark:border-gray-700 relative">
-          <button
-            onClick={() => {
-              if (session.role !== 'premium' && onRequireLogin) {
-                onRequireLogin();
-              } else {
-                onUpdate({ useCustomKey: false });
-              }
-            }}
-            className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!session.useCustomKey ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
-          >
-            System
-          </button>
+    <div className="mb-6 flex flex-col gap-3">
+      <div className="p-4 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-col sm:flex-row items-center gap-4 relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500/0 via-indigo-500/20 to-indigo-500/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+        
+        <div className="flex items-center gap-3 shrink-0">
+          <label className="text-xs font-bold text-blue-900 dark:text-blue-300 uppercase tracking-widest">API Engine:</label>
+          <div className="flex bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm border border-blue-100 dark:border-gray-700 relative">
+            <button
+              onClick={() => {
+                if (session.role === 'free' && onRequireLogin) {
+                  onRequireLogin();
+                } else {
+                  onUpdate({ useCustomKey: false });
+                }
+              }}
+              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!session.useCustomKey ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
+            >
+              System
+            </button>
 
-          <button
-            onClick={() => onUpdate({ useCustomKey: true })}
-            className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${session.useCustomKey ? 'bg-blue-600 text-white' : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
-          >
-            Own Key
-          </button>
+            <button
+              onClick={() => onUpdate({ useCustomKey: true })}
+              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${session.useCustomKey ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
+            >
+              Own Key
+            </button>
+          </div>
         </div>
-      </div>
-      
-      {session.useCustomKey && (
-        <div className="flex-grow flex flex-col sm:flex-row items-center gap-2 w-full">
-          <input
-            id="custom-api-key-input"
-            type="password"
-            placeholder="Paste your Gemini API Key here..."
-            value={session.customApiKey || ''}
-            onChange={(e) => onUpdate({ customApiKey: e.target.value })}
-            className="flex-grow w-full px-4 py-2 text-xs rounded-xl border border-blue-200 dark:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:text-gray-100"
-          />
-          <div className="flex items-center gap-2 shrink-0">
-            <TutorialButton videoId="sGHe7nhThwo" timestamp="30" label="API Key ယူနည်း" toolKey="api_key" />
+        
+        <div className="flex-grow flex flex-col sm:flex-row items-center gap-4 w-full">
+          {session.useCustomKey && (
+            <input
+              id="custom-api-key-input"
+              type="password"
+              placeholder="Paste your Gemini API Key here..."
+              value={session.customApiKey || ''}
+              onChange={(e) => onUpdate({ customApiKey: e.target.value })}
+              className="flex-grow w-full px-4 py-2 text-xs rounded-xl border border-blue-200 dark:border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 dark:text-gray-100"
+            />
+          )}
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
+            <TutorialButton videoId="sGHe7nhThwo" timestamp="30" label="API Key ယူနည်း" toolKey="api_key" hideMessages />
             <a 
               href="https://aistudio.google.com/app/apikey" 
               target="_blank" 
@@ -89,10 +132,15 @@ export const ApiKeyManager: React.FC<{
             </a>
           </div>
         </div>
-      )}
+      </div>
+
+      <div className="flex items-center justify-center sm:justify-start px-2">
+        <FadeMessages />
+      </div>
     </div>
   );
 };
+
 
 export const ProgressBar: React.FC<{ progress: number; label?: string; color?: string }> = ({ progress, label, color = "bg-indigo-600" }) => (
   <div className="w-full">
@@ -140,7 +188,9 @@ export const Input: React.FC<{
   onChange: (val: string) => void;
   placeholder?: string;
   className?: string;
-}> = ({ label, type = 'text', value, onChange, placeholder, className }) => (
+  disabled?: boolean;
+  required?: boolean;
+}> = ({ label, type = 'text', value, onChange, placeholder, className, disabled, required }) => (
   <div className={`flex flex-col gap-1.5 ${className}`}>
     {label && <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</label>}
     <input
@@ -148,7 +198,9 @@ export const Input: React.FC<{
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white dark:bg-gray-800 dark:text-gray-100"
+      disabled={disabled}
+      required={required}
+      className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white dark:bg-gray-800 dark:text-gray-100 disabled:opacity-50"
     />
   </div>
 );
@@ -159,8 +211,9 @@ export const TextArea: React.FC<{
   onChange: (val: string) => void;
   placeholder?: string;
   rows?: number;
-}> = ({ label, value, onChange, placeholder, rows = 4 }) => (
-  <div className="flex flex-col gap-1.5">
+  className?: string;
+}> = ({ label, value, onChange, placeholder, rows = 4, className = "" }) => (
+  <div className={`flex flex-col gap-1.5 ${className}`}>
     {label && <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</label>}
     <textarea
       value={value}
@@ -177,20 +230,67 @@ export const Select: React.FC<{
   value: string;
   onChange: (val: string) => void;
   options: { label: string; value: string }[];
-}> = ({ label, value, onChange, options }) => (
-  <div className="flex flex-col gap-1.5">
-    {label && <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</label>}
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white dark:bg-gray-800 dark:text-gray-100"
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-      ))}
-    </select>
-  </div>
-);
+  placeholder?: string;
+}> = ({ label, value, onChange, options, placeholder = "Select option" }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedOption = options.find(opt => opt.value === value);
+
+  return (
+    <div className="flex flex-col gap-1.5 relative">
+      {label && <label className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-1">{label}</label>}
+      
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full px-4 h-10 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm transition-all hover:border-indigo-400 dark:hover:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm"
+      >
+        <span className={selectedOption ? "text-gray-900 dark:text-gray-100 font-medium" : "text-gray-400"}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <motion.span
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.2 }}
+          className="text-gray-400"
+        >
+          <Minus size={14} className="rotate-90" />
+        </motion.span>
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <div className="fixed inset-0 z-[310]" onClick={() => setIsOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 5, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              className="absolute top-full left-0 right-0 z-[320] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xl overflow-hidden max-h-60 overflow-y-auto subtle-scrollbar p-1.5"
+            >
+              {options.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between group ${
+                    value === opt.value 
+                      ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold" 
+                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                  }`}
+                >
+                  {opt.label}
+                  {value === opt.value && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />}
+                </button>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export const ResultBox: React.FC<{
   title: string;
@@ -290,7 +390,7 @@ export const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string; autop
   );
 };
 
-export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; iconOnly?: boolean; label?: string; toolKey?: string }> = ({ videoId, timestamp, iconOnly, label = "Tutorial", toolKey }) => {
+export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; iconOnly?: boolean; label?: string; toolKey?: string; hideMessages?: boolean }> = ({ videoId, timestamp, iconOnly, label = "Tutorial", toolKey, hideMessages }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [dynamicVideo, setDynamicVideo] = useState<{id: string, start: string} | null>(null);
 
@@ -316,7 +416,7 @@ export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; ico
   const finalTimestamp = dynamicVideo?.start || timestamp;
 
   return (
-    <>
+    <div className={`flex flex-col items-start ${hideMessages ? '' : 'gap-2'}`}>
       {iconOnly ? (
         <button 
           onClick={() => setIsOpen(true)} 
@@ -331,6 +431,10 @@ export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; ico
         </Button>
       )}
 
+      {!iconOnly && !hideMessages && (
+        <FadeMessages />
+      )}
+
       <Modal 
         isOpen={isOpen} 
         onClose={() => setIsOpen(false)} 
@@ -340,7 +444,7 @@ export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; ico
       >
         <YouTubeEmbed videoId={finalVideoId} timestamp={finalTimestamp} />
       </Modal>
-    </>
+    </div>
   );
 };
 

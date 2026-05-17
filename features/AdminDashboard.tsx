@@ -11,8 +11,16 @@ interface Props {
 }
 
 const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
-  const [activeTab, setActiveTab] = useState<'users' | 'tutorials'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'tutorials' | 'settings'>('users');
   
+  // Settings state
+  const [limits, setLimits] = useState({
+    ai_voice_guest_limit: 2,
+    transcribe_guest_limit: 2,
+    transcribe_user_limit: 3
+  });
+  const [settingsLoading, setSettingsLoading] = useState(false);
+
   // Users state
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,10 +105,41 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     }
   };
 
+  const fetchLimits = async () => {
+    setSettingsLoading(true);
+    try {
+      const { getUsageLimits } = await import('../services/usageService');
+      const data = await getUsageLimits();
+      setLimits(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     fetchTutorials();
+    fetchLimits();
   }, []);
+
+  const handleSaveLimits = async () => {
+    setSettingsLoading(true);
+    try {
+      const { updateUsageLimits } = await import('../services/usageService');
+      const success = await updateUsageLimits(limits);
+      if (success) {
+        toast.success('Usage limits updated successfully');
+      } else {
+        toast.error('Failed to update usage limits (Check Supabase setup)');
+      }
+    } catch (err) {
+      toast.error('Failed to update usage limits');
+    } finally {
+      setSettingsLoading(false);
+    }
+  };
 
   const handleEditUser = (user: UserAccount) => {
     setEditingUser(user);
@@ -292,18 +331,19 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
             <p className="text-sm text-gray-500 font-medium">Manage user accounts and system configuration</p>
           </div>
         </div>
-        {activeTab === 'users' ? (
+        {activeTab === 'users' && (
           <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2 px-6">
             <UserPlus size={18} /> Add New User
           </Button>
-        ) : (
+        )}
+        {activeTab === 'tutorials' && (
           <Button onClick={() => setShowTutorialModal(true)} className="flex items-center gap-2 px-6 bg-purple-600 hover:bg-purple-700">
             <Video size={18} /> Add Tutorial
           </Button>
         )}
       </div>
 
-      <div className="flex bg-gray-100 dark:bg-gray-800 p-1 flex-wrap rounded-xl w-full max-w-sm">
+      <div className="flex bg-gray-100 dark:bg-gray-800 p-1 flex-wrap rounded-xl w-full max-w-md">
         <button
           onClick={() => setActiveTab('users')}
           className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
@@ -323,6 +363,16 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
           }`}
         >
           Tutorials
+        </button>
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`flex-1 py-2 px-4 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
+            activeTab === 'settings'
+              ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm'
+              : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+          }`}
+        >
+          Settings
         </button>
       </div>
 
@@ -491,6 +541,73 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
         </div>
       </Card>
       </>
+      )}
+
+      {activeTab === 'settings' && (
+        <Card className="p-8 max-w-2xl mx-auto space-y-8 animate-in fade-in zoom-in-95 duration-300">
+          <div className="space-y-2">
+            <h3 className="text-xl font-black text-gray-900 dark:text-white">System Usage Limits</h3>
+            <p className="text-sm text-gray-500">Configure daily usage limits for different tools and user types.</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <p className="text-xs font-black uppercase tracking-widest text-blue-500">AI Voice Limits</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input 
+                  label="Guest Limit (Daily)" 
+                  type="number"
+                  value={limits.ai_voice_guest_limit.toString()}
+                  onChange={(val) => setLimits({...limits, ai_voice_guest_limit: parseInt(val) || 0})}
+                  placeholder="2"
+                />
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl flex items-center gap-3 border border-emerald-100 dark:border-emerald-800">
+                  <Shield size={20} className="text-emerald-600" />
+                  <p className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider">Logged in: Unlimited</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-6 border-t border-gray-100 dark:border-gray-700">
+              <p className="text-xs font-black uppercase tracking-widest text-purple-500">YouTube Transcribe Limits</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input 
+                  label="Guest Limit (Daily)" 
+                  type="number"
+                  value={limits.transcribe_guest_limit.toString()}
+                  onChange={(val) => setLimits({...limits, transcribe_guest_limit: parseInt(val) || 0})}
+                  placeholder="2"
+                />
+                <Input 
+                  label="User Limit (Daily)" 
+                  type="number"
+                  value={limits.transcribe_user_limit.toString()}
+                  onChange={(val) => setLimits({...limits, transcribe_user_limit: parseInt(val) || 0})}
+                  placeholder="3"
+                />
+              </div>
+            </div>
+
+            <Button 
+              onClick={handleSaveLimits} 
+              disabled={settingsLoading}
+              className="w-full py-4 bg-gray-900 hover:bg-black text-white shadow-xl flex items-center justify-center gap-2"
+            >
+              {settingsLoading ? (
+                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+              ) : (
+                <>Save Limits Configuration</>
+              )}
+            </Button>
+            
+            <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-100 dark:border-amber-800">
+              <p className="text-[10px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                <strong>Note:</strong> Limits are tracked per day based on Device ID for guests and Username for logged-in users. 
+                Requires Supabase to be configured correctly with the necessary tables.
+              </p>
+            </div>
+          </div>
+        </Card>
       )}
 
       {activeTab === 'tutorials' && (
@@ -756,7 +873,8 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
               { label: 'Teleprompter', value: 'teleprompter' },
               { label: 'Text to SRT', value: 'text-to-srt' },
               { label: 'Note Pad', value: 'note-pad' },
-              { label: 'Home API Key', value: 'api_key' }
+              { label: 'Home API Key', value: 'api_key' },
+              { label: 'Music Playlist', value: 'music_playlist' }
             ]}
           />
           <div className="space-y-2">

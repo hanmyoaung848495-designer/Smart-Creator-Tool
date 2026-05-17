@@ -29,8 +29,8 @@ if (botToken) {
     console.log(`[Bot] Message from ${msg.chat.id}: ${msg.text}`);
   });
 
-  bot.onText(/\/start/, (msg) => botService.handleStart(bot, msg.chat.id));
-  bot.onText(/\/help/, (msg) => botService.handleHelp(bot, msg.chat.id, adminChatId!));
+  bot.onText(/\/start/, (msg) => botService.handleStart(bot!, msg.chat.id));
+  bot.onText(/\/help/, (msg) => botService.handleHelp(bot!, msg.chat.id, adminChatId!));
 
   bot.onText(/\/setwebhook/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
@@ -49,50 +49,50 @@ if (botToken) {
 
   bot.onText(/\/stats(?:\s+(.*))?/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    await botService.handleStats(bot, msg.chat.id, match?.[1]?.trim());
+    await botService.handleStats(bot!, msg.chat.id, match?.[1]?.trim());
   });
 
   bot.onText(/\/post\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     const input = match?.[1];
     if (!input) return;
-    await botService.handlePost(bot, msg.chat.id, input);
+    await botService.handlePost(bot!, msg.chat.id, input);
   });
 
   bot.onText(/\/listposts/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    await botService.handleListPosts(bot, msg.chat.id);
+    await botService.handleListPosts(bot!, msg.chat.id);
   });
 
   bot.onText(/\/delpost\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     const id = match?.[1]?.trim();
     if (!id) return;
-    await botService.handleDeletePost(bot, msg.chat.id, id);
+    await botService.handleDeletePost(bot!, msg.chat.id, id);
   });
 
   bot.onText(/\/checkpost\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     const id = match?.[1]?.trim();
     if (!id) return;
-    await botService.handleCheckPost(bot, msg.chat.id, id);
+    await botService.handleCheckPost(bot!, msg.chat.id, id);
   });
 
   bot.onText(/\/playlist\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     const input = match?.[1];
     if (!input) return;
-    await botService.handlePlaylist(bot, msg.chat.id, input);
+    await botService.handlePlaylist(bot!, msg.chat.id, input);
   });
 
   bot.onText(/\/listplaylist/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    await botService.handleListPlaylist(bot, msg.chat.id);
+    await botService.handleListPlaylist(bot!, msg.chat.id);
   });
 
   bot.onText(/\/delplaylist/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    await botService.handleDelPlaylist(bot, msg.chat.id);
+    await botService.handleDelPlaylist(bot!, msg.chat.id);
   });
 
   // Ban Management Commands
@@ -100,45 +100,45 @@ if (botToken) {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     const sessionId = match?.[1]?.trim();
     if (!sessionId) return;
-    await botService.handleBan(bot, msg.chat.id, sessionId);
+    await botService.handleBan(bot!, msg.chat.id, sessionId);
   });
 
   bot.onText(/\/unban\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     const sessionId = match?.[1]?.trim();
     if (!sessionId) return;
-    await botService.handleUnban(bot, msg.chat.id, sessionId);
+    await botService.handleUnban(bot!, msg.chat.id, sessionId);
   });
 
   bot.onText(/\/listbans/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    await botService.handleListBans(bot, msg.chat.id);
+    await botService.handleListBans(bot!, msg.chat.id);
   });
 
   bot.onText(/\/users/, async (msg) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
-    await botService.handleListUsers(bot, msg.chat.id);
+    await botService.handleListUsers(bot!, msg.chat.id);
   });
 
   bot.onText(/\/adduser\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     const input = match?.[1];
     if (!input) return;
-    await botService.handleAddUserBot(bot, msg.chat.id, input);
+    await botService.handleAddUserBot(bot!, msg.chat.id, input);
   });
 
   bot.onText(/\/checkuser\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     const id = match?.[1]?.trim();
     if (!id) return;
-    await botService.handleCheckUserBot(bot, msg.chat.id, id);
+    await botService.handleCheckUserBot(bot!, msg.chat.id, id);
   });
 
   bot.onText(/\/deluser\s+(.*)/, async (msg, match) => {
     if (String(msg.chat.id) !== String(adminChatId).trim()) return;
     const id = match?.[1]?.trim();
     if (!id) return;
-    await botService.handleDeleteUserBot(bot, msg.chat.id, id);
+    await botService.handleDeleteUserBot(bot!, msg.chat.id, id);
   });
 }
 
@@ -211,6 +211,7 @@ app.post(/^\/(api\/)?feedback$/, async (req, res) => {
 import path from "path";
 import ytdl from "@distube/ytdl-core";
 import { GoogleGenAI } from "@google/genai";
+import serverless from "serverless-http";
 
 function extractVideoId(url: string) {
   // Enhanced regex to handle watch?v=, youtu.be/, shorts/, embed/, etc.
@@ -571,7 +572,8 @@ async function setupVite() {
 
 setupVite();
 
-// Export for Vercel
+// Export for Vercel and Netlify
+export const handler = serverless(app);
 export default app;
 
 // Local listen
