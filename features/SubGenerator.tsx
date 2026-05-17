@@ -86,7 +86,7 @@ const SubGenerator: React.FC<Props> = ({
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">SRT Generator</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="bKoi0NHV338" timestamp="0" toolKey="srt_generator" />
+          <TutorialButton videoId="bKoi0NHV338" timestamp="0" toolKey="srt_generator" session={session} />
         </div>
       </div>
 

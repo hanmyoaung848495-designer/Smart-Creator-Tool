@@ -18,6 +18,7 @@ interface Props {
 }
 
 const TextToSRT: React.FC<Props> = ({
+  session,
   onSaveResult,
   results,
   onDeleteResult,
@@ -162,7 +163,7 @@ const TextToSRT: React.FC<Props> = ({
           </div>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" toolKey="text_to_srt" />
+          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" toolKey="text_to_srt" session={session} />
         </div>
       </div>
 

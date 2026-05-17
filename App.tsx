@@ -21,6 +21,8 @@ import AdminDashboard from './features/AdminDashboard';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import { FeedbackModal } from './components/FeedbackModal';
+import NativeAd from './components/NativeAd';
+import SocialBarAd from './components/SocialBarAd';
 import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText, Download, Crown } from 'lucide-react';
 import { trackEvent } from './lib/analytics';
 import { Toaster, toast } from 'sonner';
@@ -108,6 +110,7 @@ const App: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [toastMessage, setToastMessage] = useState<{title: string, type: 'success' | 'error'} | null>(null);
+  const [showTasksDropdown, setShowTasksDropdown] = useState(false);
   const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set());
   const [pendingDownload, setPendingDownload] = useState<StoredResult | null>(null);
   const [confirmClear, setConfirmClear] = useState<{ isOpen: boolean, type: FeatureType | null }>({ isOpen: false, type: null });
@@ -238,6 +241,13 @@ const App: React.FC = () => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
   }, []);
 
+  const cancelTask = useCallback((id: string) => {
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, isCanceled: true, status: 'failed', error: 'Canceled by user' } : t));
+    // We keep it in state briefly so the IIFE can see it's canceled, or we can remove it immediately
+    // but the user wants it to not show in UI. 
+    // Let's filter it out from active tasks.
+  }, []);
+
   const removeTask = useCallback((id: string) => {
     setTasks(prev => prev.filter(t => t.id !== id));
   }, []);
@@ -275,24 +285,38 @@ const App: React.FC = () => {
     (async () => {
       try {
         for (let p = 0; p <= 30; p += 10) {
+          const currentTask = tasks.find(t => t.id === id);
+          if (currentTask?.isCanceled) return;
+          
           updateTask(id, { progress: p });
           await new Promise(r => setTimeout(r, 100));
         }
 
         updateTask(id, { status: 'processing', progress: 40 });
         const result = await runAction(id);
-        updateTask(id, { status: 'completed', progress: 100, result });
         
-        if (session.user) {
-          logActivity(type, `Finished: ${title}`);
-        }
+        // Final check before state updates
+        setTasks(currentTasks => {
+          const task = currentTasks.find(t => t.id === id);
+          if (task?.isCanceled) return currentTasks;
+          
+          if (session.user) {
+            logActivity(type, `Finished: ${title}`);
+          }
+          
+          return currentTasks.map(t => t.id === id ? { ...t, status: 'completed', progress: 100, result } : t);
+        });
       } catch (err: any) {
-        updateTask(id, { status: 'failed', error: err.message || 'Processing error' });
+        setTasks(currentTasks => {
+          const task = currentTasks.find(t => t.id === id);
+          if (task?.isCanceled) return currentTasks;
+          return currentTasks.map(t => t.id === id ? { ...t, status: 'failed', error: err.message || 'Processing error' } : t);
+        });
       }
     })();
-  }, [updateTask, session, logActivity]);
+  }, [updateTask, session, logActivity, tasks]);
 
-  const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'completed'), [tasks]);
+  const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'completed' && !t.isCanceled), [tasks]);
 
   const handleUpdateSession = useCallback((updates: Partial<UserSession>) => {
     setSession(prev => ({ ...prev, ...updates }));
@@ -328,7 +352,7 @@ const App: React.FC = () => {
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
       case 'note-pad': return <NotePad onBack={() => setActiveFeature('home')} />;
       case 'code-editor': return <CodeEditor onBack={() => setActiveFeature('home')} />;
-      case 'pricing': return <Pricing onBack={() => setActiveFeature('home')} />;
+      case 'pricing': return <Pricing onBack={() => setActiveFeature('home')} onToggleMenu={toggleMenu} />;
       case 'admin': 
         if (session.role !== 'admin') {
           return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
@@ -651,11 +675,66 @@ const App: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 relative">
             {activeTasks.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 rounded-full animate-pulse border border-amber-100 dark:border-amber-800">
-                <span className="w-2 h-2 bg-amber-500 rounded-full"></span>
-                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{activeTasks.length} Task{activeTasks.length > 1 ? 's' : ''}</span>
+              <div className="relative">
+                <button 
+                  onClick={() => setShowTasksDropdown(!showTasksDropdown)}
+                  className="flex items-center gap-2 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 rounded-full border border-amber-100 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-all"
+                >
+                  <span className={`w-2 h-2 bg-amber-500 rounded-full ${activeTasks.length > 0 ? 'animate-pulse' : ''}`}></span>
+                  <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-widest">{activeTasks.length} Task{activeTasks.length > 1 ? 's' : ''}</span>
+                </button>
+
+                <AnimatePresence>
+                  {showTasksDropdown && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setShowTasksDropdown(false)} />
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50"
+                      >
+                        <div className="p-3 border-b border-gray-50 dark:border-gray-700/50 flex items-center justify-between">
+                          <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Tasks</h4>
+                          <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 text-[8px] font-bold rounded uppercase">Running</span>
+                        </div>
+                        <div className="max-h-64 overflow-y-auto">
+                          {activeTasks.length > 0 ? (
+                            <div className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                              {activeTasks.map(task => (
+                                <div key={task.id} className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[11px] font-bold text-gray-900 dark:text-gray-100 truncate pr-2">{task.title}</span>
+                                    <button 
+                                      onClick={() => cancelTask(task.id)}
+                                      className="p-1 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 rounded-md transition-all"
+                                      title="Cancel Task"
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between text-[8px] font-black uppercase tracking-tighter text-gray-400">
+                                      <span>{task.status}</span>
+                                      <span>{task.progress}%</span>
+                                    </div>
+                                    <ProgressBar progress={task.progress} color="bg-amber-500" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="p-8 text-center">
+                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No active tasks</p>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
               </div>
             )}
             <button onClick={toggleMenu} className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-full transition-colors">
@@ -678,6 +757,12 @@ const App: React.FC = () => {
       {activeFeature !== 'teleprompter' && (
         <>
           <FeedbackModal />
+          {session.role === 'free' && !session.user && (
+            <>
+              <NativeAd />
+              <SocialBarAd />
+            </>
+          )}
           <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-5 mt-auto">
           <div className="max-w-7xl mx-auto px-6 text-center">
             <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[11px] sm:text-[13px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">
@@ -713,10 +798,13 @@ const Home: React.FC<{
   onRequireLogin: () => void;
 }> = ({ onSelect, settings, activeTasks, session, onUpdateSession, onRequireLogin }) => {
   const [messageIndex, setMessageIndex] = useState(0);
-  const messages = useMemo(() => [
-    "အသက်ရှူတိုင်းငွေဝင်ပါစေ",
-    "ကြော်ငြာမပါဘဲ Unlimited Voice တွေ ထုတ်ယူဖို့ Premium Planရယူပါ"
-  ], []);
+  const messages = useMemo(() => {
+    const list = ["အသက်ရှူတိုင်းငွေဝင်ပါစေ"];
+    if (session.role === 'free') {
+      list.push("ကြော်ငြာမပါဘဲ Unlimited Voice တွေ ထုတ်ယူဖို့ Premium Planရယူပါ");
+    }
+    return list;
+  }, [session.role]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -769,10 +857,10 @@ const Home: React.FC<{
             <button
               key={feature.id}
               onClick={() => !isRunning && onSelect(feature.id)}
-              className={`flex items-center gap-3 p-4 rounded-2xl border transition-all shadow-sm ${
+              className={`flex items-center gap-3 p-4 rounded-2xl transition-all ${
                 isRunning 
-                  ? 'bg-amber-50 border-amber-200 text-amber-700 opacity-75 cursor-wait' 
-                  : 'bg-white border-gray-100 text-gray-700 hover:border-indigo-600 hover:shadow-md active:scale-95'
+                  ? 'bg-amber-50 border-2 border-amber-200 text-amber-700 opacity-75 cursor-wait' 
+                  : 'tool-card-gradient text-gray-700 active:scale-95'
               }`}
             >
               <span className="text-2xl shrink-0">{feature.icon}</span>

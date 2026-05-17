@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { UserSession, FeatureType, StoredResult, ProcessingTask } from '../types';
 import { Card, Button, ProgressBar, Input, ResultBox, TutorialButton, Modal } from '../components/Shared';
 import { transcribeMedia, transcribeYoutubeLink } from '../services/gemini';
@@ -32,8 +32,11 @@ const Transcribe: React.FC<Props> = ({
   const [result, setResult] = useState('');
   const [apiError, setApiError] = useState<{ status: number; message: string; title: string } | null>(null);
 
+  const tasksRef = useRef<ProcessingTask[]>(tasks);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+
   const activeTask = useMemo(() => 
-    tasks.find(t => t.type === 'transcribe' && t.status !== 'completed' && t.status !== 'failed'),
+    tasks.find(t => t.type === 'transcribe' && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled),
   [tasks]);
 
   const checkApiKey = () => {
@@ -73,12 +76,17 @@ const Transcribe: React.FC<Props> = ({
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
     onStartTask('transcribe', `Transcribing ${file.name}`, async (taskId) => {
+      const isCanceled = () => tasksRef.current.find(t => t.id === taskId)?.isCanceled;
+
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async () => {
           try {
             const base64 = (reader.result as string).split(',')[1];
             const res = await transcribeMedia(base64, file.type, apiKey);
+            
+            if (isCanceled()) return resolve(null);
+
             setResult(res);
             onSaveResult({
               type: 'transcribe',
@@ -108,10 +116,12 @@ const Transcribe: React.FC<Props> = ({
 
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
-    onStartTask('transcribe', `Transcribing Video: ${ytUrl.substring(0, 30)}...`, async () => {
+    onStartTask('transcribe', `Transcribing Video: ${ytUrl.substring(0, 30)}...`, async (taskId) => {
       try {
         const resData = await transcribeYoutubeLink(ytUrl, apiKey, translateBurmese);
         
+        if (tasksRef.current.find(t => t.id === taskId)?.isCanceled) return;
+
         // Ensure content is a string to avoid React rendering errors
         let content = typeof resData.text === 'string' 
           ? resData.text 
@@ -130,6 +140,7 @@ const Transcribe: React.FC<Props> = ({
         });
         return content;
       } catch (err: any) {
+        if (tasksRef.current.find(t => t.id === taskId)?.isCanceled) return;
         if (err.status) {
           let errorTitle = "Transcription Error";
           let userMsg = err.message || "An unexpected error occurred.";
@@ -177,7 +188,7 @@ const Transcribe: React.FC<Props> = ({
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Transcribe</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="Xdd9xScgNPM" timestamp="30" toolKey="transcribe" />
+          <TutorialButton videoId="Xdd9xScgNPM" timestamp="30" toolKey="transcribe" session={session} />
         </div>
       </div>
 

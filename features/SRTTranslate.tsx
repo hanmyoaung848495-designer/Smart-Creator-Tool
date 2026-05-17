@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
 import { Card, Button, Select, ResultBox, ProgressBar, TutorialButton } from '../components/Shared';
 import { translateSRT } from '../services/gemini';
@@ -42,6 +42,9 @@ const SRTTranslate: React.FC<Props> = ({
   const [customFileName, setCustomFileName] = useState('');
   const [result, setResult] = useState('');
 
+  const tasksRef = useRef<ProcessingTask[]>(tasks);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+
   const getFinalFileName = () => {
     let baseName = customFileName.trim();
     if (!baseName) {
@@ -57,7 +60,7 @@ const SRTTranslate: React.FC<Props> = ({
   };
 
   const activeTask = useMemo(() => 
-    tasks.find(t => t.type === 'srt-translate' && t.status !== 'completed' && t.status !== 'failed'),
+    tasks.find(t => t.type === 'srt-translate' && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled),
   [tasks]);
 
   const checkApiKey = () => {
@@ -94,8 +97,10 @@ const SRTTranslate: React.FC<Props> = ({
     const finalFileName = getFinalFileName();
     const taskTitle = customFileName.trim() ? customFileName : (srtFile?.name || 'Pasted Text');
 
-    onStartTask('srt-translate', `Translating Subtitles: ${taskTitle}`, async () => {
+    onStartTask('srt-translate', `Translating Subtitles: ${taskTitle}`, async (taskId) => {
       const res = await translateSRT(srtContent, targetLang, apiKey);
+      if (tasksRef.current.find(t => t.id === taskId)?.isCanceled) return;
+
       setResult(res);
       onSaveResult({
         type: 'srt-translate',
@@ -115,11 +120,11 @@ const SRTTranslate: React.FC<Props> = ({
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">SRT Translate</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="epA3sSWCLx4" timestamp="30" toolKey="srt_translate" />
+          <TutorialButton videoId="epA3sSWCLx4" timestamp="30" toolKey="srt_translate" session={session} />
         </div>
       </div>
 
-      <Card className="p-8">
+      <Card className="p-8" isGradient={true}>
         {activeTask ? (
           <div className="flex flex-col items-center py-12 gap-6">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>

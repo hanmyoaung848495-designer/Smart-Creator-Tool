@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
 import { Card, Button, TextArea, Select, ResultBox, ProgressBar, TutorialButton } from '../components/Shared';
 import { translateText } from '../services/gemini';
@@ -40,8 +40,11 @@ const Translate: React.FC<Props> = ({
   const [targetLang, setTargetLang] = useState('English');
   const [result, setResult] = useState('');
 
+  const tasksRef = useRef<ProcessingTask[]>(tasks);
+  useEffect(() => { tasksRef.current = tasks; }, [tasks]);
+
   const activeTask = useMemo(() => 
-    tasks.find(t => t.type === 'translate' && t.status !== 'completed' && t.status !== 'failed'),
+    tasks.find(t => t.type === 'translate' && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled),
   [tasks]);
 
   const checkApiKey = () => {
@@ -65,8 +68,10 @@ const Translate: React.FC<Props> = ({
     if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
-    onStartTask('translate', `Translating to ${targetLang}`, async () => {
+    onStartTask('translate', `Translating to ${targetLang}`, async (taskId) => {
       const res = await translateText(text, targetLang, apiKey);
+      if (tasksRef.current.find(t => t.id === taskId)?.isCanceled) return;
+      
       setResult(res);
       onSaveResult({
         type: 'translate',
@@ -86,11 +91,11 @@ const Translate: React.FC<Props> = ({
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">Translate</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="epA3sSWCLx4" timestamp="30" toolKey="translator" />
+          <TutorialButton videoId="epA3sSWCLx4" timestamp="30" toolKey="translator" session={session} />
         </div>
       </div>
 
-      <Card className="p-8">
+      <Card className="p-8" isGradient={true}>
         {activeTask ? (
           <div className="flex flex-col items-center py-12 gap-6">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>

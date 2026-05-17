@@ -111,7 +111,22 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [kcPronunciationOpen, setKcPronunciationOpen] = useState(false);
   const [kcManualText, setKcManualText] = useState(`Intro = အင်ထရို\nတူမလေး = တူ မ လေး`);
   const [kcLoading, setKcLoading] = useState(false);
+  const [timerCount, setTimerCount] = useState(0);
   const [kcResult, setKcResult] = useState<{ status: string; audio_url: string; srt_url: string; fileName?: string } | null>(null);
+
+  const activeTask = tasks.find(t => t.type === 'ai-voice' && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled);
+
+  useEffect(() => {
+    let interval: any;
+    if (activeTask) {
+      interval = setInterval(() => {
+        setTimerCount(prev => prev + 1);
+      }, 1000);
+    } else {
+      setTimerCount(0);
+    }
+    return () => clearInterval(interval);
+  }, [activeTask]);
 
   const [history, setHistory] = useState<VoiceHistory[]>([]);
   const [currentAudio, setCurrentAudio] = useState<{ url: string; id: string } | null>(null);
@@ -151,60 +166,73 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
     setKcLoading(true);
     setKcResult(null);
-    try {
-      const apiUrl = '/api/kc-tts/generate';
-      console.log('Generating with:', { processedText, kcV1Voice, kcV2Voice, kcV3Voice, kcStyle, kcRatio });
-      
-      const payload = {
-        text: processedText,
-        v1_voice: kcV1Voice,
-        v2_voice: kcMode === 'multi' ? kcV2Voice : '',
-        v3_voice: kcMode === 'multi' ? kcV3Voice : '',
-        style: kcStyle,
-        srt_ratio: kcRatio,
-        manual_pitch: kcPitch,
-        manual_rate: kcRate,
-        volume_boost: kcVolume,
-        pronunciation_rules: kcManualText
-      };
+    
+    onStartTask('ai-voice', kcFileName || 'KC Voice', async (taskId) => {
+      try {
+        const apiUrl = '/api/kc-tts/generate';
+        console.log('Generating with:', { processedText, kcV1Voice, kcV2Voice, kcV3Voice, kcStyle, kcRatio });
+        
+        const payload = {
+          text: processedText,
+          v1_voice: kcV1Voice,
+          v2_voice: kcMode === 'multi' ? kcV2Voice : '',
+          v3_voice: kcMode === 'multi' ? kcV3Voice : '',
+          style: kcStyle,
+          srt_ratio: kcRatio,
+          manual_pitch: kcPitch,
+          manual_rate: kcRate,
+          volume_boost: kcVolume,
+          pronunciation_rules: kcManualText
+        };
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', errorText);
-        throw new Error(`Generation failed: ${response.statusText} - ${errorText}`);
+        const isCanceled = () => tasksRef.current.find(t => t.id === taskId)?.isCanceled;
+
+        if (!response.ok) {
+          if (isCanceled()) return;
+          const errorText = await response.text();
+          console.error('API Error Response:', errorText);
+          throw new Error(`Generation failed: ${response.statusText} - ${errorText}`);
+        }
+        const data = await response.json();
+        
+        if (isCanceled()) return;
+
+        const resultWithFileName = { ...data, fileName: kcFileName };
+        setKcResult(resultWithFileName);
+
+        // Save to history
+        const newItem: VoiceHistory = {
+          id: Math.random().toString(36).substr(2, 9),
+          title: kcFileName || 'KC_Voice',
+          text: kcText,
+          mode: kcMode,
+          voices: kcMode === 'multi' ? [kcV1Voice, kcV2Voice, kcV3Voice] : [kcV1Voice],
+          audioData: '', // Audio is fetched from URL, not base64 here
+          timestamp: Date.now(),
+          kcResult: resultWithFileName
+        };
+        saveHistory([newItem, ...history]);
+
+        toast.success('Generated successfully!');
+        return resultWithFileName;
+      } catch (err) {
+        if (tasksRef.current.find(t => t.id === taskId)?.isCanceled) return;
+        console.error('Generation Error details:', err);
+        const msg = err instanceof Error ? err.message : 'Generation failed.';
+        toast.error(msg);
+        throw err;
+      } finally {
+        setKcLoading(false);
       }
-      const data = await response.json();
-      const resultWithFileName = { ...data, fileName: kcFileName };
-      setKcResult(resultWithFileName);
-
-      // Save to history
-      const newItem: VoiceHistory = {
-        id: Math.random().toString(36).substr(2, 9),
-        title: kcFileName || 'KC_Voice',
-        text: kcText,
-        mode: kcMode,
-        voices: kcMode === 'multi' ? [kcV1Voice, kcV2Voice, kcV3Voice] : [kcV1Voice],
-        audioData: '', // Audio is fetched from URL, not base64 here
-        timestamp: Date.now(),
-        kcResult: resultWithFileName
-      };
-      saveHistory([newItem, ...history]);
-
-      toast.success('Generated successfully!');
-    } catch (err) {
-      console.error('Generation Error details:', err);
-      toast.error(err instanceof Error ? err.message : 'Generation failed.');
-    } finally {
-      setKcLoading(false);
-    }
+    });
   };
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
@@ -215,6 +243,11 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [pickingVoiceFor, setPickingVoiceFor] = useState<'voice1' | 'voice2' | 'voice3' | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const tasksRef = useRef<ProcessingTask[]>(tasks);
+
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -308,8 +341,6 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     await saveVoiceHistoryDB(newHistory);
   };
 
-  const activeTask = tasks.find(t => t.type === 'ai-voice' && t.status !== 'completed' && t.status !== 'failed');
-
   const checkApiKey = () => {
     if (session.useCustomKey) {
       if (!session.customApiKey || session.customApiKey.trim() === '') {
@@ -402,6 +433,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           config,
         });
 
+        const isCanceled = () => tasksRef.current.find(t => t.id === taskId)?.isCanceled;
+        if (isCanceled()) return;
+
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
         if (!base64Audio) throw new Error('Failed to generate audio');
 
@@ -412,6 +446,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           reader.readAsDataURL(wavBlob);
         });
         const wavBase64 = await audioDataPromise;
+        
+        if (isCanceled()) return;
 
         const newItem: VoiceHistory = {
           id: Math.random().toString(36).substr(2, 9),
@@ -432,6 +468,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
         return newItem;
       } catch (err: any) {
+        if (tasksRef.current.find(t => t.id === taskId)?.isCanceled) return;
         const errMsg = err instanceof Error ? err.message : String(err);
         if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
           setIsQuotaModalOpen(true);
@@ -835,20 +872,20 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">AI Voice Generator</h2>
         </div>
         <div className="ml-14 mb-4">
-          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" toolKey="ai_voice" />
+          <TutorialButton videoId="sGHe7nhThwo" timestamp="30" toolKey="ai_voice" session={session} />
         </div>
 
         {/* Voice Engine Tabs */}
-        <div className="flex bg-gray-100 p-1 rounded-xl w-fit ml-14 mb-4">
+        <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit ml-14 mb-4">
           <button
             onClick={() => setVoiceEngine('kc_tts')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${voiceEngine === 'kc_tts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${voiceEngine === 'kc_tts' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             KC Voice
           </button>
           <button
             onClick={() => setVoiceEngine('gemini')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${voiceEngine === 'gemini' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${voiceEngine === 'gemini' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Gemini Voice
           </button>
@@ -872,16 +909,16 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                 
                 {/* Mode Selection */}
                 <div className="flex items-center justify-end">
-                  <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
+                  <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
                     <button
                       onClick={() => setMode('single')}
-                      className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${mode === 'single' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${mode === 'single' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                       <User size={14} /> Single
                     </button>
                     <button
                       onClick={() => setMode('multi')}
-                      className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${mode === 'multi' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                      className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${mode === 'multi' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                     >
                       <Users size={14} /> Multi
                     </button>
@@ -1012,32 +1049,32 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               )}
 
               <Button
-                onClick={activeTask ? undefined : handleRun}
-                variant={activeTask ? 'danger' : 'primary'}
-                className="w-auto px-6 py-3 text-sm font-black uppercase tracking-[0.2em] transition-all shrink-0 rounded-full"
-                disabled={isPreviewing !== null}
-              >
-                {activeTask ? (
-                  <>
-                    <StopCircle size={18} /> Stop
-                  </>
-                ) : (
-                  <>
-                    <Play size={18} fill="currentColor" /> Run
-                  </>
-                )}
-              </Button>
+                  onClick={activeTask ? undefined : handleRun}
+                  variant={activeTask ? 'danger' : 'gradient'}
+                  className="w-auto px-6 py-3 text-sm font-black uppercase tracking-[0.2em] transition-all shrink-0 rounded-full"
+                  disabled={isPreviewing !== null}
+                >
+                  {activeTask ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" /> {timerCount}s
+                    </>
+                  ) : (
+                    <>
+                      <Play size={18} fill="currentColor" /> Run
+                    </>
+                  )}
+                </Button>
             </div>
           </>
         ) : (
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row gap-4 items-center justify-end">
-              <div className="flex bg-gray-100 p-1 rounded-xl w-fit">
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
                 <button
                   onClick={() => {
                     setKcMode('single');
                   }}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${kcMode === 'single' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${kcMode === 'single' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                   <User size={14} /> Single
                 </button>
@@ -1048,7 +1085,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                       setKcText('[V1] မျှင်မျှင်ရေ [V2] ပြောပါကိုကိုတွတ်ရေ [V3] ဟာ ဒီလင်မယားကတော့ လာရိုပြနေတာပဲ');
                     }
                   }}
-                  className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${kcMode === 'multi' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${kcMode === 'multi' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                   <Users size={14} /> Multi
                 </button>
@@ -1270,13 +1307,13 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ratio:</label>
                 <button
                   onClick={() => setKcRatio('YouTube')}
-                  className={`px-4 py-1 rounded text-xs font-bold transition-colors ${kcRatio === 'YouTube' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  className={`px-4 py-1 rounded text-xs font-bold transition-all ${kcRatio === 'YouTube' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300'}`}
                 >
                   16:9
                 </button>
                 <button
                   onClick={() => setKcRatio('TikTok')}
-                  className={`px-4 py-1 rounded text-xs font-bold transition-colors ${kcRatio === 'TikTok' ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  className={`px-4 py-1 rounded text-xs font-bold transition-all ${kcRatio === 'TikTok' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300'}`}
                 >
                   9:16
                 </button>
@@ -1320,11 +1357,12 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               </div>
 
               <Button
-                  onClick={handleGenerateKCTTS}
+                  onClick={activeTask ? undefined : handleGenerateKCTTS}
                   className="w-full mt-4"
-                  disabled={kcLoading}
+                  variant={activeTask ? 'secondary' : 'gradient'}
+                  disabled={!!activeTask}
                 >
-                  {kcLoading ? 'Generating...' : 'Generate'}
+                  {activeTask ? `Generating (${timerCount}s)...` : 'Generate'}
               </Button>
 
               {/* Result Area */}

@@ -5,10 +5,10 @@ import { Play, Minus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { supabase } from '../lib/supabase';
 
-export const Card: React.FC<{ children: React.ReactNode; className?: string; onClick?: () => void }> = ({ children, className, onClick }) => (
+export const Card: React.FC<{ children: React.ReactNode; className?: string; onClick?: () => void; isGradient?: boolean }> = ({ children, className, onClick, isGradient }) => (
   <div 
     onClick={onClick}
-    className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden ${className}`}
+    className={`${isGradient ? 'tool-card-gradient' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'} rounded-2xl shadow-sm border overflow-hidden ${className}`}
   >
     {children}
   </div>
@@ -81,7 +81,7 @@ export const ApiKeyManager: React.FC<{
 }> = ({ session, onUpdate, onRequireLogin }) => {
   return (
     <div className="mb-6 flex flex-col gap-3">
-      <div className="p-4 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-col sm:flex-row items-center gap-4 relative overflow-hidden group">
+      <div className="p-4 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-col sm:flex-row items-center gap-4 relative overflow-hidden group shadow-sm">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500/0 via-indigo-500/20 to-indigo-500/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
         
         <div className="flex items-center gap-3 shrink-0">
@@ -95,14 +95,14 @@ export const ApiKeyManager: React.FC<{
                   onUpdate({ useCustomKey: false });
                 }
               }}
-              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!session.useCustomKey ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
+              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${!session.useCustomKey ? 'tool-btn-gradient tool-btn-gradient-active text-blue-600 dark:text-blue-400 shadow-md' : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
             >
               System
             </button>
 
             <button
               onClick={() => onUpdate({ useCustomKey: true })}
-              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${session.useCustomKey ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
+              className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${session.useCustomKey ? 'tool-btn-gradient tool-btn-gradient-active text-blue-600 dark:text-blue-400 shadow-md' : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
             >
               Own Key
             </button>
@@ -121,7 +121,7 @@ export const ApiKeyManager: React.FC<{
             />
           )}
           <div className="flex items-center gap-2 shrink-0 ml-auto">
-            <TutorialButton videoId="sGHe7nhThwo" timestamp="30" label="API Key ယူနည်း" toolKey="api_key" hideMessages />
+            <TutorialButton videoId="sGHe7nhThwo" timestamp="30" label="API Key ယူနည်း" toolKey="api_key" hideMessages session={session} />
             <a 
               href="https://aistudio.google.com/app/apikey" 
               target="_blank" 
@@ -134,9 +134,11 @@ export const ApiKeyManager: React.FC<{
         </div>
       </div>
 
-      <div className="flex items-center justify-center sm:justify-start px-2">
-        <FadeMessages />
-      </div>
+      {session?.role === 'free' && (
+        <div className="flex items-center justify-center sm:justify-start px-2">
+          <FadeMessages />
+        </div>
+      )}
     </div>
   );
 };
@@ -162,7 +164,7 @@ export const ProgressBar: React.FC<{ progress: number; label?: string; color?: s
 export const Button: React.FC<{
   onClick?: () => void;
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'gradient';
   className?: string;
   disabled?: boolean;
   type?: 'button' | 'submit';
@@ -172,7 +174,8 @@ export const Button: React.FC<{
     primary: "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100 dark:shadow-none",
     secondary: "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600",
     danger: "bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-100 dark:shadow-none",
-    ghost: "bg-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+    ghost: "bg-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700",
+    gradient: "tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-md"
   };
   return (
     <button type={type} onClick={onClick} className={`${baseStyle} ${variants[variant]} ${className}`} disabled={disabled}>
@@ -390,7 +393,7 @@ export const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string; autop
   );
 };
 
-export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; iconOnly?: boolean; label?: string; toolKey?: string; hideMessages?: boolean }> = ({ videoId, timestamp, iconOnly, label = "Tutorial", toolKey, hideMessages }) => {
+export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; iconOnly?: boolean; label?: string; toolKey?: string; hideMessages?: boolean; session?: UserSession }> = ({ videoId, timestamp, iconOnly, label = "Tutorial", toolKey, hideMessages, session }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [dynamicVideo, setDynamicVideo] = useState<{id: string, start: string} | null>(null);
 
@@ -431,7 +434,7 @@ export const TutorialButton: React.FC<{ videoId: string; timestamp?: string; ico
         </Button>
       )}
 
-      {!iconOnly && !hideMessages && (
+      {!iconOnly && !hideMessages && session?.role === 'free' && (
         <FadeMessages />
       )}
 

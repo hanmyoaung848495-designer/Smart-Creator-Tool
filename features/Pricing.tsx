@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Check, Crown, Zap, Shield, Star, Sparkles, CreditCard, ArrowLeft } from 'lucide-react';
+import { Check, Crown, Zap, Shield, Star, Sparkles, CreditCard, ArrowLeft, Menu } from 'lucide-react';
 
 interface PricingProps {
   onBack: () => void;
+  onToggleMenu?: () => void;
 }
 
 const PLANS = [
@@ -81,7 +82,7 @@ const PLANS = [
   }
 ];
 
-const Pricing: React.FC<PricingProps> = ({ onBack }) => {
+const Pricing: React.FC<PricingProps> = ({ onBack, onToggleMenu }) => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
       {/* Header */}
@@ -95,7 +96,12 @@ const Pricing: React.FC<PricingProps> = ({ onBack }) => {
               Premium Plans
             </h1>
           </div>
-          <div className="w-9" /> {/* Spacer */}
+          <button 
+            onClick={onToggleMenu}
+            className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+          >
+            <Menu size={20} />
+          </button>
         </div>
       </header>
 

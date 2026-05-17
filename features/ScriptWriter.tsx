@@ -91,7 +91,7 @@ const ScriptWriter: React.FC<Props> = ({
           <h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">AI Script Writer</h2>
         </div>
         <div className="ml-14">
-          <TutorialButton videoId="5D66YbnUO1s" timestamp="10" toolKey="script_writer" />
+          <TutorialButton videoId="5D66YbnUO1s" timestamp="10" toolKey="script_writer" session={session} />
         </div>
       </div>
 

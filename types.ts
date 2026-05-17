@@ -44,6 +44,7 @@ export interface ProcessingTask {
   error?: string;
   result?: any;
   timestamp: number;
+  isCanceled?: boolean;
 }
 
 export interface PaymentMethodData {
