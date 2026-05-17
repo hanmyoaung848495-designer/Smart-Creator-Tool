@@ -100,14 +100,38 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         .select('*')
         .order('id', { ascending: true });
         
-      if (!error && data && data.length > 0) {
-        setTutorials(data.map(t => ({
+      if (!error && data) {
+        // Create a map from DB for easier lookup by title
+        const dbTutorialMap = new Map(data.map((t: any) => [t.title, {
           id: t.id,
           title: t.title,
           description: t.content,
           videoId: t.video_id,
           timestamp: t.time_start?.toString()
-        })));
+        }]));
+
+        // Merge DB data into default tutorials
+        const merged = DEFAULT_TUTORIALS.map(defaultT => {
+          if (dbTutorialMap.has(defaultT.title)) {
+            return dbTutorialMap.get(defaultT.title)!;
+          }
+          return defaultT;
+        });
+        
+        // Add tutorials from DB that are not in default list
+        data.forEach((t: any) => {
+          if (!DEFAULT_TUTORIALS.find(d => d.title === t.title)) {
+            merged.push({
+              id: t.id,
+              title: t.title,
+              description: t.content,
+              videoId: t.video_id,
+              timestamp: t.time_start?.toString()
+            });
+          }
+        });
+
+        setTutorials(merged);
       }
       setLoading(false);
     };

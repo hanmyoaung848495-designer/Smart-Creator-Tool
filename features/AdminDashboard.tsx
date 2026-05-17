@@ -257,6 +257,15 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     }
   };
 
+  const extractYouTubeId = (url: string) => {
+    if (!url) return '';
+    if (url.length === 11 && !url.includes('/') && !url.includes('?')) return url;
+    
+    const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regExp);
+    return (match && match[1]) ? match[1] : url;
+  };
+
   const handleSaveTutorial = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -266,7 +275,7 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
         body: JSON.stringify({
           id: tutorialFormData.id || undefined,
           title: tutorialFormData.title,
-          video_id: tutorialFormData.video_id,
+          video_id: extractYouTubeId(tutorialFormData.video_id),
           time_start: tutorialFormData.time_start,
           content: tutorialFormData.content,
           tool_key: tutorialFormData.tool_key || null

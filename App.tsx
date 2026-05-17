@@ -905,7 +905,7 @@ const Home: React.FC<{
             <button
               key={feature.id}
               onClick={() => onSelect(feature.id)}
-              className={`flex items-center gap-3 p-[1px] rounded-2xl transition-all ${
+              className={`flex items-center gap-3 p-[1px] rounded-2xl transition-all animate-gradient-border ${
                 isRunning 
                   ? 'bg-gradient-to-r from-amber-400 to-amber-600' 
                   : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 active:scale-95'
