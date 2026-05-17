@@ -7,6 +7,7 @@ import { Card, Button, TextArea, Input, Select, ProgressBar, TutorialButton } fr
 import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2, X } from 'lucide-react';
 import { FeatureType, ProcessingTask, UserSession } from '../types';
 import { KCAudioPlayer } from './KCAudioPlayer';
+import { GeminiAudioPlayer } from '../components/GeminiAudioPlayer';
 import { INITIAL_PRONUNCIATION_MAP, applyPronunciation } from '../lib/pronunciation';
 import { saveVoiceHistoryDB, loadVoiceHistoryDB } from '../services/storage';
 import { supabase } from '../lib/supabase';
@@ -102,7 +103,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [kcStyle, setKcStyle] = useState('Movie Recap (ဇာတ်လမ်းပြော)');
   const [kcCharOpen, setKcCharOpen] = useState<'v1' | 'v2' | 'v3' | null>(null);
   const [kcStyleOpen, setKcStyleOpen] = useState(false);
-  const [kcRatio, setKcRatio] = useState<'TikTok' | 'YouTube'>('TikTok');
+  const [kcRatio, setKcRatio] = useState<'9:16' | '16:9'>('9:16');
   const [kcFileName, setKcFileName] = useState('KC_Voice');
   const [kcPitch, setKcPitch] = useState(0);
   const [kcRate, setKcRate] = useState(0);
@@ -113,6 +114,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [kcLoading, setKcLoading] = useState(false);
   const [timerCount, setTimerCount] = useState(0);
   const [kcResult, setKcResult] = useState<{ status: string; audio_url: string; srt_url: string; fileName?: string } | null>(null);
+  const [geminiResult, setGeminiResult] = useState<{ audio_url: string; fileName: string } | null>(null);
 
   const activeGeminiTask = tasks.find(t => t.type === 'ai-voice' && t.title.startsWith('Gemini:') && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled);
   const activeKCTask = tasks.find(t => t.type === 'ai-voice' && t.title.startsWith('KC:') && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled);
@@ -483,8 +485,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         saveHistory(updatedHistory);
         
         const url = URL.createObjectURL(wavBlob);
-        setCurrentAudio({ url, id: newItem.id });
-        playAudio(url);
+        setGeminiResult({ url, fileName: title });
 
         return newItem;
       } catch (err: any) {
@@ -656,7 +657,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           text: previewText,
           v1_voice: charValue,
           style: 'Normal',
-          srt_ratio: 'TikTok',
+          srt_ratio: '9:16',
           manual_pitch: 0,
           manual_rate: 0,
           volume_boost: 0
@@ -1049,27 +1050,21 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             </div>
 
             <div className="flex items-center justify-between gap-4 mt-4">
-              {currentAudio && !activeGeminiTask ? (
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={handlePlayPause}
-                    className="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center shrink-0 shadow-md hover:scale-105 transition-transform"
-                  >
-                    {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
-                  </button>
-                  <button 
-                    onClick={() => handleDownload(history[0])}
-                    className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shrink-0 shadow-sm hover:bg-indigo-100 transition-colors"
-                  >
-                    <Download size={18} />
-                  </button>
+              {geminiResult && !activeGeminiTask ? (
+                <div className="w-full">
+                  <GeminiAudioPlayer 
+                    audioUrl={geminiResult.audio_url}
+                    fileName={geminiResult.fileName}
+                    onDelete={() => setGeminiResult(null)}
+                  />
                 </div>
               ) : (
                 <div className="flex-grow"></div>
               )}
 
-              <Button
-                  onClick={activeGeminiTask ? undefined : handleRun}
+              {!geminiResult && (
+                <Button
+                    onClick={activeGeminiTask ? undefined : handleRun}
                   variant={activeGeminiTask ? 'danger' : 'gradient'}
                   className="w-auto px-6 py-3 text-sm font-black uppercase tracking-[0.2em] transition-all shrink-0 rounded-full"
                   disabled={isPreviewing !== null}
@@ -1084,6 +1079,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                     </>
                   )}
                 </Button>
+              )}
             </div>
           </>
         ) : (
@@ -1324,16 +1320,16 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                 </div>
               </div>
               <div className="flex gap-4 items-center">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Ratio:</label>
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">SRT Ratio:</label>
                 <button
-                  onClick={() => setKcRatio('YouTube')}
-                  className={`px-4 py-1 rounded text-xs font-bold transition-all ${kcRatio === 'YouTube' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300'}`}
+                  onClick={() => setKcRatio('16:9')}
+                  className={`px-4 py-1 rounded text-xs font-bold transition-all ${kcRatio === '16:9' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300'}`}
                 >
                   16:9
                 </button>
                 <button
-                  onClick={() => setKcRatio('TikTok')}
-                  className={`px-4 py-1 rounded text-xs font-bold transition-all ${kcRatio === 'TikTok' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300'}`}
+                  onClick={() => setKcRatio('9:16')}
+                  className={`px-4 py-1 rounded text-xs font-bold transition-all ${kcRatio === '9:16' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300'}`}
                 >
                   9:16
                 </button>

@@ -290,8 +290,8 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
         <div className="flex items-center justify-between w-full">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={onBack} className="text-white hover:bg-neutral-800 p-2">
-              <ArrowLeft size={20} />
+            <Button variant="ghost" onClick={onBack} className="text-white hover:bg-neutral-800 p-2.5">
+              <ArrowLeft size={26} />
             </Button>
             <div className="flex items-center gap-3 bg-black/50 border border-neutral-800 rounded-xl p-2 px-4">
               <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.8)]"></div>

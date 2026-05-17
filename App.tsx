@@ -905,16 +905,18 @@ const Home: React.FC<{
             <button
               key={feature.id}
               onClick={() => onSelect(feature.id)}
-              className={`flex items-center gap-3 p-4 rounded-2xl transition-all ${
+              className={`flex items-center gap-3 p-[1px] rounded-2xl transition-all ${
                 isRunning 
-                  ? 'bg-amber-50 border-2 border-amber-200 text-amber-700' 
-                  : 'tool-card-gradient text-gray-700 active:scale-95'
+                  ? 'bg-gradient-to-r from-amber-400 to-amber-600' 
+                  : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 active:scale-95'
               }`}
             >
-              <span className="text-2xl shrink-0">{feature.icon}</span>
-              <div className="flex flex-col items-start min-w-0">
-                <span className="text-xs font-bold leading-tight text-left">{feature.title}</span>
-                {isRunning && <span className="text-[8px] font-black uppercase tracking-tighter mt-1 animate-pulse">Running Task ({activeTasks.filter(t => t.type === feature.id).length})</span>}
+              <div className={`flex items-center gap-3 p-4 w-full h-full rounded-[15px] bg-white dark:bg-gray-800 ${isRunning ? 'bg-amber-50' : ''}`}>
+                <span className="text-2xl shrink-0">{feature.icon}</span>
+                <div className="flex flex-col items-start min-w-0">
+                  <span className="text-xs font-bold leading-tight text-left text-gray-900 dark:text-gray-100">{feature.title}</span>
+                  {isRunning && <span className="text-[8px] font-black uppercase tracking-tighter mt-1 animate-pulse text-amber-700">Running Task ({activeTasks.filter(t => t.type === feature.id).length})</span>}
+                </div>
               </div>
             </button>
           );
