@@ -22,7 +22,24 @@ CREATE TABLE app_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ၃။ Default Limit များ ထည့်သွင်းခြင်း
+-- ၃။ User Accounts Table
+CREATE TABLE users_accounts (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  username TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role TEXT DEFAULT 'user',
+  start_date BIGINT,
+  expired_date BIGINT,
+  link_transcribe_expiry BIGINT,
+  is_lifetime BOOLEAN DEFAULT FALSE,
+  telegram TEXT,
+  device_id TEXT,
+  last_login BIGINT,
+  created_at BIGINT DEFAULT (extract(epoch from now()) * 1000)
+);
+
+-- ၄။ Default Limit များ ထည့်သွင်းခြင်း
 INSERT INTO app_settings (key, value) VALUES 
 ('usage_limits', '{
   "ai_voice_guest_limit": 2,

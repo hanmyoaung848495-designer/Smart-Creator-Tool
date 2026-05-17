@@ -175,9 +175,7 @@ const Pricing: React.FC<PricingProps> = ({ onBack, onToggleMenu }) => {
 
               <button 
                 onClick={() => {
-                  if (plan.name !== "Free Plan") {
-                    window.open("https://t.me/kcteamofficialbot", "_blank");
-                  }
+                  // Link removed as per user request to disable ad links
                 }}
                 className={`w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] ${
                 plan.popular 

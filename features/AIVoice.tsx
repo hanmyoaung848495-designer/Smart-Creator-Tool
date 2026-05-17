@@ -114,11 +114,12 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [timerCount, setTimerCount] = useState(0);
   const [kcResult, setKcResult] = useState<{ status: string; audio_url: string; srt_url: string; fileName?: string } | null>(null);
 
-  const activeTask = tasks.find(t => t.type === 'ai-voice' && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled);
+  const activeGeminiTask = tasks.find(t => t.type === 'ai-voice' && t.title.startsWith('Gemini:') && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled);
+  const activeKCTask = tasks.find(t => t.type === 'ai-voice' && t.title.startsWith('KC:') && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled);
 
   useEffect(() => {
     let interval: any;
-    if (activeTask) {
+    if (activeGeminiTask || activeKCTask) {
       interval = setInterval(() => {
         setTimerCount(prev => prev + 1);
       }, 1000);
@@ -126,7 +127,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       setTimerCount(0);
     }
     return () => clearInterval(interval);
-  }, [activeTask]);
+  }, [activeGeminiTask, activeKCTask]);
 
   const [history, setHistory] = useState<VoiceHistory[]>([]);
   const [currentAudio, setCurrentAudio] = useState<{ url: string; id: string } | null>(null);
@@ -167,7 +168,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     setKcLoading(true);
     setKcResult(null);
     
-    onStartTask('ai-voice', kcFileName || 'KC Voice', async (taskId) => {
+    onStartTask('ai-voice', `KC: ${kcFileName || 'Voice'}`, async (taskId) => {
       try {
         const apiUrl = '/api/kc-tts/generate';
         console.log('Generating with:', { processedText, kcV1Voice, kcV2Voice, kcV3Voice, kcStyle, kcRatio });
@@ -385,7 +386,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       : text.slice(0, 30);
     const title = displayTitle + (displayTitle.length >= 30 ? '...' : '');
     
-    onStartTask('ai-voice', title, async (taskId) => {
+    onStartTask('ai-voice', `Gemini: ${title}`, async (taskId) => {
       try {
         const ai = getAIClient(apiKey);
         
@@ -427,17 +428,36 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           prompt = styleInstruction + "\n\n" + applyPronunciation(text, customMap);
         }
 
-        const response = await ai.models.generateContent({
-          model: selectedModel,
-          contents: [{ parts: [{ text: prompt }] }],
-          config,
-        });
+        const keysToTry = session.useCustomKey ? [apiKey] : (session.allApiKeys && session.allApiKeys.length > 0 ? session.allApiKeys : [apiKey || '']);
+        let lastError: any;
+        let base64Audio: string | undefined;
 
         const isCanceled = () => tasksRef.current.find(t => t.id === taskId)?.isCanceled;
-        if (isCanceled()) return;
 
-        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-        if (!base64Audio) throw new Error('Failed to generate audio');
+        for (const currentKey of keysToTry) {
+          try {
+            if (isCanceled()) return;
+            const ai = getAIClient(currentKey);
+            const response = await ai.models.generateContent({
+              model: selectedModel,
+              contents: [{ parts: [{ text: prompt }] }],
+              config,
+            });
+            base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+            if (base64Audio) break;
+          } catch (err: any) {
+             lastError = err;
+             const errMsg = err?.message || String(err);
+             if (errMsg.includes('429') || errMsg.includes('quota') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+                console.warn("Gemini Voice quota reached for key. Rotating...");
+                continue;
+             }
+             throw err;
+          }
+        }
+
+        if (isCanceled()) return;
+        if (!base64Audio) throw lastError || new Error('Failed to generate audio');
 
         const wavBlob = base64PcmToWavBlob(base64Audio, 24000);
         const reader = new FileReader();
@@ -1029,7 +1049,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
             </div>
 
             <div className="flex items-center justify-between gap-4 mt-4">
-              {currentAudio && !activeTask ? (
+              {currentAudio && !activeGeminiTask ? (
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={handlePlayPause}
@@ -1049,12 +1069,12 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               )}
 
               <Button
-                  onClick={activeTask ? undefined : handleRun}
-                  variant={activeTask ? 'danger' : 'gradient'}
+                  onClick={activeGeminiTask ? undefined : handleRun}
+                  variant={activeGeminiTask ? 'danger' : 'gradient'}
                   className="w-auto px-6 py-3 text-sm font-black uppercase tracking-[0.2em] transition-all shrink-0 rounded-full"
                   disabled={isPreviewing !== null}
                 >
-                  {activeTask ? (
+                  {activeGeminiTask ? (
                     <>
                       <Loader2 size={18} className="animate-spin" /> {timerCount}s
                     </>
@@ -1357,12 +1377,12 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               </div>
 
               <Button
-                  onClick={activeTask ? undefined : handleGenerateKCTTS}
+                  onClick={activeKCTask ? undefined : handleGenerateKCTTS}
                   className="w-full mt-4"
-                  variant={activeTask ? 'secondary' : 'gradient'}
-                  disabled={!!activeTask}
+                  variant={activeKCTask ? 'secondary' : 'gradient'}
+                  disabled={!!activeKCTask}
                 >
-                  {activeTask ? `Generating (${timerCount}s)...` : 'Generate'}
+                  {activeKCTask ? `Generating (${timerCount}s)...` : 'Generate'}
               </Button>
 
               {/* Result Area */}

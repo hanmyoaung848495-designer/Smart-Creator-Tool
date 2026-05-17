@@ -220,6 +220,32 @@ function extractVideoId(url: string) {
   return (match && match[1] && match[1].length === 11) ? match[1] : null;
 }
 
+function getRotatingApiKey(baseName: string): string[] {
+  const keys: string[] = [];
+  
+  // Try to get keys from index 1 to 5
+  for (let i = 1; i <= 5; i++) {
+    const key = process.env[`${baseName}_${i}`];
+    if (key) keys.push(key);
+  }
+  
+  // Also add the legacy single key if it exists and isn't already in the list
+  const legacyKey = process.env[baseName];
+  if (legacyKey && !keys.includes(legacyKey)) {
+    keys.unshift(legacyKey);
+  }
+
+  // Special case for Gemini - handle SYSTEM_KEY_1_VALUE specifically
+  if (baseName === 'GEMINI_API_KEY') {
+    const systemKey = process.env.SYSTEM_KEY_1_VALUE;
+    if (systemKey && !keys.includes(systemKey)) {
+      keys.unshift(systemKey);
+    }
+  }
+
+  return keys;
+}
+
 app.post(/^\/(api\/)?youtube-transcribe$/, async (req, res) => {
   const { url } = req.body;
 
@@ -227,103 +253,121 @@ app.post(/^\/(api\/)?youtube-transcribe$/, async (req, res) => {
     return res.status(400).json({ error: "URL is required" });
   }
 
-  try {
-    console.log(`[YouTube Transcribe] Processing URL: ${url}`);
-    
-    const videoId = extractVideoId(url);
-    if (!videoId) {
-      throw new Error("Invalid YouTube URL. Could not extract Video ID.");
-    }
-
-    const transcriptApiKey = process.env.TRANSCRIPT_API_KEY;
-    if (!transcriptApiKey) {
-      throw new Error("TRANSCRIPT_API_KEY is not configured on the server.");
-    }
-
-    // Call TranscriptAPI.com - V2 Endpoint as per PDF
-    const response = await fetch(`https://transcriptapi.com/api/v2/youtube/transcript?video_url=${encodeURIComponent(url)}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${transcriptApiKey}`,
-        "Accept": "application/json"
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      // Forward the exact status code so frontend can handle it
-      return res.status(response.status).json({
-        error: errorData.error || `TranscriptAPI failed with status ${response.status}`,
-        detail: errorData.detail || errorData.error
-      });
-    }
-
-    const data = await response.json();
-    console.log(`[YouTube Transcribe] Success using TranscriptAPI V2.`);
-
-    // Handle V2 response which might return segments or a single string
-    let transcribedText = "";
-    if (Array.isArray(data.transcript)) {
-      transcribedText = data.transcript.map((segment: any) => segment.text).join(" ");
-    } else if (data.transcript && typeof data.transcript === "string") {
-      transcribedText = data.transcript;
-    } else if (data.text) {
-      transcribedText = typeof data.text === "string" ? data.text : JSON.stringify(data.text);
-    } else {
-      transcribedText = "No transcript found for this video.";
-    }
-
-    return res.json({
-      text: transcribedText,
-      sources: []
-    });
-
-  } catch (error: any) {
-    console.error("[YouTube Transcribe] Error:", error);
-    return res.status(500).json({ error: error.message || "Failed to process YouTube video" });
+  const keys = getRotatingApiKey('TRANSCRIPT_API_KEY');
+  if (keys.length === 0) {
+    return res.status(500).json({ error: "TRANSCRIPT_API_KEY is not configured on the server." });
   }
+
+  let lastError: any;
+  for (const transcriptApiKey of keys) {
+    try {
+      console.log(`[YouTube Transcribe] Trying key rotation... URL: ${url}`);
+      
+      const response = await fetch(`https://transcriptapi.com/api/v2/youtube/transcript?video_url=${encodeURIComponent(url)}`, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${transcriptApiKey}`,
+          "Accept": "application/json"
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        // If it's a 429 (Too many requests) or 402 (Payment required/Quota), try next key
+        if (response.status === 429 || response.status === 402) {
+          console.warn(`[YouTube Transcribe] Key failed with status ${response.status}. Trying next key...`);
+          lastError = { status: response.status, data: errorData };
+          continue;
+        }
+        
+        return res.status(response.status).json({
+          error: errorData.error || `TranscriptAPI failed with status ${response.status}`,
+          detail: errorData.detail || errorData.error
+        });
+      }
+
+      const data = await response.json();
+      console.log(`[YouTube Transcribe] Success using TranscriptAPI V2.`);
+
+      let transcribedText = "";
+      if (Array.isArray(data.transcript)) {
+        transcribedText = data.transcript.map((segment: any) => segment.text).join(" ");
+      } else if (data.transcript && typeof data.transcript === "string") {
+        transcribedText = data.transcript;
+      } else if (data.text) {
+        transcribedText = typeof data.text === "string" ? data.text : JSON.stringify(data.text);
+      } else {
+        transcribedText = "No transcript found for this video.";
+      }
+
+      return res.json({
+        text: transcribedText,
+        sources: []
+      });
+
+    } catch (error: any) {
+      console.error("[YouTube Transcribe] Error with current key:", error);
+      lastError = error;
+    }
+  }
+
+  return res.status(500).json({ 
+    error: lastError?.data?.error || lastError?.message || "All TRANSCRIPT_API_KEYs failed or reached quota." 
+  });
 });
 
 app.post(/^\/(api\/)?kc-tts\/generate$/, async (req, res) => {
-  try {
-    const appUrl = process.env.APP_URL; // e.g., Hugging Face Space URL
-    const apiKey = process.env.TTS_API_KEY;
-
-    if (!appUrl) {
-      return res.status(500).json({ error: "APP_URL is not configured" });
-    }
-
-    const apiUrl = `${appUrl}/generate`;
-
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-Key": apiKey || ""
-      },
-      body: JSON.stringify(req.body)
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return res.status(response.status).send(errorText);
-    }
-
-    const data = await response.json();
-    
-    // Prefix relative URLs with APP_URL
-    if (data.audio_url && data.audio_url.startsWith('/')) {
-      data.audio_url = `${appUrl}${data.audio_url}`;
-    }
-    if (data.srt_url && data.srt_url.startsWith('/')) {
-      data.srt_url = `${appUrl}${data.srt_url}`;
-    }
-
-    return res.json(data);
-  } catch (error) {
-    console.error("KC TTS Proxy Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+  const appUrl = process.env.APP_URL; 
+  if (!appUrl) {
+    return res.status(500).json({ error: "APP_URL is not configured" });
   }
+
+  const keys = getRotatingApiKey('TTS_API_KEY');
+  // Fallback to one key if none found via rotation helper
+  if (keys.length === 0 && process.env.TTS_API_KEY) keys.push(process.env.TTS_API_KEY);
+
+  let lastError: any;
+  for (const apiKey of keys) {
+    try {
+      const apiUrl = `${appUrl}/generate`;
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": apiKey || ""
+        },
+        body: JSON.stringify(req.body)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        if (response.status === 429 || response.status === 402) {
+          console.warn(`[KC TTS] Key failed with status ${response.status}. Trying next key...`);
+          lastError = { status: response.status, message: errorText };
+          continue;
+        }
+        return res.status(response.status).send(errorText);
+      }
+
+      const data = await response.json();
+      
+      if (data.audio_url && data.audio_url.startsWith('/')) {
+        data.audio_url = `${appUrl}${data.audio_url}`;
+      }
+      if (data.srt_url && data.srt_url.startsWith('/')) {
+        data.srt_url = `${appUrl}${data.srt_url}`;
+      }
+
+      return res.json(data);
+    } catch (error) {
+      console.error("[KC TTS] Error with current key:", error);
+      lastError = error;
+    }
+  }
+
+  return res.status(500).json({ 
+    error: lastError?.message || "All TTS_API_KEYs failed or reached quota." 
+  });
 });
 
 app.post(/^\/(api\/)?login$/, async (req, res) => {
@@ -374,14 +418,22 @@ app.post(/^\/(api\/)?login$/, async (req, res) => {
 
     // Check expiration
     if (!userData.is_lifetime && userData.expired_date) {
-      if (Date.now() > userData.expired_date) {
+      const now = Date.now();
+      const expiry = !isNaN(Number(userData.expired_date)) ? Number(userData.expired_date) : new Date(userData.expired_date).getTime();
+      
+      if (now > expiry) {
         return res.status(403).json({ error: "Account has expired. Please contact admin." });
       }
     }
 
     // Check start date
-    if (userData.start_date && Date.now() < userData.start_date) {
-      return res.status(403).json({ error: "Account is not active yet." });
+    if (userData.start_date) {
+      const now = Date.now();
+      const start = !isNaN(Number(userData.start_date)) ? Number(userData.start_date) : new Date(userData.start_date).getTime();
+      
+      if (now < start) {
+        return res.status(403).json({ error: "Account is not active yet." });
+      }
     }
 
     // Check device binding
@@ -400,15 +452,20 @@ app.post(/^\/(api\/)?login$/, async (req, res) => {
       .update(updates)
       .eq('id', userData.id);
 
-    // For regular users, we return a system key if set, or just success
-    const systemApiKey = process.env.SYSTEM_KEY_1_VALUE || ''; 
+    // Get all rotating Gemini keys for client rotation
+    const systemGeminiKeys = getRotatingApiKey('GEMINI_API_KEY');
+    
     return res.json({ 
-      apiKey: systemApiKey, 
+      apiKey: systemGeminiKeys[0] || '', // Primary key
+      allApiKeys: systemGeminiKeys,     // Array for rotation
       role: userData.role || 'premium',
       user: {
         name: userData.name,
         username: userData.username,
-        role: userData.role
+        role: userData.role,
+        expiredDate: userData.expired_date,
+        isLifetime: userData.is_lifetime,
+        linkTranscribeExpiry: userData.link_transcribe_expiry
       }
     });
 
@@ -441,18 +498,23 @@ app.post("/api/admin/users", async (req, res) => {
   try {
     const account = req.body;
     // Map camalCase to snake_case for Supabase
-    const supabaseData = {
+    const supabaseData: any = {
       name: account.name,
       username: account.username,
       password: account.password,
       role: account.role,
       start_date: account.startDate,
       expired_date: account.expiredDate,
+      link_transcribe_expiry: account.linkTranscribeExpiry,
       is_lifetime: account.isLifetime,
       telegram: account.telegram,
-      device_id: account.deviceId,
-      created_at: Date.now()
+      device_id: account.deviceId
     };
+
+    // Only set created_at for new records if possible, 
+    // but upsert handles both. If we omit it, existing records keep theirs,
+    // and new records get it from DB default (if configured).
+    // Or we can just omit it here to be safe and let the database handle it.
 
     const { error } = await supabase
       .from('users_accounts')

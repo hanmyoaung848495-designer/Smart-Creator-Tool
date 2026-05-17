@@ -35,8 +35,12 @@ const Transcribe: React.FC<Props> = ({
   const tasksRef = useRef<ProcessingTask[]>(tasks);
   useEffect(() => { tasksRef.current = tasks; }, [tasks]);
 
-  const activeTask = useMemo(() => 
-    tasks.find(t => t.type === 'transcribe' && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled),
+  const activeFileTask = useMemo(() => 
+    tasks.find(t => t.type === 'transcribe' && t.title.startsWith('File:') && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled),
+  [tasks]);
+
+  const activeLinkTask = useMemo(() => 
+    tasks.find(t => t.type === 'transcribe' && t.title.startsWith('Link:') && t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled),
   [tasks]);
 
   const checkApiKey = () => {
@@ -62,11 +66,16 @@ const Transcribe: React.FC<Props> = ({
   };
 
   const processFileUpload = async () => {
-    if (!file || activeTask) return;
+    if (!file || activeFileTask) return;
     if (!checkApiKey()) return;
 
     const { checkAndIncrementUsage } = await import('../services/usageService');
-    const { allowed, message } = await checkAndIncrementUsage('transcribe', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
+    const { allowed, message } = await checkAndIncrementUsage(
+      'transcribe', 
+      session.role !== 'free' ? (session.user?.id || 'logged_in') : null,
+      false,
+      session.user?.linkTranscribeExpiry
+    );
     
     if (!allowed) {
       setApiError({ status: 402, message: message || 'Daily limit exceeded', title: 'Usage Limit Reached' });
@@ -75,7 +84,7 @@ const Transcribe: React.FC<Props> = ({
 
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
-    onStartTask('transcribe', `Transcribing ${file.name}`, async (taskId) => {
+    onStartTask('transcribe', `File: ${file.name}`, async (taskId) => {
       const isCanceled = () => tasksRef.current.find(t => t.id === taskId)?.isCanceled;
 
       return new Promise((resolve, reject) => {
@@ -83,7 +92,12 @@ const Transcribe: React.FC<Props> = ({
         reader.onload = async () => {
           try {
             const base64 = (reader.result as string).split(',')[1];
-            const res = await transcribeMedia(base64, file.type, apiKey);
+            const res = await transcribeMedia(
+              base64, 
+              file.type, 
+              apiKey, 
+              session.useCustomKey ? undefined : session.allApiKeys
+            );
             
             if (isCanceled()) return resolve(null);
 
@@ -104,10 +118,15 @@ const Transcribe: React.FC<Props> = ({
   };
 
   const processYoutubeLink = async () => {
-    if (!ytUrl || activeTask) return;
+    if (!ytUrl || activeLinkTask) return;
 
     const { checkAndIncrementUsage } = await import('../services/usageService');
-    const { allowed, message } = await checkAndIncrementUsage('transcribe', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
+    const { allowed, message } = await checkAndIncrementUsage(
+      'transcribe', 
+      session.role !== 'free' ? (session.user?.id || 'logged_in') : null,
+      true,
+      session.user?.linkTranscribeExpiry
+    );
     
     if (!allowed) {
       setApiError({ status: 402, message: message || 'Daily limit exceeded', title: 'Usage Limit Reached' });
@@ -116,7 +135,7 @@ const Transcribe: React.FC<Props> = ({
 
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
     
-    onStartTask('transcribe', `Transcribing Video: ${ytUrl.substring(0, 30)}...`, async (taskId) => {
+    onStartTask('transcribe', `Link: ${ytUrl.substring(0, 30)}...`, async (taskId) => {
       try {
         const resData = await transcribeYoutubeLink(ytUrl, apiKey, translateBurmese);
         
@@ -208,15 +227,26 @@ const Transcribe: React.FC<Props> = ({
           </button>
         </div>
 
-        {activeTask ? (
+        {activeTab === 'upload' && activeFileTask ? (
           <div className="flex flex-col items-center py-12 gap-6">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Transcribing Content...</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Transcribing File...</h3>
               <p className="text-gray-500 text-sm italic">Our specialized AI is listening and transcribing the audio directly into text.</p>
             </div>
             <div className="w-full max-w-md">
-              <ProgressBar progress={activeTask.progress} label={activeTask.status} />
+              <ProgressBar progress={activeFileTask.progress} label={activeFileTask.status} />
+            </div>
+          </div>
+        ) : activeTab === 'youtube' && activeLinkTask ? (
+          <div className="flex flex-col items-center py-12 gap-6">
+            <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Transcribing Video link...</h3>
+              <p className="text-gray-500 text-sm italic">Our specialized AI is extracting and transcribing the video content.</p>
+            </div>
+            <div className="w-full max-w-md">
+              <ProgressBar progress={activeLinkTask.progress} label={activeLinkTask.status} />
             </div>
           </div>
         ) : (

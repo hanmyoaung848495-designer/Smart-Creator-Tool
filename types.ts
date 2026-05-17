@@ -9,6 +9,7 @@ export interface UserAccount {
   expiredDate: number | null;
   isLifetime: boolean;
   telegram: string;
+  linkTranscribeExpiry: number | null;
   deviceId: string | null;
   lastLogin?: number;
   createdAt: number;
@@ -105,12 +106,16 @@ export interface UserUsage {
 export interface UserProfile {
   id: string;
   name: string;
+  username: string;
   email: string;
   preferredLanguage: string;
   joinedAt: number;
   history: ActivityRecord[];
   credits: number;
   plan: 'free' | 'premium' | 'premium-ultra' | 'premium-plus';
+  expiredDate: number | null;
+  isLifetime: boolean;
+  linkTranscribeExpiry: number | null;
   usage: UserUsage;
 }
 
@@ -119,6 +124,7 @@ export interface UserSession {
   useCustomKey: boolean;
   customApiKey?: string;
   systemApiKey?: string;
+  allApiKeys?: string[]; // Added for rotation
   user?: UserProfile;
 }
 

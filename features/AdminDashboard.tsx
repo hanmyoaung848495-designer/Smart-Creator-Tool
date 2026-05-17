@@ -53,7 +53,8 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     startDate: new Date().toISOString().split('T')[0],
     expiredDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     isLifetime: false,
-    telegram: ''
+    telegram: '',
+    linkTranscribeExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   });
 
   const fetchUsers = async () => {
@@ -74,7 +75,8 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
           telegram: u.telegram,
           deviceId: u.device_id,
           lastLogin: u.last_login,
-          createdAt: u.created_at
+          createdAt: u.created_at,
+          linkTranscribeExpiry: u.link_transcribe_expiry
         }));
         setUsers(mappedData);
       } else {
@@ -142,16 +144,23 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
   };
 
   const handleEditUser = (user: UserAccount) => {
+    const parseToISO = (val: any) => {
+      if (!val) return new Date().toISOString().split('T')[0];
+      const date = !isNaN(Number(val)) ? new Date(Number(val)) : new Date(val);
+      return date.toISOString().split('T')[0];
+    };
+
     setEditingUser(user);
     setFormData({
       name: user.name,
       username: user.username,
       password: user.password,
       role: user.role,
-      startDate: new Date(user.startDate).toISOString().split('T')[0],
-      expiredDate: user.expiredDate ? new Date(user.expiredDate).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      startDate: parseToISO(user.startDate),
+      expiredDate: user.isLifetime ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : parseToISO(user.expiredDate),
       isLifetime: user.isLifetime,
-      telegram: user.telegram || ''
+      telegram: user.telegram || '',
+      linkTranscribeExpiry: parseToISO(user.linkTranscribeExpiry)
     });
     setShowAddModal(true);
   };
@@ -167,8 +176,9 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
           username: formData.username,
           password: formData.password,
           role: formData.role,
-          startDate: new Date(formData.startDate).getTime(),
-          expiredDate: formData.isLifetime ? null : new Date(formData.expiredDate).getTime(),
+          startDate: new Date(formData.startDate + 'T00:00:00').getTime(),
+          expiredDate: formData.isLifetime ? null : new Date(formData.expiredDate + 'T23:59:59').getTime(),
+          linkTranscribeExpiry: new Date(formData.linkTranscribeExpiry + 'T23:59:59').getTime(),
           isLifetime: formData.isLifetime,
           telegram: formData.telegram,
           deviceId: editingUser?.deviceId || null
@@ -187,7 +197,8 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
           startDate: new Date().toISOString().split('T')[0],
           expiredDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           isLifetime: false,
-          telegram: ''
+          telegram: '',
+          linkTranscribeExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         });
         fetchUsers();
       } else {
@@ -311,9 +322,13 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     if (!user.expiredDate) return { label: 'Invalid', color: 'text-gray-400 bg-gray-50' };
     
     const now = Date.now();
-    if (now > user.expiredDate) return { label: 'Expired', color: 'text-red-600 bg-red-50' };
+    const expiredDate = typeof user.expiredDate === 'string' 
+      ? (!isNaN(Number(user.expiredDate)) ? Number(user.expiredDate) : new Date(user.expiredDate).getTime())
+      : user.expiredDate;
+
+    if (now > expiredDate) return { label: 'Expired', color: 'text-red-600 bg-red-50' };
     
-    const daysLeft = Math.ceil((user.expiredDate - now) / (1000 * 60 * 60 * 24));
+    const daysLeft = Math.ceil((expiredDate - now) / (1000 * 60 * 60 * 24));
     if (daysLeft <= 7) return { label: `${daysLeft}d left`, color: 'text-amber-600 bg-amber-50' };
     
     return { label: 'Active', color: 'text-emerald-600 bg-emerald-50' };
@@ -499,6 +514,12 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
                         <div className="flex items-center gap-1.5">
                           <Calendar size={12} className="text-gray-400" />
                           <span>Exp: {user.isLifetime ? 'Unlimited' : new Date(user.expiredDate || 0).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Video size={12} className="text-purple-400" />
+                          <span className={`${(user.linkTranscribeExpiry && user.linkTranscribeExpiry < Date.now()) ? 'text-red-500 line-through' : ''}`}>
+                            Link: {user.linkTranscribeExpiry ? new Date(user.linkTranscribeExpiry).toLocaleDateString() : 'Not Set'}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Send size={12} className="text-sky-500" />
@@ -808,6 +829,12 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
                   onChange={(val) => setFormData({...formData, expiredDate: val})} 
                 />
               )}
+              <Input 
+                label="Link Transcribe Validity" 
+                type="date"
+                value={formData.linkTranscribeExpiry} 
+                onChange={(val) => setFormData({...formData, linkTranscribeExpiry: val})} 
+              />
             </div>
           </div>
 

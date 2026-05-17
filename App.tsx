@@ -127,10 +127,11 @@ const App: React.FC = () => {
       });
 
       if (response.ok) {
-        const { apiKey, role, user } = await response.json();
+        const { apiKey, allApiKeys, role, user } = await response.json();
         handleUpdateSession({ 
           useCustomKey: false, 
           systemApiKey: apiKey,
+          allApiKeys: allApiKeys,
           role: role || 'premium',
           user: user
         });
@@ -319,7 +320,11 @@ const App: React.FC = () => {
   const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'completed' && !t.isCanceled), [tasks]);
 
   const handleUpdateSession = useCallback((updates: Partial<UserSession>) => {
-    setSession(prev => ({ ...prev, ...updates }));
+    setSession(prev => {
+      const newSession = { ...prev, ...updates };
+      (window as any).userSession = newSession;
+      return newSession;
+    });
   }, []);
 
   const renderActiveFeature = () => {
@@ -759,8 +764,8 @@ const App: React.FC = () => {
           <FeedbackModal />
           {session.role === 'free' && !session.user && (
             <>
-              <NativeAd />
-              <SocialBarAd />
+              {/* <NativeAd /> */}
+              {/* <SocialBarAd /> */}
             </>
           )}
           <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-5 mt-auto">
@@ -847,6 +852,49 @@ const Home: React.FC<{
     </div>
 
     <div className="w-full">
+      {session.user && (
+        <div className="max-w-4xl mx-auto mb-8 px-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-indigo-100 dark:border-gray-700 shadow-xl shadow-indigo-500/5 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-4">
+               <Crown size={40} className="text-amber-400 opacity-10 rotate-12" />
+            </div>
+            
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-black text-xl shadow-lg">
+                {session.user.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-gray-900 dark:text-white leading-tight">{session.user.name}</h2>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">@{session.user.username}</p>
+              </div>
+              <div className="ml-auto bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800 flex items-center gap-1.5 shink-0">
+                <Crown size={12} className="text-amber-600 dark:text-amber-400" />
+                <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">{session.role}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Account Expiry</p>
+                <p className="text-xs font-bold text-gray-900 dark:text-white">
+                  {session.user.isLifetime ? 'Lifetime Unlimited' : session.user.expiredDate ? new Date(session.user.expiredDate).toLocaleDateString() : 'Not set'}
+                </p>
+              </div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Link Transcription Expiry</p>
+                <p className={`text-xs font-bold ${session.user.linkTranscribeExpiry && session.user.linkTranscribeExpiry < Date.now() ? 'text-red-500' : 'text-emerald-600'}`}>
+                  {session.user.linkTranscribeExpiry ? new Date(session.user.linkTranscribeExpiry).toLocaleDateString() : 'Not Set'}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between px-4 mb-6">
         <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Available Tools</h3>
       </div>
@@ -856,17 +904,17 @@ const Home: React.FC<{
           return (
             <button
               key={feature.id}
-              onClick={() => !isRunning && onSelect(feature.id)}
+              onClick={() => onSelect(feature.id)}
               className={`flex items-center gap-3 p-4 rounded-2xl transition-all ${
                 isRunning 
-                  ? 'bg-amber-50 border-2 border-amber-200 text-amber-700 opacity-75 cursor-wait' 
+                  ? 'bg-amber-50 border-2 border-amber-200 text-amber-700' 
                   : 'tool-card-gradient text-gray-700 active:scale-95'
               }`}
             >
               <span className="text-2xl shrink-0">{feature.icon}</span>
               <div className="flex flex-col items-start min-w-0">
                 <span className="text-xs font-bold leading-tight text-left">{feature.title}</span>
-                {isRunning && <span className="text-[8px] font-black uppercase tracking-tighter mt-1 animate-pulse">Processing...</span>}
+                {isRunning && <span className="text-[8px] font-black uppercase tracking-tighter mt-1 animate-pulse">Running Task ({activeTasks.filter(t => t.type === feature.id).length})</span>}
               </div>
             </button>
           );

@@ -50,7 +50,9 @@ export const updateUsageLimits = async (limits: UsageLimits): Promise<boolean> =
 
 export const checkAndIncrementUsage = async (
   toolType: ToolType, 
-  userId?: string | null
+  userId?: string | null,
+  isLink?: boolean,
+  linkTranscribeExpiry?: number | null
 ): Promise<{ allowed: boolean; remaining: number; message?: string }> => {
   if (!supabase) return { allowed: true, remaining: 99 }; // Fallback if no DB
 
@@ -71,7 +73,21 @@ export const checkAndIncrementUsage = async (
     if (isGuest) {
       limit = limits.transcribe_guest_limit;
     } else {
-      limit = limits.transcribe_user_limit;
+      // For logged in users, Link Transcribe has a specific validity
+      if (isLink) {
+        const now = Date.now();
+        const expiry = linkTranscribeExpiry ? (typeof linkTranscribeExpiry === 'number' ? linkTranscribeExpiry : new Date(linkTranscribeExpiry).getTime()) : null;
+        
+        if (expiry && now <= expiry) {
+          limit = limits.transcribe_user_limit; // 3 or whatever admin set
+        } else {
+          // Expired or No validity set: Fallback to 1 / day for Link Transcribe
+          limit = 1;
+        }
+      } else {
+        // Standard File Transcribe for premium users
+        limit = limits.transcribe_user_limit;
+      }
     }
   }
 
