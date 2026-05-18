@@ -1464,7 +1464,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                     <h4 className="text-sm font-bold text-gray-900 truncate">{item.title}</h4>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">
-                        {item.mode === 'single' ? 'Single' : 'Multi'} • {item.voices.join(', ')}
+                        {item.mode === 'single' ? 'Single' : 'Multi'} {item.voices ? `• ${item.voices.join(', ')}` : ''}
                       </span>
                       <span className="text-[10px] text-gray-300">•</span>
                       <span className="text-[10px] text-gray-400">{new Date(item.timestamp).toLocaleString()}</span>
