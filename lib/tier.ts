@@ -22,7 +22,7 @@ export const getUserTierName = (user: { role?: string; start_date?: any; expired
   const start = parseMs(rawStart);
   const expired = parseMs(rawExpired);
 
-  if (start && expired && !isNaN(start) && !isNaN(expired)) {
+  if (start !== null && expired !== null && !isNaN(start) && !isNaN(expired)) {
     const durationMs = expired - start;
     const days = durationMs / (1000 * 60 * 60 * 24);
 
