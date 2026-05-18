@@ -4,6 +4,7 @@ import { UserAccount, UserSession } from '../types';
 import { Card, Button, Input, Select, Modal, ConfirmModal } from '../components/Shared';
 import { Eye, EyeOff, Trash2, UserPlus, Users, Calendar, Shield, Smartphone, Send, Clock, Search, X, Video, Play, Edit } from 'lucide-react';
 import { toast } from 'sonner';
+import { getUserTierName } from '../lib/tier';
 
 interface Props {
   onBack: () => void;
@@ -528,7 +529,7 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
                         </span>
                         <div className="flex items-center gap-1.5 text-xs text-gray-500">
                            <Shield size={12} />
-                           <span className="capitalize">{user.role}</span>
+                           <span className="capitalize">{getUserTierName(user)}</span>
                         </div>
                       </div>
                     </td>

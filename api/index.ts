@@ -492,6 +492,7 @@ app.post(/^\/(api\/)?login$/, async (req, res) => {
         name: userData.name,
         username: userData.username,
         role: userData.role,
+        startDate: userData.start_date,
         expiredDate: userData.expired_date,
         isLifetime: userData.is_lifetime,
         linkTranscribeExpiry: userData.link_transcribe_expiry
@@ -501,6 +502,70 @@ app.post(/^\/(api\/)?login$/, async (req, res) => {
   } catch (error) {
     console.error("Login Check Error:", error);
     return res.status(500).json({ error: "Internal server error during login" });
+  }
+});
+
+app.post(/^\/(api\/)?logout$/, async (req, res) => {
+  const username = req.body.username?.toString().trim();
+  const deviceId = req.body.deviceId?.toString().trim();
+
+  if (!username) {
+    return res.status(400).json({ error: "Username is required" });
+  }
+
+  if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
+
+  try {
+    const { data: userData, error } = await supabase
+      .from('users_accounts')
+      .select('id, device_id')
+      .eq('username', username)
+      .single();
+      
+    if (userData && (userData.device_id === deviceId || !userData.device_id)) {
+      // If the device ID matches the stored one, or it's already null/empty, clear it to null
+      await supabase
+        .from('users_accounts')
+        .update({ device_id: null })
+        .eq('id', userData.id);
+    }
+    
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("Logout Error:", err);
+    return res.status(500).json({ error: "Failed to logout" });
+  }
+});
+
+app.post(/^\/(api\/)?check-device$/, async (req, res) => {
+  const username = req.body.username?.toString().trim();
+  const deviceId = req.body.deviceId?.toString().trim();
+
+  if (!username || !deviceId) {
+    return res.status(400).json({ valid: false });
+  }
+
+  if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
+
+  try {
+    const { data: userData, error } = await supabase
+      .from('users_accounts')
+      .select('device_id')
+      .eq('username', username)
+      .single();
+      
+    if (error || !userData) {
+      return res.json({ valid: false });
+    }
+
+    if (userData.device_id !== deviceId) {
+      return res.json({ valid: false });
+    }
+    
+    return res.json({ valid: true });
+  } catch (err) {
+    console.error("Check Device Error:", err);
+    return res.status(500).json({ error: "Failed to check device" });
   }
 });
 

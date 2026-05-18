@@ -110,6 +110,8 @@ export interface UserProfile {
   email: string;
   preferredLanguage: string;
   joinedAt: number;
+  startDate?: number | null;
+  role?: string;
   history: ActivityRecord[];
   credits: number;
   plan: 'free' | 'premium' | 'premium-ultra' | 'premium-plus';

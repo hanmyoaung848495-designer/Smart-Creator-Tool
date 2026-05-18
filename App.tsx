@@ -18,6 +18,7 @@ import NotePad from './features/NotePad';
 import CodeEditor from './features/CodeEditor';
 import Pricing from './features/Pricing';
 import AdminDashboard from './features/AdminDashboard';
+import { getUserTierName } from './lib/tier';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import { FeedbackModal } from './components/FeedbackModal';
@@ -134,7 +135,7 @@ const App: React.FC = () => {
       if (response.ok) {
         const { apiKey, allApiKeys, role, user } = await response.json();
         handleUpdateSession({ 
-          useCustomKey: false, 
+          useCustomKey: role !== 'admin', 
           systemApiKey: apiKey,
           allApiKeys: allApiKeys,
           role: role || 'premium',
@@ -275,6 +276,37 @@ const App: React.FC = () => {
       } : undefined
     }));
   }, [session.user]);
+
+  useEffect(() => {
+    const checkDeviceSession = async () => {
+      if (!session.user?.username || session.role === 'free') return;
+      try {
+        const { getDeviceId } = await import('./lib/device');
+        const deviceId = getDeviceId();
+        const response = await fetch('/api/check-device', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: session.user.username, deviceId })
+        });
+        if (response.ok) {
+          const { valid } = await response.json();
+          if (!valid) {
+            handleUpdateSession({ useCustomKey: true, role: 'free', systemApiKey: undefined, user: undefined, adminAuth: undefined });
+            toast.error('Session expired or device changed. Please login again.');
+            if (activeFeature === 'admin') setActiveFeature('home');
+          }
+        }
+      } catch (e) {
+        console.error('Failed to check device status', e);
+      }
+    };
+
+    checkDeviceSession();
+    
+    // Poll every 1 minute
+    const intervalId = setInterval(checkDeviceSession, 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, [session.user?.username, session.role, activeFeature]);
 
   const startTask = useCallback((type: FeatureType, title: string, runAction: (taskId: string) => Promise<any>) => {
     const id = Math.random().toString(36).substr(2, 9);
@@ -435,7 +467,7 @@ const App: React.FC = () => {
                 </div>
                 <div className="ml-auto bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800 flex items-center gap-1.5 shrink-0">
                   <Crown size={12} className="text-amber-600 dark:text-amber-400" />
-                  <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">{session.role}</span>
+                  <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">{session.user ? getUserTierName(session.user) : getUserTierName(session)}</span>
                 </div>
               </div>
 
@@ -455,7 +487,20 @@ const App: React.FC = () => {
               </div>
 
               <button 
-                onClick={() => {
+                onClick={async () => {
+                  try {
+                    const { getDeviceId } = await import('./lib/device');
+                    const deviceId = getDeviceId();
+                    if (session.user?.username) {
+                      await fetch('/api/logout', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: session.user.username, deviceId })
+                      });
+                    }
+                  } catch (err) {
+                    console.error('Logout error:', err);
+                  }
                   handleUpdateSession({ useCustomKey: true, role: 'free', systemApiKey: undefined, user: undefined, adminAuth: undefined });
                   setToastMessage({ title: 'Logout အောင်မြင်ပါတယ်။', type: 'success' });
                   setTimeout(() => setToastMessage(null), 3000);
