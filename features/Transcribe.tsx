@@ -31,6 +31,7 @@ const Transcribe: React.FC<Props> = ({
   const [translateBurmese, setTranslateBurmese] = useState(false);
   const [result, setResult] = useState('');
   const [apiError, setApiError] = useState<{ status: number; message: string; title: string } | null>(null);
+  const [isCheckingUsage, setIsCheckingUsage] = useState(false);
 
   const tasksRef = useRef<ProcessingTask[]>(tasks);
   useEffect(() => { tasksRef.current = tasks; }, [tasks]);
@@ -66,20 +67,25 @@ const Transcribe: React.FC<Props> = ({
   };
 
   const processFileUpload = async () => {
-    if (!file || activeFileTask) return;
+    if (!file || activeFileTask || isCheckingUsage) return;
     if (!checkApiKey()) return;
 
-    const { checkAndIncrementUsage } = await import('../services/usageService');
-    const { allowed, message } = await checkAndIncrementUsage(
-      'transcribe', 
-      session.role !== 'free' ? (session.user?.id || 'logged_in') : null,
-      false,
-      session.user?.linkTranscribeExpiry
-    );
-    
-    if (!allowed) {
-      setApiError({ status: 402, message: message || 'Daily limit exceeded', title: 'Usage Limit Reached' });
-      return;
+    try {
+      setIsCheckingUsage(true);
+      const { checkAndIncrementUsage } = await import('../services/usageService');
+      const { allowed, message } = await checkAndIncrementUsage(
+        'transcribe', 
+        session.role !== 'free' ? (session.user?.id || 'logged_in') : null,
+        false,
+        session.user?.linkTranscribeExpiry
+      );
+      
+      if (!allowed) {
+        setApiError({ status: 402, message: message || 'Daily limit exceeded', title: 'Usage Limit Reached' });
+        return;
+      }
+    } finally {
+      setIsCheckingUsage(false);
     }
 
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
@@ -118,19 +124,24 @@ const Transcribe: React.FC<Props> = ({
   };
 
   const processYoutubeLink = async () => {
-    if (!ytUrl || activeLinkTask) return;
+    if (!ytUrl || activeLinkTask || isCheckingUsage) return;
 
-    const { checkAndIncrementUsage } = await import('../services/usageService');
-    const { allowed, message } = await checkAndIncrementUsage(
-      'transcribe', 
-      session.role !== 'free' ? (session.user?.id || 'logged_in') : null,
-      true,
-      session.user?.linkTranscribeExpiry
-    );
-    
-    if (!allowed) {
-      setApiError({ status: 402, message: message || 'Daily limit exceeded', title: 'Usage Limit Reached' });
-      return;
+    try {
+      setIsCheckingUsage(true);
+      const { checkAndIncrementUsage } = await import('../services/usageService');
+      const { allowed, message } = await checkAndIncrementUsage(
+        'transcribe', 
+        session.role !== 'free' ? (session.user?.id || 'logged_in') : null,
+        true,
+        session.user?.linkTranscribeExpiry
+      );
+      
+      if (!allowed) {
+        setApiError({ status: 402, message: message || 'Daily limit exceeded', title: 'Usage Limit Reached' });
+        return;
+      }
+    } finally {
+      setIsCheckingUsage(false);
     }
 
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
@@ -258,8 +269,8 @@ const Transcribe: React.FC<Props> = ({
                   <div className="text-5xl mb-4">📁</div>
                   <p className="text-gray-700 font-bold">{file ? file.name : "Click or drag to upload audio/video"}</p>
                 </div>
-                <Button variant="primary" onClick={processFileUpload} disabled={!file} className="w-full py-4 text-xs font-bold uppercase tracking-widest">
-                  Transcribe File
+                <Button variant="primary" onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); processFileUpload(); }} disabled={!file || activeFileTask !== undefined || isCheckingUsage} className="w-full py-4 text-xs font-bold uppercase tracking-widest">
+                  {isCheckingUsage ? 'Checking...' : 'Transcribe File'}
                 </Button>
               </div>
             ) : (
@@ -294,8 +305,8 @@ const Transcribe: React.FC<Props> = ({
                     Fast and accurate transcription of video content directly into text.
                   </p>
                 </div>
-                <Button variant="primary" onClick={processYoutubeLink} disabled={!ytUrl} className="w-full py-4 text-xs font-bold uppercase tracking-widest">
-                  Transcribe Video Link
+                <Button variant="primary" onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); processYoutubeLink(); }} disabled={!ytUrl || activeLinkTask !== undefined || isCheckingUsage} className="w-full py-4 text-xs font-bold uppercase tracking-widest">
+                  {isCheckingUsage ? 'Checking...' : 'Transcribe Video Link'}
                 </Button>
               </div>
             )}

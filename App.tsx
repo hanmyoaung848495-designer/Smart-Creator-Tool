@@ -75,6 +75,10 @@ const App: React.FC = () => {
           if (parsed.user && !parsed.user.usage) {
             parsed.user.usage = { appApiUsedToday: 0, ownApiUsedToday: 0, lastResetDate: new Date().toDateString() };
           }
+          if (parsed.role === 'free') {
+            parsed.user = undefined;
+            parsed.adminAuth = undefined;
+          }
           return parsed;
         }
       }
@@ -105,6 +109,7 @@ const App: React.FC = () => {
   const [showWelcomePopup, setShowWelcomePopup] = useState(true);
   const [showApiKeyPopup, setShowApiKeyPopup] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [loginId, setLoginId] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -133,7 +138,8 @@ const App: React.FC = () => {
           systemApiKey: apiKey,
           allApiKeys: allApiKeys,
           role: role || 'premium',
-          user: user
+          user: user,
+          adminAuth: (role === 'admin') ? { id: loginId, pass: loginPass } : undefined
         });
         setShowLoginModal(false);
         setLoginId('');
@@ -400,6 +406,73 @@ const App: React.FC = () => {
 
       {showTutorial && <Tutorial onBack={() => { setShowTutorial(false); localStorage.setItem('smart_creator_onboarded', 'true'); }} />}
       
+      {showProfileModal && (
+        <div className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm"
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-indigo-100 dark:border-gray-700 shadow-xl shadow-indigo-500/5 relative overflow-hidden">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-gray-900 dark:text-gray-100 uppercase tracking-widest text-xs">Profile</h3>
+                <button onClick={() => setShowProfileModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+                  <X size={18} className="text-gray-500" />
+                </button>
+              </div>
+
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-black text-xl shadow-lg">
+                  {session.user ? session.user.name.charAt(0).toUpperCase() : 'A'}
+                </div>
+                <div>
+                  <h2 className="text-lg font-black text-gray-900 dark:text-white leading-tight">
+                    {session.user ? session.user.name : 'System Admin'}
+                  </h2>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    @{session.user ? session.user.username : 'admin'}
+                  </p>
+                </div>
+                <div className="ml-auto bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800 flex items-center gap-1.5 shrink-0">
+                  <Crown size={12} className="text-amber-600 dark:text-amber-400" />
+                  <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">{session.role}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Account Expiry</p>
+                  <p className="text-xs font-bold text-gray-900 dark:text-white">
+                    {session.user ? (session.user.isLifetime ? 'Lifetime' : session.user.expiredDate ? new Date(session.user.expiredDate).toLocaleDateString() : 'Not set') : 'System'}
+                  </p>
+                </div>
+                <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                  <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Link Transcription</p>
+                  <p className={`text-xs font-bold ${(session.user?.linkTranscribeExpiry && session.user.linkTranscribeExpiry < Date.now()) ? 'text-red-500' : 'text-emerald-600'}`}>
+                    {session.user ? (session.user.linkTranscribeExpiry ? new Date(session.user.linkTranscribeExpiry).toLocaleDateString() : 'Not Set') : 'Unlimited'}
+                  </p>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => {
+                  handleUpdateSession({ useCustomKey: true, role: 'free', systemApiKey: undefined, user: undefined, adminAuth: undefined });
+                  setToastMessage({ title: 'Logout အောင်မြင်ပါတယ်။', type: 'success' });
+                  setTimeout(() => setToastMessage(null), 3000);
+                  setShowProfileModal(false);
+                  if (activeFeature === 'admin') {
+                    setActiveFeature('home');
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-bold text-sm hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                >
+                <User size={18} /> Logout
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Side Menu Overlay */}
       {isMenuOpen && (
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm animate-in fade-in duration-300" onClick={toggleMenu}>
@@ -453,19 +526,14 @@ const App: React.FC = () => {
                 <Send size={18} className="text-sky-500" /> Contact
               </a>
               {session.role !== 'free' ? (
-                <button 
+                  <button 
                   onClick={() => {
-                    handleUpdateSession({ useCustomKey: true, role: 'free', systemApiKey: undefined });
-                    setToastMessage({ title: 'Logout အောင်မြင်ပါတယ်။', type: 'success' });
-                    setTimeout(() => setToastMessage(null), 3000);
+                    setShowProfileModal(true);
                     setIsMenuOpen(false);
-                    if (activeFeature === 'admin') {
-                      setActiveFeature('home');
-                    }
                   }}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
                 >
-                  <User size={18} className="text-red-500" /> Logout
+                  <User size={18} className="text-emerald-500" /> Profile
                 </button>
               ) : (
                 <button 
@@ -764,8 +832,8 @@ const App: React.FC = () => {
           <FeedbackModal />
           {session.role === 'free' && !session.user && (
             <>
-              {/* <NativeAd /> */}
-              {/* <SocialBarAd /> */}
+              <NativeAd />
+              <SocialBarAd />
             </>
           )}
           <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-5 mt-auto">
@@ -852,49 +920,6 @@ const Home: React.FC<{
     </div>
 
     <div className="w-full">
-      {session.user && (
-        <div className="max-w-4xl mx-auto mb-8 px-4">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-indigo-100 dark:border-gray-700 shadow-xl shadow-indigo-500/5 relative overflow-hidden"
-          >
-            <div className="absolute top-0 right-0 p-4">
-               <Crown size={40} className="text-amber-400 opacity-10 rotate-12" />
-            </div>
-            
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-black text-xl shadow-lg">
-                {session.user.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h2 className="text-lg font-black text-gray-900 dark:text-white leading-tight">{session.user.name}</h2>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">@{session.user.username}</p>
-              </div>
-              <div className="ml-auto bg-amber-100 dark:bg-amber-900/30 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800 flex items-center gap-1.5 shink-0">
-                <Crown size={12} className="text-amber-600 dark:text-amber-400" />
-                <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest">{session.role}</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Account Expiry</p>
-                <p className="text-xs font-bold text-gray-900 dark:text-white">
-                  {session.user.isLifetime ? 'Lifetime Unlimited' : session.user.expiredDate ? new Date(session.user.expiredDate).toLocaleDateString() : 'Not set'}
-                </p>
-              </div>
-              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-100 dark:border-gray-700">
-                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Link Transcription Expiry</p>
-                <p className={`text-xs font-bold ${session.user.linkTranscribeExpiry && session.user.linkTranscribeExpiry < Date.now() ? 'text-red-500' : 'text-emerald-600'}`}>
-                  {session.user.linkTranscribeExpiry ? new Date(session.user.linkTranscribeExpiry).toLocaleDateString() : 'Not Set'}
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
       <div className="flex items-center justify-between px-4 mb-6">
         <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Available Tools</h3>
       </div>

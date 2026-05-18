@@ -150,12 +150,17 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       return;
     }
 
-    const { checkAndIncrementUsage } = await import('../services/usageService');
-    const { allowed, message } = await checkAndIncrementUsage('ai_voice', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
-    
-    if (!allowed) {
-      toast.error(message || 'Daily limit exceeded');
-      return;
+    try {
+      setIsCheckingUsage(true);
+      const { checkAndIncrementUsage } = await import('../services/usageService');
+      const { allowed, message } = await checkAndIncrementUsage('ai_voice', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
+      
+      if (!allowed) {
+        toast.error(message || 'Daily limit exceeded');
+        return;
+      }
+    } finally {
+      setIsCheckingUsage(false);
     }
 
     // Parse textarea into map
@@ -344,6 +349,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     await saveVoiceHistoryDB(newHistory);
   };
 
+  const [isCheckingUsage, setIsCheckingUsage] = useState(false);
+
   const checkApiKey = () => {
     if (session.useCustomKey) {
       if (!session.customApiKey || session.customApiKey.trim() === '') {
@@ -375,12 +382,17 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
 
-    const { checkAndIncrementUsage } = await import('../services/usageService');
-    const { allowed, message } = await checkAndIncrementUsage('ai_voice', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
-    
-    if (!allowed) {
-      toast.error(message || 'Daily limit exceeded');
-      return;
+    try {
+      setIsCheckingUsage(true);
+      const { checkAndIncrementUsage } = await import('../services/usageService');
+      const { allowed, message } = await checkAndIncrementUsage('ai_voice', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
+      
+      if (!allowed) {
+        toast.error(message || 'Daily limit exceeded');
+        return;
+      }
+    } finally {
+      setIsCheckingUsage(false);
     }
 
     const displayTitle = mode === 'multi' && isDialogMode 
@@ -485,7 +497,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         saveHistory(updatedHistory);
         
         const url = URL.createObjectURL(wavBlob);
-        setGeminiResult({ url, fileName: title });
+        setGeminiResult({ audio_url: url, fileName: title });
 
         return newItem;
       } catch (err: any) {
@@ -1064,18 +1076,26 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
               {!geminiResult && (
                 <Button
-                    onClick={activeGeminiTask ? undefined : handleRun}
+                    onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (!activeGeminiTask && !isCheckingUsage) handleRun();
+                    }}
                   variant={activeGeminiTask ? 'danger' : 'gradient'}
                   className="w-auto px-6 py-3 text-sm font-black uppercase tracking-[0.2em] transition-all shrink-0 rounded-full"
-                  disabled={isPreviewing !== null}
+                  disabled={isPreviewing !== null || isCheckingUsage}
                 >
                   {activeGeminiTask ? (
                     <>
                       <Loader2 size={18} className="animate-spin" /> {timerCount}s
                     </>
+                  ) : isCheckingUsage ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" /> Checking...
+                    </>
                   ) : (
                     <>
-                      <Play size={18} fill="currentColor" /> Run
+                      <Play size={18} fill="currentColor" /> Generate
                     </>
                   )}
                 </Button>
@@ -1373,12 +1393,12 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               </div>
 
               <Button
-                  onClick={activeKCTask ? undefined : handleGenerateKCTTS}
+                  onClick={activeKCTask || isCheckingUsage ? undefined : handleGenerateKCTTS}
                   className="w-full mt-4"
                   variant={activeKCTask ? 'secondary' : 'gradient'}
-                  disabled={!!activeKCTask}
+                  disabled={!!activeKCTask || isCheckingUsage}
                 >
-                  {activeKCTask ? `Generating (${timerCount}s)...` : 'Generate'}
+                  {activeKCTask ? `Generating (${timerCount}s)...` : isCheckingUsage ? 'Checking...' : 'Generate'}
               </Button>
 
               {/* Result Area */}

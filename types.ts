@@ -126,6 +126,7 @@ export interface UserSession {
   systemApiKey?: string;
   allApiKeys?: string[]; // Added for rotation
   user?: UserProfile;
+  adminAuth?: { id: string; pass: string }; // For Admin API verification
 }
 
 export interface FeatureCardData {

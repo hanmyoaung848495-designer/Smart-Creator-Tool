@@ -116,7 +116,7 @@ const SubGenerator: React.FC<Props> = ({
               <p className="font-bold text-gray-700">{file ? file.name : "Upload audio or video file"}</p>
             </div>
             {localProgress > 0 && localProgress < 100 && <ProgressBar progress={localProgress} label="Uploading file..." />}
-            <Button onClick={processMedia} disabled={!file} className="w-full py-4 uppercase tracking-widest text-xs font-bold">
+            <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); processMedia(); }} disabled={!file} className="w-full py-4 uppercase tracking-widest text-xs font-bold">
               Generate SRT with Timestamps
             </Button>
             <p className="text-[10px] text-gray-400 text-center uppercase tracking-widest italic">

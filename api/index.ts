@@ -12,8 +12,37 @@ app.use(express.json());
 
 // Initialize Supabase
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
+// IMPORTANT: Use SUPABASE_SERVICE_ROLE_KEY to bypass Row Level Security (RLS) for admin operations.
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+// Admin Verification Middleware
+const verifyAdmin = (req: any, res: any, next: any) => {
+  const adminId = req.headers['x-admin-id'];
+  const adminPass = req.headers['x-admin-pass'];
+
+  if (!adminId || !adminPass) {
+    return res.status(401).json({ error: "Admin credentials required" });
+  }
+
+  let i = 1;
+  let isSystemAdmin = false;
+  while (i <= 10) {
+    const envId = process.env[`SYSTEM_KEY_${i}_ID`];
+    const envPass = process.env[`SYSTEM_KEY_${i}_PASS`];
+    if (envId && envId === adminId && envPass === adminPass) {
+      isSystemAdmin = true;
+      break;
+    }
+    i++;
+  }
+
+  if (isSystemAdmin) {
+    next();
+  } else {
+    res.status(403).json({ error: "Unauthorized access" });
+  }
+};
 
 // Initialize Telegram Bot
 const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.VITE_TELEGRAM_BOT_TOKEN;
@@ -476,7 +505,7 @@ app.post(/^\/(api\/)?login$/, async (req, res) => {
 });
 
 // Admin API Routes
-app.get("/api/admin/users", async (req, res) => {
+app.get("/api/admin/users", verifyAdmin, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
 
   try {
@@ -492,7 +521,7 @@ app.get("/api/admin/users", async (req, res) => {
   }
 });
 
-app.post("/api/admin/users", async (req, res) => {
+app.post("/api/admin/users", verifyAdmin, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
 
   try {
@@ -511,24 +540,25 @@ app.post("/api/admin/users", async (req, res) => {
       device_id: account.deviceId
     };
 
-    // Only set created_at for new records if possible, 
-    // but upsert handles both. If we omit it, existing records keep theirs,
-    // and new records get it from DB default (if configured).
-    // Or we can just omit it here to be safe and let the database handle it.
-
     const { error } = await supabase
       .from('users_accounts')
       .upsert(supabaseData, { onConflict: 'username' });
 
     if (error) throw error;
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Add User Error:", error);
+    if (error.code === '42501') {
+      return res.status(403).json({ 
+        error: "Supabase RLS Error: SUPABASE_SERVICE_ROLE_KEY is required to bypass security. Please add it to Vercel Environment Variables.",
+        details: error
+      });
+    }
     res.status(500).json({ error: "Failed to add user" });
   }
 });
 
-app.delete("/api/admin/users/:username", async (req, res) => {
+app.delete("/api/admin/users/:username", verifyAdmin, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
 
   try {
@@ -545,7 +575,7 @@ app.delete("/api/admin/users/:username", async (req, res) => {
 });
 
 // Tutorials Admin API
-app.get("/api/admin/tutorials", async (req, res) => {
+app.get("/api/admin/tutorials", verifyAdmin, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
   try {
     const { data, error } = await supabase
@@ -559,7 +589,7 @@ app.get("/api/admin/tutorials", async (req, res) => {
   }
 });
 
-app.post("/api/admin/tutorials", async (req, res) => {
+app.post("/api/admin/tutorials", verifyAdmin, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
   try {
     const tutorial = req.body;
@@ -599,7 +629,7 @@ app.post("/api/admin/tutorials", async (req, res) => {
   }
 });
 
-app.delete("/api/admin/tutorials/:id", async (req, res) => {
+app.delete("/api/admin/tutorials/:id", verifyAdmin, async (req, res) => {
   if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
   try {
     const { error } = await supabase

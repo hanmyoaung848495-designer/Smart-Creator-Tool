@@ -204,7 +204,7 @@ const TextToSRT: React.FC<Props> = ({
 
           <div className="flex justify-center">
             <Button 
-              onClick={handleGenerate} 
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleGenerate(); }} 
               className="w-full md:w-auto min-w-[200px] h-[46px] text-sm font-bold uppercase tracking-widest"
               disabled={!fileName.trim() || !text.trim()}
             >

@@ -162,7 +162,7 @@ export const ProgressBar: React.FC<{ progress: number; label?: string; color?: s
 );
 
 export const Button: React.FC<{
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   children: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'gradient';
   className?: string;

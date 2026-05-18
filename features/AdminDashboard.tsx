@@ -57,10 +57,20 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     linkTranscribeExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   });
 
+  const getAdminHeaders = () => {
+    return {
+      'Content-Type': 'application/json',
+      'X-Admin-ID': session.adminAuth?.id || '',
+      'X-Admin-Pass': session.adminAuth?.pass || ''
+    };
+  };
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/admin/users');
+      const response = await fetch('/api/admin/users', {
+        headers: getAdminHeaders()
+      });
       if (response.ok) {
         const rawData = await response.json();
         const mappedData: UserAccount[] = rawData.map((u: any) => ({
@@ -93,7 +103,9 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
   const fetchTutorials = async () => {
     setTutorialsLoading(true);
     try {
-      const response = await fetch('/api/admin/tutorials');
+      const response = await fetch('/api/admin/tutorials', {
+        headers: getAdminHeaders()
+      });
       if (response.ok) {
         setTutorials(await response.json());
       } else {
@@ -170,7 +182,7 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     try {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({
           name: formData.name,
           username: formData.username,
@@ -217,7 +229,7 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
 
       const response = await fetch('/api/admin/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({
           ...user,
           startDate: user.startDate, // already numeric from mapped users
@@ -242,7 +254,8 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     if (!userToDelete) return;
     try {
       const response = await fetch(`/api/admin/users/${userToDelete.username}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAdminHeaders()
       });
       if (response.ok) {
         toast.success('User deleted successfully');
@@ -271,7 +284,7 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     try {
       const response = await fetch('/api/admin/tutorials', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAdminHeaders(),
         body: JSON.stringify({
           id: tutorialFormData.id || undefined,
           title: tutorialFormData.title,
@@ -300,7 +313,8 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     if (!tutorialToDelete) return;
     try {
       const response = await fetch(`/api/admin/tutorials/${tutorialToDelete.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAdminHeaders()
       });
       if (response.ok) {
         toast.success('Tutorial deleted successfully');
