@@ -623,8 +623,11 @@ app.post("/api/admin/users", verifyAdmin, async (req, res) => {
       link_transcribe_expiry: account.linkTranscribeExpiry,
       is_lifetime: account.isLifetime,
       telegram: account.telegram,
-      device_id: account.deviceId
+      device_id: account.deviceId === undefined ? undefined : account.deviceId
     };
+
+    // Remove undefined fields to avoid overwriting with undefined
+    Object.keys(supabaseData).forEach(key => supabaseData[key] === undefined && delete supabaseData[key]);
 
     const { error } = await supabase
       .from('users_accounts')
