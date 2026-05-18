@@ -91,10 +91,11 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
         }));
         setUsers(mappedData);
       } else {
-        throw new Error('Failed to fetch users');
+        const errText = await response.text();
+        throw new Error(`Failed to fetch users: ${errText}`);
       }
-    } catch (err) {
-      toast.error('Failed to fetch users');
+    } catch (err: any) {
+      toast.error(`Error fetching users: ${err.message}`);
       console.error(err);
     } finally {
       setLoading(false);
@@ -110,10 +111,11 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
       if (response.ok) {
         setTutorials(await response.json());
       } else {
-        throw new Error('Failed to fetch tutorials');
+        const errText = await response.text();
+        throw new Error(`Failed to fetch tutorials: ${errText}`);
       }
-    } catch (err) {
-      toast.error('Failed to fetch tutorials');
+    } catch (err: any) {
+      toast.error(`Error fetching tutorials: ${err.message}`);
       console.error(err);
     } finally {
       setTutorialsLoading(false);

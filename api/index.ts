@@ -17,7 +17,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SU
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Admin Verification Middleware
-const verifyAdmin = (req: any, res: any, next: any) => {
+const verifyAdmin = async (req: any, res: any, next: any) => {
   const adminId = req.headers['x-admin-id'];
   const adminPass = req.headers['x-admin-pass'];
 
@@ -25,23 +25,36 @@ const verifyAdmin = (req: any, res: any, next: any) => {
     return res.status(401).json({ error: "Admin credentials required" });
   }
 
+  // 1. Check System Admin Keys
   let i = 1;
-  let isSystemAdmin = false;
   while (i <= 10) {
     const envId = process.env[`SYSTEM_KEY_${i}_ID`];
     const envPass = process.env[`SYSTEM_KEY_${i}_PASS`];
     if (envId && envId === adminId && envPass === adminPass) {
-      isSystemAdmin = true;
-      break;
+      return next(); 
     }
     i++;
   }
 
-  if (isSystemAdmin) {
-    next();
-  } else {
-    res.status(403).json({ error: "Unauthorized access" });
+  // 2. Check Supabase for user account
+  if (!supabase) return res.status(500).json({ error: "Supabase not configured" });
+
+  try {
+    const { data: userData, error } = await supabase
+      .from('users_accounts')
+      .select('role')
+      .eq('username', adminId)
+      .eq('password', adminPass)
+      .single();
+
+    if (!error && userData && userData.role === 'admin') {
+      return next(); 
+    }
+  } catch (err) {
+    console.error("Supabase Admin Check Error:", err);
   }
+
+  return res.status(403).json({ error: "Unauthorized access" });
 };
 
 // Initialize Telegram Bot
@@ -559,7 +572,15 @@ app.post(/^\/(api\/)?check-device$/, async (req, res) => {
     }
 
     if (userData.device_id !== deviceId) {
-      return res.json({ valid: false });
+      if (!userData.device_id) {
+        // If device ID is null in DB, implicitly bind the current device ID
+        await supabase
+          .from('users_accounts')
+          .update({ device_id: deviceId })
+          .eq('username', username);
+      } else {
+        return res.json({ valid: false });
+      }
     }
     
     return res.json({ valid: true });
