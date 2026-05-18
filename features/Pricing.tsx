@@ -1,10 +1,11 @@
-import React from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Check, Crown, Zap, Shield, Star, Sparkles, CreditCard, ArrowLeft, Menu } from 'lucide-react';
 
 interface PricingProps {
   onBack: () => void;
   onToggleMenu?: () => void;
+  session: any;
 }
 
 const PLANS = [
@@ -82,10 +83,57 @@ const PLANS = [
   }
 ];
 
-const Pricing: React.FC<PricingProps> = ({ onBack, onToggleMenu }) => {
+const ConfirmModal = ({ isOpen, onConfirm, onCancel, planName }: { isOpen: boolean, onConfirm: () => void, onCancel: () => void, planName: string }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel}></div>
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl w-full max-w-sm relative z-[1001] shadow-2xl">
+        <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">ဝယ်ယူမှာသေချာပါသလား?</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{planName} ကို ဝယ်ယူရန်အတွက် Telegram bot သို့သွားပါမည်။</p>
+        <div className="flex gap-3">
+          <button onClick={onCancel} className="flex-1 py-3 rounded-xl font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">မလုပ်တော့ပါ</button>
+          <button onClick={onConfirm} className="flex-1 py-3 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700">သေချာပါတယ်</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Pricing: React.FC<PricingProps> = ({ onBack, onToggleMenu, session }) => {
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, planName: string }>({ isOpen: false, planName: '' });
+
+  const handleChoosePlan = (name: string) => {
+    setConfirmModal({ isOpen: true, planName: name });
+  };
+
+  const executePlanPurchase = () => {
+    window.open('https://t.me/kcteamofficialbot', '_blank');
+    setConfirmModal({ isOpen: false, planName: '' });
+  };
+    // Helper to keep Pricing clean
+    const PurchaseButton = ({ planName, popular, color }: { planName: string, popular?: boolean, color: string }) => (
+        <button 
+          onClick={() => handleChoosePlan(planName)}
+          className={`w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] ${
+          popular 
+            ? `bg-gradient-to-r ${color} text-white shadow-indigo-500/20 hover:shadow-indigo-500/40`
+            : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500'
+        }`}>
+          Choose Plan
+        </button>
+    );
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
-      {/* Header */}
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen} 
+        onConfirm={executePlanPurchase} 
+        onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })} 
+        planName={confirmModal.planName}
+      />
+      {/* ... keeping the rest of the component ... */}
+
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-900">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <button onClick={onBack} className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
@@ -126,6 +174,27 @@ const Pricing: React.FC<PricingProps> = ({ onBack, onToggleMenu }) => {
             <br />
             <span className="text-[10px] uppercase tracking-widest font-bold text-amber-500 mt-2 block">🔔 Gemini Service Needs API</span>
           </p>
+        </div>
+
+        {/* Rotating Gradient Header */}
+        <div className="mb-12 flex justify-center">
+          <div className="relative p-[2px] rounded-2xl overflow-hidden w-full max-w-sm">
+            <style>
+              {`
+                @keyframes rotate-gradient {
+                  0% { transform: rotate(0deg); }
+                  100% { transform: rotate(360deg); }
+                }
+                .rotate-animation {
+                  animation: rotate-gradient 3s linear infinite;
+                }
+              `}
+            </style>
+            <div className="absolute inset-0 bg-gradient-to-tr from-yellow-400 via-green-400 to-red-400 rotate-animation" />
+            <div className="relative bg-white dark:bg-gray-950 rounded-[14px] px-6 py-4 flex items-center justify-center">
+              <h3 className="text-lg font-black text-gray-900 dark:text-white tracking-wider">KC TTS & SRT Plans</h3>
+            </div>
+          </div>
         </div>
 
         {/* Pricing Grid */}
@@ -173,17 +242,45 @@ const Pricing: React.FC<PricingProps> = ({ onBack, onToggleMenu }) => {
                 ))}
               </div>
 
-              <button 
-                onClick={() => {
-                  // Link removed as per user request to disable ad links
-                }}
-                className={`w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] ${
-                plan.popular 
-                  ? `bg-gradient-to-r ${plan.color} text-white shadow-indigo-500/20 hover:shadow-indigo-500/40`
-                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500'
-              }`}>
-                Choose Plan
-              </button>
+              {session.user ? (
+                // Only if logged in, check if this is the current plan
+                (session.user.role === plan.name.toLowerCase().replace(' plan', '')) || (plan.name === 'Free Plan' && session.user.role === 'free')
+                  ? (
+                    <div className="w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700">
+                      <Check size={14} /> Current Plan
+                    </div>
+                  )
+                  : (
+                    <button 
+                      onClick={() => handleChoosePlan(plan.name)}
+                      className={`w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] ${
+                      plan.popular 
+                        ? `bg-gradient-to-r ${plan.color} text-white shadow-indigo-500/20 hover:shadow-indigo-500/40`
+                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500'
+                    }`}>
+                      Choose Plan
+                    </button>
+                  )
+              ) : (
+                // If not logged in
+                plan.name === 'Free Plan' 
+                  ? (
+                    <div className="w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2 border border-gray-200 dark:border-gray-700">
+                      <Check size={14} /> Current Plan
+                    </div>
+                  )
+                  : (
+                    <button 
+                      onClick={() => handleChoosePlan(plan.name)}
+                      className={`w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] ${
+                      plan.popular 
+                        ? `bg-gradient-to-r ${plan.color} text-white shadow-indigo-500/20 hover:shadow-indigo-500/40`
+                        : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-500'
+                    }`}>
+                      Choose Plan
+                    </button>
+                  )
+              )}
             </motion.div>
           ))}
         </div>

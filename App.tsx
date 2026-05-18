@@ -107,7 +107,18 @@ const App: React.FC = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
-  const [showWelcomePopup, setShowWelcomePopup] = useState(true);
+  const [showWelcomePopup, setShowWelcomePopup] = useState(() => {
+    // Check if dismissed previously
+    return !localStorage.getItem('terms_accepted');
+  });
+  const [doNotShowAgain, setDoNotShowAgain] = useState(false);
+
+  const handleTermsAgree = () => {
+    if (doNotShowAgain) {
+      localStorage.setItem('terms_accepted', 'true');
+    }
+    setShowWelcomePopup(false);
+  };
   const [showApiKeyPopup, setShowApiKeyPopup] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -157,14 +168,7 @@ const App: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    if (showWelcomePopup) {
-      const timer = setTimeout(() => {
-        setShowWelcomePopup(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [showWelcomePopup]);
+  // Removed automatic modal close timer
 
   useEffect(() => {
     const handleFallback = (e: any) => {
@@ -355,7 +359,7 @@ const App: React.FC = () => {
     })();
   }, [updateTask, session, logActivity, tasks]);
 
-  const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'completed' && !t.isCanceled), [tasks]);
+  const activeTasks = useMemo(() => tasks.filter(t => t.status !== 'completed' && t.status !== 'failed' && !t.isCanceled), [tasks]);
 
   const handleUpdateSession = useCallback((updates: Partial<UserSession>) => {
     setSession(prev => {
@@ -395,7 +399,7 @@ const App: React.FC = () => {
       case 'tutorial': return <Tutorial onBack={() => setActiveFeature('home')} />;
       case 'note-pad': return <NotePad onBack={() => setActiveFeature('home')} />;
       case 'code-editor': return <CodeEditor onBack={() => setActiveFeature('home')} />;
-      case 'pricing': return <Pricing onBack={() => setActiveFeature('home')} onToggleMenu={toggleMenu} />;
+      case 'pricing': return <Pricing onBack={() => setActiveFeature('home')} onToggleMenu={toggleMenu} session={session} />;
       case 'admin': 
         if (session.role !== 'admin') {
           return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
@@ -674,11 +678,11 @@ const App: React.FC = () => {
       <Modal
         isOpen={showWelcomePopup}
         onClose={() => setShowWelcomePopup(false)}
-        title="Welcome"
+        title="Terms of Service"
         hideClose={true}
-        maxWidth="max-w-xs"
+        maxWidth="max-w-sm"
       >
-        <div className="space-y-4 py-2 flex flex-col items-center">
+        <div className="space-y-6 py-2 flex flex-col items-center">
           <div className="w-16 h-16 flex items-center justify-center rounded-2xl overflow-hidden shadow-xl border border-gray-100 dark:border-gray-700">
             {!logoError ? (
               <img 
@@ -699,14 +703,24 @@ const App: React.FC = () => {
             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Designed and Developed</p>
             <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">By KC Team</p>
           </div>
-
-          <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-center text-xs font-medium max-w-[240px]">
-            {settings.marqueeText}
+          
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm text-center font-medium">
+            ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုသည် KC TTS & SRT အတွက်သာအဓိကဖြစ်ပြီး အခြားသော Tool များသည် မေတ္တာလက်ဆောင် အဖြစ်ဖန်တီးပေးထားခြင်းဖြစ်ပါသည်။ "KC TTS & SRT Plan" တွင် KC Voice နှင့် SRT ဝန်ဆောင်မှုတို့သာ သီးသန့်အကျုံးဝင်မည်ဖြစ်ပါသည်။
           </p>
           
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={doNotShowAgain}
+              onChange={() => setDoNotShowAgain(!doNotShowAgain)}
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Do Not Show Again</span>
+          </label>
+          
           <div className="w-full pt-2">
-            <Button onClick={() => setShowWelcomePopup(false)} className="w-full py-3 rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none text-xs">
-              စတင်အသုံးပြုမည်
+            <Button onClick={handleTermsAgree} className="w-full py-3 rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none text-xs">
+              Agree
             </Button>
           </div>
         </div>
@@ -748,23 +762,25 @@ const App: React.FC = () => {
       >
         {modalType === 'privacy' ? (
           <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
-            <p>Your privacy is paramount to us. Smart Creator Tools is designed as a bridge between you and Google AI Studio.</p>
-            <h4 className="font-bold text-gray-900 dark:text-gray-100">1. No Data Storage</h4>
-            <p>We do not store, log, or retain any of the data you process through our tools. Your content is processed directly between your browser and Google AI Studio.</p>
-            <h4 className="font-bold text-gray-900 dark:text-gray-100">2. Intermediary Role</h4>
-            <p>This website acts solely as an intermediary interface to facilitate your interaction with Google AI Studio. We do not have access to your private data or API keys.</p>
-            <h4 className="font-bold text-gray-900 dark:text-gray-100">3. Security</h4>
-            <p>Since we do not store data, the risk of data breaches on our end is non-existent. We recommend you keep your API keys secure and never share them.</p>
+            <p>သင်၏ ကိုယ်ရေးအချက်အလက်များကို ကျွန်ုပ်တို့ အထူးဂရုပြုပါသည်။ Smart Creator Tools သည် သင်နှင့် Google AI Studio အကြား ချိတ်ဆက်ပေးသော ကြားခံဝန်ဆောင်မှုတစ်ခုသာဖြစ်ပါသည်။</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">၁။ အချက်အလက်များ သိမ်းဆည်းမထားခြင်း</h4>
+            <p>ကျွန်ုပ်တို့သည် သင်အသုံးပြုသည့် အချက်အလက်များကို သိမ်းဆည်းခြင်း၊ မှတ်တမ်းတင်ခြင်း သို့မဟုတ် ထိန်းသိမ်းထားခြင်း မရှိပါ။ သင်၏ ဖန်တီးမှုများသည် သင်၏ဘရောက်ဆာနှင့် Google AI Studio အကြားတွင်သာ တိုက်ရိုက်လုပ်ဆောင်ခြင်းဖြစ်ပါသည်။</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">၂။ ကြားခံဝန်ဆောင်မှု</h4>
+            <p>ဤဝဘ်ဆိုက်သည် Google AI Studio ကို အဆင်ပြေစွာ အသုံးပြုနိုင်ရန် ကြားခံဝန်ဆောင်မှုတစ်ခုသာ ဖြစ်ပါသည်။</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">၃။ လုံခြုံရေး</h4>
+            <p>အချက်အလက်များ သိမ်းဆည်းထားခြင်း မရှိသည့်အတွက် ဒေတာပေါက်ကြားနိုင်ခြေ မရှိသလောက် နည်းပါးပါသည်။ သင့်ကိုယ်ပိုင် API Keys များကို လုံခြုံစွာထားရှိရန် တိုက်တွန်းလိုပါသည်။</p>
           </div>
         ) : (
           <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
-            <p>By using Smart Creator Tools, you agree to these terms.</p>
-            <h4 className="font-bold text-gray-900 dark:text-gray-100">1. Usage</h4>
-            <p>You are responsible for the content you generate and ensure it complies with Google's AI policies and applicable laws.</p>
-            <h4 className="font-bold text-gray-900 dark:text-gray-100">2. API Keys</h4>
-            <p>You are responsible for the management and security of your own API keys. We are not liable for any unauthorized use of your keys.</p>
-            <h4 className="font-bold text-gray-900 dark:text-gray-100">3. Disclaimer</h4>
-            <p>This service is provided "as is" for creative purposes. We do not guarantee uninterrupted access or specific results.</p>
+            <p>Smart Creator Tools ကို အသုံးပြုခြင်းအားဖြင့် အောက်ပါစည်းကမ်းချက်များကို သဘောတူညီပြီးဖြစ်ပါသည်။</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">၁။ အသုံးပြုမှု</h4>
+            <p>သင်ဖန်တီးလိုက်သော အကြောင်းအရာများအတွက် သင်ကိုယ်တိုင် တာဝန်ယူရမည်ဖြစ်ပြီး Google ၏ AI စည်းကမ်းချက်များနှင့်အညီ ဖြစ်ရပါမည်။</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">၂။ API Keys</h4>
+            <p>သင့်ကိုယ်ပိုင် API Keys များ၏ လုံခြုံမှုအတွက် သင်ကိုယ်တိုင်သာ တာဝန်ယူရမည် ဖြစ်ပါသည်။</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">၃။ တာဝန်ယူမှု</h4>
+            <p>ဤဝန်ဆောင်မှုကို "ရှိသည့်အတိုင်း" သာ ဖန်တီးပေးထားပါသည်။ အနှောင့်အယှက်ကင်းသည့် ဝန်ဆောင်မှု သို့မဟုတ် တိကျသော ရလဒ်များအတွက် အာမခံချက်မပေးနိုင်ပါ။</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">၄။ Service Scope and Plan Coverage</h4>
+            <p>ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုသည် KC TTS & SRT အတွက်သာအဓိကဖြစ်ပြီး အခြားသော Tool များသည် မေတ္တာလက်ဆောင် အဖြစ်ဖန်တီးပေးထားခြင်းဖြစ်ပါသည်။ "KC TTS & SRT Plan" တွင် KC Voice နှင့် SRT ဝန်ဆောင်မှုတို့သာ သီးသန့်အကျုံးဝင်မည်ဖြစ်ပါသည်။</p>
           </div>
         )}
       </Modal>

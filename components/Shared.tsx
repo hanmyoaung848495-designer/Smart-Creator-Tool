@@ -82,7 +82,19 @@ export const ApiKeyManager: React.FC<{
   const [showAdminOnly, setShowAdminOnly] = useState(false);
 
   return (
-    <div className="mb-6 flex flex-col gap-3">
+    <div className="mb-6 flex flex-col gap-3 relative">
+      <AnimatePresence>
+        {showAdminOnly && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="absolute -top-[35px] left-[70px] whitespace-nowrap bg-indigo-600 dark:bg-indigo-500 text-white text-[9px] font-black tracking-widest px-2.5 py-1 rounded-md shadow-lg z-[1000] pointer-events-none border border-indigo-700/50"
+          >
+            Admin Only
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="p-4 bg-blue-50/50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-col sm:flex-row items-center gap-4 relative overflow-hidden group shadow-sm">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500/0 via-indigo-500/20 to-indigo-500/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
         
@@ -102,18 +114,6 @@ export const ApiKeyManager: React.FC<{
               }}
               className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all relative ${!session.useCustomKey ? 'tool-btn-gradient tool-btn-gradient-active text-blue-600 dark:text-blue-400 shadow-md' : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'}`}
             >
-              <AnimatePresence>
-                {showAdminOnly && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -5 }}
-                    className="absolute -top-[30px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-indigo-600 dark:bg-indigo-500 text-white text-[9px] font-black tracking-widest px-2.5 py-1 rounded-md shadow-lg z-10 pointer-events-none border border-indigo-700/50"
-                  >
-                    Admin Only
-                  </motion.div>
-                )}
-              </AnimatePresence>
               System
             </button>
 

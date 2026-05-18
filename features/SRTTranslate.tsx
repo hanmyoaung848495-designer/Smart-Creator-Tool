@@ -124,7 +124,7 @@ const SRTTranslate: React.FC<Props> = ({
         </div>
       </div>
 
-      <Card className="p-8" isGradient={true}>
+      <Card className="p-8" isGradient={false}>
         {activeTask ? (
           <div className="flex flex-col items-center py-12 gap-6">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
