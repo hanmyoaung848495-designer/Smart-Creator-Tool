@@ -211,12 +211,76 @@ app.post(/^\/(api\/)?(telegram-)?webhook$/, (req, res) => {
   }
 });
 
+// Helper function to screen for profanity with False Positive Protection
+function hasProfanity(text: string): boolean {
+  if (!text) return false;
+
+  // 1. English Core & Symbols (using word boundaries to protect words like "shitake")
+  const englishRegexes = [
+    /\b(fuck|fucking|fucker|motherfucker|bitch|bastard|asshole|dick|pussy|shit|cunt|wanker|twat|slut|whore|fuxk|fck|mft)\b/i,
+    /\b(f\*ck|f\*\*k|fu\*k|b\*tch|sh\*t|a\$\$hole|f0ck|fvck)\b/i,
+    /\bf\.u\.c\.k\b/i,
+    /\b(f\s+u\s+c\s+k)\b/i,
+    /\b(b\s+i\s+t\s+c\s+h)\b/i,
+    /\b(s\s+h\s+i\s+t)\b/i,
+    /\b(a\s+s\s+s\s+h\s+o\s+l\s+e)\b/i
+  ];
+
+  for (const regex of englishRegexes) {
+    if (regex.test(text)) {
+      return true;
+    }
+  }
+
+  // Normalize Burmese by stripping spaces, zero-width spaces, and select punctuation to counter character spacing bypass
+  const normalizedBurmese = text.replace(/[\s\u200B\u200C\u200D\uFEFF]/g, '');
+
+  const burmeseProfanities = [
+    // 1. Burmese Core & Variations (Unicode & Zawgyi)
+    "လီး", "လိုး", "စောက်", "စောက်ဖုတ်", "စောက်ပတ်", "လီးပဲ", "လီးလား", "ခွေးမသား", "ဖာသည်", "ဖာမ", "လိုးမသား", "စောက်ရူး", "စောက်ခွက်", "စောက်ကန်း", "ငါလိုး", "ငါိုး",
+    "လီပဲ", "လးပဲ", "လီးဘဲ", "လိုးမလို့", "လိုးမာလား", "စောက်ရူူး",
+
+    // Zawgyi representations for fonts compatibility
+    "ေစာက္", "ေစါက္", "ေစာက်", 
+    "ေစာက္ပတ္", "ေစာက္ပတ်", "ေစာက်ပတ်", 
+    "ေစာက္ဖုတ္", "ေစာက္ဖုတ်", "ေစာက်ဖုတ်", 
+    "ေသာက္ရူး", "ေသာက်ရူး", 
+    "ေသာက္ခြက္", "ေသာက်ခွက်", 
+    "ေသာက္ဖုတ္", "ေသာက်ဖုတ်", 
+    "ေသာက္ပတ္", "ေသာက်ပတ်", 
+    "ေခြးမသား", "လုိးမသား", "ဖာသည္",
+
+    // 2. Burmese Family Insults (Unicode & Zawgyi equivalents)
+    "မအေလိုး", "နှမလိုး", "မအေဘေး", "မအေပေး", "နှမပေး", "ညီမလိုး", "မအေလိုးမသား", "မအေလိုးလေး", "မအေခွေးလိုး",
+    "မေအလိုး", "မေအလုိး", "မေအေဘး", "မေအေပး", "မေအလိုးး", "မေအလိုးမ", "မေအလိုးကောင်", "မအေ၁ိုး", "မအေခွေး", "မအေရိုး", "မအေရိုးမသား",
+    "ႏွမေပး", "ႏွမလိုး", "ႏွမလုိး", "ညီမလိုး", "ညီမလုိး",
+
+    // Variations containing "သောက်" insults to avoid matching innocent words like "သောက်ရေ" (drinking water)
+    "သောက်ရူး", "သောက်ခွက်", "သောက်ဖုတ်", "သောက်ပတ်",
+
+    // 5. Transliterated English (Protected from false positives on "စာဖတ်" - read, or "ရှစ်" - 8)
+    "ဖတ်ခ်", "ဖက်ခ်", "ဖက္ကင်း", "ဖတ်ကင်း", "ဘစ်ချ်", "ဘတ်စ်တပ်", "အက်စ်ဟိုး"
+  ];
+
+  for (const word of burmeseProfanities) {
+    if (normalizedBurmese.includes(word)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 app.post(/^\/(api\/)?feedback$/, async (req, res) => {
   const { name, contact, message, sessionId } = req.body;
   console.log("[Feedback] Received:", { name, contact, message, sessionId });
 
   if (!name || !contact || !message || !sessionId) {
     return res.status(400).json({ error: "All fields are required" });
+  }
+
+  if (hasProfanity(message)) {
+    return res.status(400).json({ error: "ညစ်ညမ်းစကားလုံးများ ပါဝင်နေသဖြင့် ပို့၍မရပါ။ ကျေးဇူးပြု၍ ယဉ်ကျေးစွာ ပြန်လည်ရေးသားပေးပါ။" });
   }
 
   if (!botToken || !adminChatId) {
@@ -226,7 +290,8 @@ app.post(/^\/(api\/)?feedback$/, async (req, res) => {
 
   const text = `<b>Smart Creator Feedback Received</b>\n\n` +
     `<b>Session ID :</b> <code>${sessionId}</code>\n` +
-    `<b>Name :</b> <code>${name}</code> <b>Email/Telegram:</b> <code>${contact}</code>\n` +
+    `<b>Name :</b> <code>${name}</code>\n` +
+    `<b>Telegram Acc/Phone No :</b> <code>${contact}</code>\n` +
     `<b>Message:</b>\n<code>${message}</code>`;
 
   try {
@@ -286,6 +351,61 @@ function getRotatingApiKey(baseName: string): string[] {
   }
 
   return keys;
+}
+
+interface TtsEndpoint {
+  url: string;
+  key: string;
+}
+
+function getTtsEndpoints(): TtsEndpoint[] {
+  const endpoints: TtsEndpoint[] = [];
+  
+  // Get 5 keys
+  const keys: string[] = [];
+  for (let i = 1; i <= 5; i++) {
+    const key = process.env[`TTS_API_KEY_${i}`];
+    keys.push(key || '');
+  }
+  const defaultKey = process.env.TTS_API_KEY || '';
+
+  // Get 5 URLs
+  const urls: string[] = [];
+  for (let i = 1; i <= 5; i++) {
+    const url = process.env[`KC_TTS_API_URL_${i}`];
+    urls.push(url || '');
+  }
+  const defaultUrl = process.env.KC_TTS_API_URL || process.env.VITE_KC_TTS_API_URL || process.env.APP_URL || '';
+
+  // Pair them up
+  for (let i = 0; i < 5; i++) {
+    const url = urls[i]?.trim();
+    const key = keys[i]?.trim();
+    if (url) {
+      endpoints.push({ url, key: key || defaultKey.trim() });
+    }
+  }
+
+  // If no paired endpoints were found but we have a default URL, add it
+  if (endpoints.length === 0 && defaultUrl) {
+    endpoints.push({
+      url: defaultUrl.trim(),
+      key: defaultKey.trim()
+    });
+  }
+
+  // De-duplicate endpoints to avoid redundant requests
+  const uniqueEndpoints: TtsEndpoint[] = [];
+  const seen = new Set<string>();
+  for (const ep of endpoints) {
+    const keyStr = `${ep.url}|||${ep.key}`;
+    if (!seen.has(keyStr)) {
+      seen.add(keyStr);
+      uniqueEndpoints.push(ep);
+    }
+  }
+
+  return uniqueEndpoints;
 }
 
 app.post(/^\/(api\/)?youtube-transcribe$/, async (req, res) => {
@@ -359,56 +479,53 @@ app.post(/^\/(api\/)?youtube-transcribe$/, async (req, res) => {
 });
 
 app.post(/^\/(api\/)?kc-tts\/generate$/, async (req, res) => {
-  const appUrl = process.env.APP_URL; 
-  if (!appUrl) {
-    return res.status(500).json({ error: "APP_URL is not configured" });
+  const endpoints = getTtsEndpoints();
+  if (endpoints.length === 0) {
+    return res.status(500).json({ error: "KC TTS APP URL is not configured on the server." });
   }
 
-  const keys = getRotatingApiKey('TTS_API_KEY');
-  // Fallback to one key if none found via rotation helper
-  if (keys.length === 0 && process.env.TTS_API_KEY) keys.push(process.env.TTS_API_KEY);
-
   let lastError: any;
-  for (const apiKey of keys) {
+  for (const endpoint of endpoints) {
+    const { url, key } = endpoint;
     try {
-      const apiUrl = `${appUrl}/generate`;
+      const apiUrl = `${url}/generate`;
+      console.log(`[KC TTS] Trying secure endpoint: ${url} with key size: ${key ? key.length : 0}`);
+      
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-API-Key": apiKey || ""
+          "X-API-Key": key || ""
         },
         body: JSON.stringify(req.body)
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        if (response.status === 429 || response.status === 402) {
-          console.warn(`[KC TTS] Key failed with status ${response.status}. Trying next key...`);
-          lastError = { status: response.status, message: errorText };
-          continue;
-        }
-        return res.status(response.status).send(errorText);
+        console.warn(`[KC TTS] Endpoint ${url} returned status ${response.status}. Trying next...`);
+        lastError = { status: response.status, message: errorText };
+        continue;
       }
 
       const data = await response.json();
       
       if (data.audio_url && data.audio_url.startsWith('/')) {
-        data.audio_url = `${appUrl}${data.audio_url}`;
+        data.audio_url = `${url}${data.audio_url}`;
       }
       if (data.srt_url && data.srt_url.startsWith('/')) {
-        data.srt_url = `${appUrl}${data.srt_url}`;
+        data.srt_url = `${url}${data.srt_url}`;
       }
 
+      console.log(`[KC TTS] Success using endpoint: ${url}`);
       return res.json(data);
-    } catch (error) {
-      console.error("[KC TTS] Error with current key:", error);
+    } catch (error: any) {
+      console.error(`[KC TTS] Exception with endpoint ${url}:`, error);
       lastError = error;
     }
   }
 
   return res.status(500).json({ 
-    error: lastError?.message || "All TTS_API_KEYs failed or reached quota." 
+    error: lastError?.message || lastError || "All KC TTS endpoints and keys failed or reached quota." 
   });
 });
 

@@ -18,6 +18,66 @@ export const FeedbackModal: React.FC = () => {
 
   const [sessionId, setSessionId] = useState('');
 
+  // Helper function to screen for profanity with False Positive Protection
+  const hasProfanity = (text: string): boolean => {
+    if (!text) return false;
+
+    // 1. English Core & Symbols (using word boundaries to protect words like "shitake")
+    const englishRegexes = [
+      /\b(fuck|fucking|fucker|motherfucker|bitch|bastard|asshole|dick|pussy|shit|cunt|wanker|twat|slut|whore|fuxk|fck|mft)\b/i,
+      /\b(f\*ck|f\*\*k|fu\*k|b\*tch|sh\*t|a\$\$hole|f0ck|fvck)\b/i,
+      /\bf\.u\.c\.k\b/i,
+      /\b(f\s+u\s+c\s+k)\b/i,
+      /\b(b\s+i\s+t\s+c\s+h)\b/i,
+      /\b(s\s+h\s+i\s+t)\b/i,
+      /\b(a\s+s\s+s\s+h\s+o\s+l\s+e)\b/i
+    ];
+
+    for (const regex of englishRegexes) {
+      if (regex.test(text)) {
+        return true;
+      }
+    }
+
+    // Normalize Burmese by stripping spaces, zero-width spaces, and select punctuation to counter character spacing bypass
+    const normalizedBurmese = text.replace(/[\s\u200B\u200C\u200D\uFEFF]/g, '');
+
+    const burmeseProfanities = [
+      // 1. Burmese Core & Variations (Unicode & Zawgyi)
+      "လီး", "လိုး", "စောက်", "စောက်ဖုတ်", "စောက်ပတ်", "လီးပဲ", "လီးလား", "ခွေးမသား", "ဖာသည်", "ဖာမ", "လိုးမသား", "စောက်ရူး", "စောက်ခွက်", "စောက်ကန်း", "ငါလိုး", "ငါိုး",
+      "လီပဲ", "လးပဲ", "လီးဘဲ", "လိုးမလို့", "လိုးမာလား", "စောက်ရူူး",
+
+      // Zawgyi representations for fonts compatibility
+      "ေစာက္", "ေစါက္", "ေစာက်", 
+      "ေစာက္ပတ္", "ေစာက္ပတ်", "ေစာက်ပတ်", 
+      "ေစာက္ဖုတ္", "ေစာက္ဖုတ်", "ေစာက်ဖုတ်", 
+      "ေသာက္ရူး", "ေသာက်ရူး", 
+      "ေသာက္ခြက္", "ေသာက်ခွက်", 
+      "ေသာက္ဖုတ္", "ေသာက်ဖုတ်", 
+      "ေသာက္ပတ္", "ေသာက်ပတ်", 
+      "ေခြးမသား", "လုိးမသား", "ဖာသည္",
+
+      // 2. Burmese Family Insults (Unicode & Zawgyi equivalents)
+      "မအေလိုး", "နှမလိုး", "မအေဘေး", "မအေပေး", "နှမပေး", "ညီမလိုး", "မအေလိုးမသား", "မအေလိုးလေး", "မအေခွေးလိုး",
+      "မေအလိုး", "မေအလုိး", "မေအေဘး", "မေအေပး", "မေအလိုးး", "မေအလိုးမ", "မေအလိုးကောင်", "မအေ၁ိုး", "မအေခွေး", "မအေရိုး", "မအေရိုးမသား",
+      "ႏွမေပး", "ႏွမလိုး", "ႏွမလုိး", "ညီမလိုး", "ညီမလုိး",
+
+      // Variations containing "သောက်" insults to avoid matching innocent words like "သောက်ရေ" (drinking water)
+      "သောက်ရူး", "သောက်ခွက်", "သောက်ဖုတ်", "သောက်ပတ်",
+
+      // 5. Transliterated English (Protected from false positives on "စာဖတ်" - read, or "ရှစ်" - 8)
+      "ဖတ်ခ်", "ဖက်ခ်", "ဖက္ကင်း", "ဖတ်ကင်း", "ဘစ်ချ်", "ဘတ်စ်တပ်", "အက်စ်ဟိုး"
+    ];
+
+    for (const word of burmeseProfanities) {
+      if (normalizedBurmese.includes(word)) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   useEffect(() => {
     let id = localStorage.getItem('smart_creator_session_id');
     if (!id) {
@@ -31,6 +91,11 @@ export const FeedbackModal: React.FC = () => {
     e.preventDefault();
     if (!formData.name || !formData.contact || !formData.message) {
       setError('ကျေးဇူးပြု၍ အချက်အလက်အားလုံး ဖြည့်စွက်ပေးပါ');
+      return;
+    }
+
+    if (hasProfanity(formData.message)) {
+      setError('ညစ်ညမ်းစကားလုံးများ ပါဝင်နေသဖြင့် ပို့၍မရပါ။ ကျေးဇူးပြု၍ ယဉ်ကျေးစွာ ပြန်လည်ရေးသားပေးပါ။');
       return;
     }
 
@@ -131,9 +196,9 @@ export const FeedbackModal: React.FC = () => {
                       </div>
 
                       <div className="space-y-1">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Gmail / Telegram</label>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Telegram Acc/Phone No</label>
                         <Input 
-                          placeholder="ဆက်သွယ်ရန် လိပ်စာ"
+                          placeholder="ဆက်သွယ်ရန်အကောင့်/ဖုန်းနံပါတ်"
                           value={formData.contact}
                           onChange={(val) => setFormData({ ...formData, contact: val })}
                           className="border-gray-100 text-sm py-2"
