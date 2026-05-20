@@ -38,27 +38,14 @@ export const FeedbackModal: React.FC = () => {
     setError('');
 
     try {
-      const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-      const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-
-      if (!botToken || !chatId) {
-        setError('Telegram credentials are not configured. Please add VITE_TELEGRAM_BOT_TOKEN and VITE_TELEGRAM_CHAT_ID to your environment variables.');
-        setIsSending(false);
-        return;
-      }
-
-      const text = `<b>Smart Creator Feedback Received</b>\n\n` +
-        `<b>Session ID :</b> <code>${sessionId}</code>\n` +
-        `<b>Name :</b> <code>${formData.name}</code> <b>Email/Telegram:</b> <code>${formData.contact}</code>\n` +
-        `<b>Message:</b>\n<code>${formData.message}</code>`;
-
-      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          chat_id: chatId,
-          text: text,
-          parse_mode: 'HTML'
+          name: formData.name,
+          contact: formData.contact,
+          message: formData.message,
+          sessionId: sessionId
         })
       });
 
@@ -70,7 +57,7 @@ export const FeedbackModal: React.FC = () => {
           setIsOpen(false);
         }, 3000);
       } else {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         setError(data.error || 'ပို့ဆောင်မှု မအောင်မြင်ပါ');
       }
     } catch (err) {

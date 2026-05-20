@@ -48,86 +48,155 @@ export const updateUsageLimits = async (limits: UsageLimits): Promise<boolean> =
   }
 };
 
+const getLocalUsage = (): Record<string, number> => {
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    const saved = localStorage.getItem('smart_creator_local_usage');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && parsed.date === today) {
+        return parsed.usage || {};
+      }
+    }
+  } catch (e) {
+    console.error('Error parsing local usage', e);
+  }
+  return {};
+};
+
+const saveLocalUsage = (usage: Record<string, number>) => {
+  const today = new Date().toISOString().split('T')[0];
+  try {
+    localStorage.setItem(
+      'smart_creator_local_usage',
+      JSON.stringify({ date: today, usage })
+    );
+  } catch (e) {
+    console.error('Error saving local usage', e);
+  }
+};
+
 export const checkAndIncrementUsage = async (
   toolType: ToolType, 
   userId?: string | null,
   isLink?: boolean,
   linkTranscribeExpiry?: number | null
 ): Promise<{ allowed: boolean; remaining: number; message?: string }> => {
-  if (!supabase) return { allowed: true, remaining: 99 }; // Fallback if no DB
-
   const identifier = userId || getDeviceId();
   const limits = await getUsageLimits();
+  const dbToolType = (toolType === 'transcribe' && isLink) ? 'link_transcribe' : toolType;
   
   // Define limit based on user status and tool type
   let limit = 0;
   const isGuest = !userId;
 
-  if (toolType === 'ai_voice') {
+  if (dbToolType === 'ai_voice') {
     if (isGuest) {
-      limit = limits.ai_voice_guest_limit;
+      limit = limits.ai_voice_guest_limit || 2;
     } else {
-      return { allowed: true, remaining: 999 }; // Unlimited for logged in users
+      return { allowed: true, remaining: 999 }; // Unlimited for logged in premium users
     }
-  } else if (toolType === 'transcribe') {
+  } else if (dbToolType === 'transcribe') {
     if (isGuest) {
-      limit = limits.transcribe_guest_limit;
+      limit = limits.transcribe_guest_limit || 2;
+    } else {
+      // Standard File Transcribe for premium users
+      limit = limits.transcribe_user_limit || 3;
+    }
+  } else if (dbToolType === 'link_transcribe') {
+    if (isGuest) {
+      limit = 1; // 1 time/day for Free Link Transcribe
     } else {
       // For logged in users, Link Transcribe has a specific validity
-      if (isLink) {
-        const now = Date.now();
-        const expiry = linkTranscribeExpiry ? (typeof linkTranscribeExpiry === 'number' ? linkTranscribeExpiry : new Date(linkTranscribeExpiry).getTime()) : null;
-        
-        if (expiry && now <= expiry) {
-          limit = limits.transcribe_user_limit; // 3 or whatever admin set
-        } else {
-          // Expired or No validity set: Fallback to 1 / day for Link Transcribe
-          limit = 1;
-        }
+      const now = Date.now();
+      const expiry = linkTranscribeExpiry ? (typeof linkTranscribeExpiry === 'number' ? linkTranscribeExpiry : new Date(linkTranscribeExpiry).getTime()) : null;
+      
+      if (expiry && now <= expiry) {
+        limit = limits.transcribe_user_limit || 3;
       } else {
-        // Standard File Transcribe for premium users
-        limit = limits.transcribe_user_limit;
+        // Expired or No validity set: Fallback to 1 / day for Link Transcribe
+        limit = 1;
       }
     }
   }
 
   const today = new Date().toISOString().split('T')[0];
 
-  try {
-    // Check current usage
-    const { data, error } = await supabase
-      .from('tool_usage')
-      .select('count')
-      .eq('identifier', identifier)
-      .eq('tool_type', toolType)
-      .eq('usage_date', today)
-      .single();
-
-    const currentCount = data?.count || 0;
-
-    if (currentCount >= limit) {
-      return { 
-        allowed: false, 
-        remaining: 0, 
-        message: `ယနေ့အတွက် အသုံးပြုနိုင်သည့် အကြိမ်ရေ (${limit} ကြိမ်) ပြည့်သွားပါပြီ။ မနက်ဖြန်မှ ထပ်မံကြိုးစားပေးပါ။` 
-      };
-    }
-
-    // Increment usage
-    const { error: upsertError } = await supabase
-      .from('tool_usage')
-      .upsert({
-        identifier,
-        tool_type: toolType,
-        usage_date: today,
-        count: currentCount + 1
-      }, { onConflict: 'identifier, tool_type, usage_date' });
-
-    if (upsertError) throw upsertError;
-
-    return { allowed: true, remaining: limit - (currentCount + 1) };
-  } catch (e) {
-    console.error('Usage check error:', e);
-    return { allowed: true, remaining: 1 }; // Allow on error to avoid blocking users
+  // Local storage check for Guest/Free users (always checked first as failproof fallback)
+  const localUsage = getLocalUsage();
+  const localCount = isGuest ? (localUsage[dbToolType] || 0) : 0;
+  if (isGuest && localCount >= limit) {
+    return {
+      allowed: false,
+      remaining: 0,
+      message: `ယနေ့အတွက် အသုံးပြုနိုင်သည့် အကြိမ်ရေ (${limit} ကြိမ်) ပြည့်သွားပါပြီ။ မနက်ဖြန်မှ ထပ်မံကြိုးစားပေးပါ။`
+    };
   }
+
+  let dbCount = 0;
+  if (supabase) {
+    try {
+      // Check current usage in database
+      const { data, error } = await supabase
+        .from('tool_usage')
+        .select('count')
+        .eq('identifier', identifier)
+        .eq('tool_type', dbToolType)
+        .eq('usage_date', today)
+        .single();
+
+      if (!error && data) {
+        dbCount = data.count || 0;
+      }
+    } catch (e) {
+      console.error('Database usage check error:', e);
+    }
+  }
+
+  // Combine counts securely
+  const activeCount = Math.max(dbCount, localCount);
+
+  if (activeCount >= limit) {
+    // If the database has recorded more usage, sync it to local storage for guest
+    if (isGuest && dbCount > localCount) {
+      const newLocal = { ...localUsage, [dbToolType]: dbCount };
+      saveLocalUsage(newLocal);
+    }
+    return { 
+      allowed: false, 
+      remaining: 0, 
+      message: `ယနေ့အတွက် အသုံးပြုနိုင်သည့် အကြိမ်ရေ (${limit} ကြိမ်) ပြည့်သွားပါပြီ။ မနက်ဖြန်မှ ထပ်မံကြိုးစားပေးပါ။` 
+    };
+  }
+
+  const nextCount = activeCount + 1;
+
+  // Save/Increment local storage count
+  if (isGuest) {
+    const newLocalUsage = { ...localUsage };
+    newLocalUsage[dbToolType] = localCount + 1;
+    saveLocalUsage(newLocalUsage);
+  }
+
+  // Save/Increment database count
+  if (supabase) {
+    try {
+      const { error: upsertError } = await supabase
+        .from('tool_usage')
+        .upsert({
+          identifier,
+          tool_type: dbToolType,
+          usage_date: today,
+          count: nextCount
+        }, { onConflict: 'identifier, tool_type, usage_date' });
+
+      if (upsertError) {
+        console.error('Database count upsert error (ignored due to local fallback):', upsertError);
+      }
+    } catch (e) {
+      console.error('Database usage increment error:', e);
+    }
+  }
+
+  return { allowed: true, remaining: limit - nextCount };
 };
