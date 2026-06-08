@@ -770,7 +770,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         if (supabase) {
           supabase.from('tts_cache').insert([
             { voice_name: voiceName, audio_data: base64Audio }
-          ]).then(({error}) => {
+          ]).then(({error}: any) => {
             if (error) console.error("Failed to save to Supabase:", error);
           });
         }

@@ -45,7 +45,7 @@ export const FeedbackModal: React.FC = () => {
     const burmeseProfanities = [
       // 1. Burmese Core & Variations (Unicode & Zawgyi)
       "လီး", "လိုး", "စောက်", "စောက်ဖုတ်", "စောက်ပတ်", "လီးပဲ", "လီးလား", "ခွေးမသား", "ဖာသည်", "ဖာမ", "လိုးမသား", "စောက်ရူး", "စောက်ခွက်", "စောက်ကန်း", "ငါလိုး", "ငါိုး",
-      "လီပဲ", "လးပဲ", "လီးဘဲ", "လိုးမလို့", "လိုးမာလား", "စောက်ရူူး",
+      "လီပဲ", "လးပဲ", "လီးဘဲ", "လိုးမလို့", "လိုးမာလား", "စောက်ရူူး", "လိ", "လိလာ", "လိလား",
 
       // Zawgyi representations for fonts compatibility
       "ေစာက္", "ေစါက္", "ေစာက်", 
@@ -94,7 +94,7 @@ export const FeedbackModal: React.FC = () => {
       return;
     }
 
-    if (hasProfanity(formData.message)) {
+    if (hasProfanity(formData.name) || hasProfanity(formData.contact) || hasProfanity(formData.message)) {
       setError('ညစ်ညမ်းစကားလုံးများ ပါဝင်နေသဖြင့် ပို့၍မရပါ။ ကျေးဇူးပြု၍ ယဉ်ကျေးစွာ ပြန်လည်ရေးသားပေးပါ။');
       return;
     }

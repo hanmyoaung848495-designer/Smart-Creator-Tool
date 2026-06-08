@@ -102,7 +102,7 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         
       if (!error && data) {
         // Create a map from DB for easier lookup by title
-        const dbTutorialMap = new Map(data.map((t: any) => [t.title, {
+        const dbTutorialMap = new Map<string, TutorialItem>(data.map((t: any) => [t.title, {
           id: t.id,
           title: t.title,
           description: t.content,
@@ -111,7 +111,7 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         }]));
 
         // Merge DB data into default tutorials
-        const merged = DEFAULT_TUTORIALS.map(defaultT => {
+        const merged: TutorialItem[] = DEFAULT_TUTORIALS.map(defaultT => {
           if (dbTutorialMap.has(defaultT.title)) {
             return dbTutorialMap.get(defaultT.title)!;
           }

@@ -11,9 +11,9 @@ const app = express();
 app.use(express.json());
 
 // Initialize Supabase
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 // IMPORTANT: Use SUPABASE_SERVICE_ROLE_KEY to bypass Row Level Security (RLS) for admin operations.
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Admin Verification Middleware
@@ -238,7 +238,7 @@ function hasProfanity(text: string): boolean {
   const burmeseProfanities = [
     // 1. Burmese Core & Variations (Unicode & Zawgyi)
     "လီး", "လိုး", "စောက်", "စောက်ဖုတ်", "စောက်ပတ်", "လီးပဲ", "လီးလား", "ခွေးမသား", "ဖာသည်", "ဖာမ", "လိုးမသား", "စောက်ရူး", "စောက်ခွက်", "စောက်ကန်း", "ငါလိုး", "ငါိုး",
-    "လီပဲ", "လးပဲ", "လီးဘဲ", "လိုးမလို့", "လိုးမာလား", "စောက်ရူူး",
+    "လီပဲ", "လးပဲ", "လီးဘဲ", "လိုးမလို့", "လိုးမာလား", "စောက်ရူူး", "လိ", "လိလာ", "လိလား",
 
     // Zawgyi representations for fonts compatibility
     "ေစာက္", "ေစါက္", "ေစာက်", 
@@ -279,7 +279,7 @@ app.post(/^\/(api\/)?feedback$/, async (req, res) => {
     return res.status(400).json({ error: "All fields are required" });
   }
 
-  if (hasProfanity(message)) {
+  if (hasProfanity(name) || hasProfanity(contact) || hasProfanity(message)) {
     return res.status(400).json({ error: "ညစ်ညမ်းစကားလုံးများ ပါဝင်နေသဖြင့် ပို့၍မရပါ။ ကျေးဇူးပြု၍ ယဉ်ကျေးစွာ ပြန်လည်ရေးသားပေးပါ။" });
   }
 
@@ -509,11 +509,13 @@ app.post(/^\/(api\/)?kc-tts\/generate$/, async (req, res) => {
 
       const data = await response.json();
       
-      if (data.audio_url && data.audio_url.startsWith('/')) {
-        data.audio_url = `${url}${data.audio_url}`;
+      if (data.audio_url) {
+        const fullAudioUrl = data.audio_url.startsWith('/') ? `${url}${data.audio_url}` : data.audio_url;
+        data.audio_url = `/api/kc-tts/proxy-asset?q=${obfuscateUrl(fullAudioUrl)}`;
       }
-      if (data.srt_url && data.srt_url.startsWith('/')) {
-        data.srt_url = `${url}${data.srt_url}`;
+      if (data.srt_url) {
+        const fullSrtUrl = data.srt_url.startsWith('/') ? `${url}${data.srt_url}` : data.srt_url;
+        data.srt_url = `/api/kc-tts/proxy-asset?q=${obfuscateUrl(fullSrtUrl)}`;
       }
 
       console.log(`[KC TTS] Success using endpoint: ${url}`);
@@ -527,6 +529,79 @@ app.post(/^\/(api\/)?kc-tts\/generate$/, async (req, res) => {
   return res.status(500).json({ 
     error: lastError?.message || lastError || "All KC TTS endpoints and keys failed or reached quota." 
   });
+});
+
+function obfuscateUrl(url: string): string {
+  const b64 = Buffer.from(url, 'utf-8').toString('base64');
+  return b64.split('').reverse().join('');
+}
+
+function deobfuscateUrl(str: string): string {
+  const b64 = str.split('').reverse().join('');
+  return Buffer.from(b64, 'base64').toString('utf-8');
+}
+
+app.get(/^\/(api\/)?kc-tts\/proxy-asset$/, async (req, res) => {
+  const q = req.query.q as string;
+  if (!q) {
+    return res.status(400).send("Parameter q is required");
+  }
+
+  try {
+    const targetUrl = deobfuscateUrl(q);
+    if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
+      return res.status(400).send("Invalid target URL");
+    }
+
+    console.log(`[KC TTS Proxy] Proxying asset request from: ${targetUrl}`);
+    const response = await fetch(targetUrl);
+    if (!response.ok) {
+      return res.status(response.status).send(`Failed to fetch asset from KC TTS Space: ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get("content-type") || "application/octet-stream";
+    res.setHeader("Content-Type", contentType);
+
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) {
+      res.setHeader("Content-Length", contentLength);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return res.send(buffer);
+  } catch (err: any) {
+    console.error("[KC TTS Proxy] Error proxying asset:", err);
+    return res.status(500).send("Internal server error proxying asset");
+  }
+});
+
+app.post(/^\/(api\/)?db-proxy$/, async (req, res) => {
+  const { table, chain } = req.body;
+  if (!supabase) {
+    return res.status(500).json({ error: "Supabase is not configured on the server." });
+  }
+
+  try {
+    let query = supabase.from(table);
+
+    for (const step of chain) {
+      const { method, args } = step;
+      const allowedMethods = ['select', 'insert', 'update', 'upsert', 'delete', 'eq', 'neq', 'single', 'maybeSingle', 'order', 'limit'];
+      if (!allowedMethods.includes(method)) {
+        return res.status(400).json({ error: `Method ${method} is not allowed` });
+      }
+
+      // Chain the method dynamically
+      query = (query as any)[method](...args);
+    }
+
+    const result = await query;
+    return res.json(result);
+  } catch (error: any) {
+    console.error("[db-proxy] Error executing query:", error);
+    return res.status(500).json({ error: error.message || "Failed to execute query via proxy" });
+  }
 });
 
 app.post(/^\/(api\/)?login$/, async (req, res) => {
