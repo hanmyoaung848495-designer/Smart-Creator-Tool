@@ -232,13 +232,19 @@ function hasProfanity(text: string): boolean {
     }
   }
 
-  // Normalize Burmese by stripping spaces, zero-width spaces, and select punctuation to counter character spacing bypass
-  const normalizedBurmese = text.replace(/[\s\u200B\u200C\u200D\uFEFF]/g, '');
+  // Normalize text by lowercasing and stripping spaces, zero-width spaces, and select punctuation to counter character spacing bypass
+  const normalizedBurmese = text.toLowerCase().replace(/[\s\u200B\u200C\u200D\uFEFF]/g, '');
 
   const burmeseProfanities = [
     // 1. Burmese Core & Variations (Unicode & Zawgyi)
     "လီး", "လိုး", "စောက်", "စောက်ဖုတ်", "စောက်ပတ်", "လီးပဲ", "လီးလား", "ခွေးမသား", "ဖာသည်", "ဖာမ", "လိုးမသား", "စောက်ရူး", "စောက်ခွက်", "စောက်ကန်း", "ငါလိုး", "ငါိုး",
     "လီပဲ", "လးပဲ", "လီးဘဲ", "လိုးမလို့", "လိုးမာလား", "စောက်ရူူး", "လိ", "လိလာ", "လိလား",
+
+    // New user requested additions
+    "kmkl", "mal", "mmsp", "stt", "lee", "ngarloe", "minmayloe", "farthal", "ftmt", "flmt", "fayloemathar", "maaloe", "phin",
+    "aungzabu", "bubu", "sanyaymoe", "phonechit",
+    "လဥ", "လအု", "ဠီး", "ငါဠိုး", "မေနိုး", "မြေနိုး", "မအေယိုး", "ငါယိုး", "နာလိုး", "နာယိုး", "နာရိုး", "ဠိုး", "မအေ-ိုး", "မအေ -ိုး", "-ီး", "အောင်ဇမ္ဗူ",
+    "ဖိုးချစ်", "စမ်းရေမိုး", "မင်းအဖေ", "မင်းအမေလင်", "မင်းအမေယောက်ျား", "မင်းအစ်မယောက်ျား", "မင်းပထွေး", "မင်းနှမလင်", "မင်းအမလင်", "မင်းအစ်မလင်", "မင်းညီမလင်", "မလင်",
 
     // Zawgyi representations for fonts compatibility
     "ေစာက္", "ေစါက္", "ေစာက်", 
@@ -288,7 +294,8 @@ app.post(/^\/(api\/)?feedback$/, async (req, res) => {
     return res.status(500).json({ error: "Feedback service not configured" });
   }
 
-  const text = `<b>Smart Creator Feedback Received</b>\n\n` +
+  const text = `<b>Smart Creator Feedback Received</b>\n` +
+    `<b>Free Website</b>\n\n` +
     `<b>Session ID :</b> <code>${sessionId}</code>\n` +
     `<b>Name :</b> <code>${name}</code>\n` +
     `<b>Telegram Acc/Phone No :</b> <code>${contact}</code>\n` +
