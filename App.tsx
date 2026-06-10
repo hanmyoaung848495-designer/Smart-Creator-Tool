@@ -804,7 +804,12 @@ const App: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-gray-100">{settings.appLogo}</span>
+                <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928] font-khit"
+                      style={{ 
+                        filter: 'drop-shadow(1px 1px 0px #b8860b) drop-shadow(2px 2px 3px rgba(0,0,0,0.15))',
+                      }}>
+                  {settings.appLogo}
+                </span>
               </div>
             </div>
           </div>
@@ -950,7 +955,7 @@ const Home: React.FC<{
   return (
     <div className="space-y-12">
       <div className="text-center max-w-3xl mx-auto">
-        <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tighter leading-normal px-4 py-2 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928]"
+        <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tighter leading-normal px-4 py-2 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928] font-donut"
             style={{ 
               filter: 'drop-shadow(2px 2px 0px #b8860b) drop-shadow(4px 4px 4px rgba(0,0,0,0.15))',
             }}>

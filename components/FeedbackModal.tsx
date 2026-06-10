@@ -42,10 +42,21 @@ export const FeedbackModal: React.FC = () => {
     // Normalize text by lowercasing and stripping spaces, zero-width spaces, and select punctuation to counter character spacing bypass
     const normalizedBurmese = text.toLowerCase().replace(/[\s\u200B\u200C\u200D\uFEFF]/g, '');
 
+    // False Positive Protection for "လိ" (li) vs "လို/လို့/လိုး/လုံး" (lo/lo'/loe) and "လိပ်" (turtle/address) / "လိမ်" (cheat) / "လိင်" (sex)
+    // Regex matches "လ" + "ိ" but NOT followed by:
+    // - "ု" (\u102F - forming lo/lo'/loe)
+    // - "မ" (\u1019 - forming well-behaved/lie)
+    // - "ပ" + "်" (\u1015\u103A - forming turtle/address)
+    // - "င" + "်" (\u1004\u103A - forming sex/gender)
+    // - "န" + "်" (\u1014\u103A - forming bend/twist)
+    if (/လ\u102D(?!\u102F|\u1019|\u1015\u103A|\u1004\u103A|\u1014\u103A)/.test(normalizedBurmese)) {
+      return true;
+    }
+
     const burmeseProfanities = [
       // 1. Burmese Core & Variations (Unicode & Zawgyi)
       "လီး", "လိုး", "စောက်", "စောက်ဖုတ်", "စောက်ပတ်", "လီးပဲ", "လီးလား", "ခွေးမသား", "ဖာသည်", "ဖာမ", "လိုးမသား", "စောက်ရူး", "စောက်ခွက်", "စောက်ကန်း", "ငါလိုး", "ငါိုး",
-      "လီပဲ", "လးပဲ", "လီးဘဲ", "လိုးမလို့", "လိုးမာလား", "စောက်ရူူး", "လိ", "လိလာ", "လိလား",
+      "လီပဲ", "လးပဲ", "လီးဘဲ", "လိုးမလို့", "လိုးမာလား", "စောက်ရူူး",
 
       // New user requested additions
       "kmkl", "mal", "mmsp", "stt", "lee", "ngarloe", "minmayloe", "farthal", "ftmt", "flmt", "fayloemathar", "maaloe", "phin",
