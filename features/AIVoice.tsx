@@ -41,10 +41,8 @@ const VOICES = [
 ];
 
 const MODELS = [
-  { label: 'Gemini 3.1 Flash (TTS Preview)', value: 'gemini-3.1-flash-preview-tts' },
-  { label: 'Gemini 2.5 Preview (High Quality)', value: 'gemini-2.5-preview-tts' },
-  { label: 'Gemini 2.5 Flash (Fast)', value: 'gemini-2.5-flash-preview-tts' },
-  { label: 'Gemini 1.5 Flash (TTS Preview)', value: 'gemini-1.5-flash-preview-tts' }
+  { label: 'Gemini 3.1 Flash (TTS Preview)', value: 'gemini-3.1-flash-tts-preview' },
+  { label: 'Gemini 2.5 Pro (TTS Preview)', value: 'gemini-2.5-pro-preview-tts' }
 ];
 
 // KC TTS Constants
@@ -86,7 +84,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     { id: '2', speaker: 'Speaker 2', text: '' },
     { id: '3', speaker: 'Speaker 3', text: '' }
   ]);
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-preview-tts');
+  const [selectedModel, setSelectedModel] = useState('gemini-3.1-flash-tts-preview');
   const [voiceEngine, setVoiceEngine] = useState<'gemini' | 'kc_tts'>('kc_tts');
   const [voice1, setVoice1] = useState('Kore');
   const [voice2, setVoice2] = useState('Charon');
@@ -170,7 +168,13 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         if (key && val) customMap[key] = val;
     });
 
-    let processedText = applyPronunciation(kcText, customMap);
+    // Convert [C1], [C2], [C3] back to [V1], [V2], [V3] for API compatibility
+    const apiCompatibleText = kcText
+      .replace(/\[\s*C1\s*\]/gi, '[V1]')
+      .replace(/\[\s*C2\s*\]/gi, '[V2]')
+      .replace(/\[\s*C3\s*\]/gi, '[V3]');
+
+    let processedText = applyPronunciation(apiCompatibleText, customMap);
 
     setKcLoading(true);
     setKcResult(null);
@@ -748,7 +752,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     try {
       const ai = getAIClient(apiKey);
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-preview-tts', // Always use flash for preview to save quota
+        model: 'gemini-3.1-flash-tts-preview', // Always use flash for preview to save quota
         contents: [{ parts: [{ text: `Hello, I am ${voiceName}.` }] }],
         config: {
           responseModalities: [Modality.AUDIO],
@@ -1117,8 +1121,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                 <button
                   onClick={() => {
                     setKcMode('multi');
-                    if (!kcText.includes('[V1]')) {
-                      setKcText('[V1] မျှင်မျှင်ရေ [V2] ပြောပါကိုကိုတွတ်ရေ [V3] ဟာ ဒီလင်မယားကတော့ လာရိုပြနေတာပဲ');
+                    if (!kcText.includes('[C1]')) {
+                      setKcText('[C1] မျှင်မျှင်ရေ [C2] ပြောပါကိုကိုတွတ်ရေ [C3] ဟာ ဒီလင်မယားကတော့ လာရိုပြနေတာပဲ');
                     }
                   }}
                   className={`flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${kcMode === 'multi' ? 'tool-btn-gradient tool-btn-gradient-active text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
@@ -1146,7 +1150,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                 {/* Character 1 */}
                 <div className="flex flex-col gap-1.5 relative character-dropdown-container">
                   <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    {kcMode === 'single' ? 'Character' : 'Speaker V1'}
+                    {kcMode === 'single' ? 'Character' : 'Speaker 1'}
                   </label>
                   <button
                     onClick={() => setKcCharOpen(kcCharOpen === 'v1' ? null : 'v1')}
@@ -1203,7 +1207,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                 {kcMode === 'multi' && (
                   <>
                     <div className="flex flex-col gap-1.5 relative character-dropdown-container">
-                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Speaker V2</label>
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Speaker 2</label>
                       <button
                         onClick={() => setKcCharOpen(kcCharOpen === 'v2' ? null : 'v2')}
                         className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
@@ -1252,7 +1256,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                     </div>
 
                     <div className="flex flex-col gap-1.5 relative character-dropdown-container">
-                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Speaker V3</label>
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Speaker 3</label>
                       <button
                         onClick={() => setKcCharOpen(kcCharOpen === 'v3' ? null : 'v3')}
                         className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-left transition-all hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"

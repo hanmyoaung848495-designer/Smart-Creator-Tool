@@ -14,28 +14,16 @@ interface TutorialItem {
 
 const DEFAULT_TUTORIALS: TutorialItem[] = [
   {
-    title: "Transcribe (အသံဖိုင်မှ စာသားပြောင်းခြင်း)",
-    description: "Tutorial videoတွေမလုပ်ရသေးလို့ သီချင်းလေးပဲနားထောင်ပေးပါဦး။ \n ဗီဒီယို သို့မဟုတ် အသံဖိုင်များမှ စကားပြောများကို စာသားအဖြစ် အလိုအလျောက် ပြောင်းလဲပေးပါသည်။ YouTube Link များမှလည်း တိုက်ရိုက် ပြောင်းလဲနိုင်ပါသည်။",
-    videoId: "Xdd9xScgNPM",
-    timestamp: "30"
-  },
-  {
-    title: "SRT Generator (SRT ဖိုင်ထုတ်ပေးခြင်း)",
-    description: "ဗီဒီယိုနှင့် အသံဖိုင်များမှ အချိန်အတိအကျပါဝင်သော SRT Subtitle ဖိုင်များကို အလိုအလျောက် ထုတ်ပေးပါသည်။",
-    videoId: "bKoi0NHV338",
-    timestamp: "0"
-  },
-  {
-    title: "Text To SRT (စာသားမှ SRT ပြောင်းခြင်း)",
-    description: "အချိန်မှတ် (Timestamp) ပါဝင်သော စာသားများကို SRT ဖိုင်အဖြစ်သို့ လွယ်ကူလျင်မြန်စွာ ပြောင်းလဲပေးပါသည်။ API Key မလိုဘဲ အသုံးပြုနိုင်ပါသည်။",
+    title: "AI Voice (AIအသံထုတ်ရန်)",
+    description: "Google AI Studioကိုသွားစရာမလိုပဲ အသံထုတ်လို့ပိုပြီးလွယ်အောင်စမ်းသပ်ထားခြင်းဖြစ်ပါတယ်။အဆင်ပြေရင် Contact မှာ Reviewလေးတွေလာပြောပေးပါဦး",
     videoId: "sGHe7nhThwo",
     timestamp: "30"
   },
   {
-    title: "AI Script Writer (AI ဖြင့် ဇာတ်ညွှန်းရေးခြင်း)",
-    description: "သင်ပေးလိုက်သော ခေါင်းစဉ်အပေါ် မူတည်၍ စိတ်ဝင်စားဖွယ်ကောင်းသော Script များကို AI က ရေးသားပေးမည် ဖြစ်ပါသည်။ Style နှင့် Length ကိုလည်း စိတ်ကြိုက် ရွေးချယ်နိုင်ပါသည်။",
-    videoId: "5D66YbnUO1s",
-    timestamp: "10"
+    title: "Transcribe (အသံဖိုင်မှ စာသားပြောင်းခြင်း)",
+    description: "Tutorial videoတွေမလုပ်ရသေးလို့ သီချင်းလေးပဲနားထောင်ပေးပါဦး။ \n ဗีဒီယို သို့မဟုတ် အသံဖိုင်များမှ စကားပြောများကို စာသားအဖြစ် အလိုအလျောက် ပြောင်းလဲပေးပါသည်။ YouTube Link များမှလည်း တိုက်ရိုက် ပြောင်းလဲနိုင်ပါသည်။",
+    videoId: "Xdd9xScgNPM",
+    timestamp: "30"
   },
   {
     title: "Translator (ဘာသာပြန်ဆိုခြင်း)",
@@ -44,14 +32,26 @@ const DEFAULT_TUTORIALS: TutorialItem[] = [
     timestamp: "30"
   },
   {
+    title: "SRT Generator (SRT ဖိုင်ထုတ်ပေးခြင်း)",
+    description: "ဗีဒီယိုနှင့် အသံဖိုင်များမှ အချိန်အတိအကျပါဝင်သော SRT Subtitle ဖိုင်များကို အလိုအလျောက် ထုတ်ပေးပါသည်။",
+    videoId: "bKoi0NHV338",
+    timestamp: "0"
+  },
+  {
+    title: "AI Script Writer (AI ဖြင့် ဇာတ်ညွှန်းရေးခြင်း)",
+    description: "သင်ပေးလိုက်သော ခေါင်းစဉ်အပေါ် မူတည်၍ စိတ်ဝင်စားဖွယ်ကောင်းသော Script များကို AI က ရေးသားပေးမည် ဖြစ်ပါသည်။ Style နှင့် Length ကိုလည်း စိတ်ကြိုက် ရွေးချယ်နိုင်ပါသည်။",
+    videoId: "5D66YbnUO1s",
+    timestamp: "10"
+  },
+  {
     title: "Teleprompter (တယ်လီပရွန်တာ)",
     description: "TelePromp AI is your professional teleprompter and recording studio.\n\nYou can use the controls at the bottom to adjust your reading speed and font size.\n\nTry the AI Script Generator by clicking the sparkle icon to create a new script in seconds.\n\nHover your mouse over this text to pause the scrolling automatically.",
     videoId: "-3FIdZrEnFE",
     timestamp: "2"
   },
   {
-    title: "AI Voice (AIအသံထုတ်ရန်)",
-    description: "Google AI Studioကိုသွားစရာမလိုပဲ အသံထုတ်လို့ပိုပြီးလွယ်အောင်စမ်းသပ်ထားခြင်းဖြစ်ပါတယ်။အဆင်ပြေရင် Contact မှာ Reviewလေးတွေလာပြောပေးပါဦး",
+    title: "Text To SRT (စာသားမှ SRT ပြောင်းခြင်း)",
+    description: "အချိန်မှတ် (Timestamp) ပါဝင်သော စာသားများကို SRT ဖိုင်အဖြစ်သို့ လွယ်ကူလျင်မြန်စွာ ပြောင်းလဲပေးပါသည်။ API Key မလိုဘဲ အသုံးပြုနိုင်ပါသည်။",
     videoId: "sGHe7nhThwo",
     timestamp: "30"
   },
@@ -87,6 +87,7 @@ const YouTubeEmbed: React.FC<{ videoId: string; timestamp?: string }> = ({ video
 const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [tutorials, setTutorials] = useState<TutorialItem[]>(DEFAULT_TUTORIALS);
   const [loading, setLoading] = useState(true);
+  const [expandedStates, setExpandedStates] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const fetchTutorials = async () => {
@@ -169,14 +170,35 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <YouTubeEmbed videoId={item.videoId} timestamp={item.timestamp} />
               )}
 
-                <div className="bg-slate-50 dark:bg-gray-700 rounded-2xl p-6 border border-slate-100 dark:border-gray-600">
-                  <div className="flex gap-3">
-                    <Info size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
-                    <div className="text-gray-700 dark:text-gray-300 leading-relaxed font-medium whitespace-pre-wrap">
-                      {item.description}
-                    </div>
+              <div className="p-0 border-none bg-transparent">
+                <div className="flex gap-3">
+                  <Info size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-1" />
+                  <div className="text-gray-700 dark:text-gray-300 leading-relaxed font-semibold whitespace-pre-wrap flex-1 text-sm">
+                    {(() => {
+                      const isLong = item.description.length > 115;
+                      const isExpanded = !!expandedStates[index];
+                      const displayText = isLong && !isExpanded 
+                        ? item.description.slice(0, 105) + '...' 
+                        : item.description;
+
+                      return (
+                        <>
+                          {displayText}
+                          {isLong && (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedStates(prev => ({ ...prev, [index]: !isExpanded }))}
+                              className="ml-2 font-black text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 border-b-2 border-dashed border-indigo-600 dark:border-indigo-400 pb-0.5 cursor-pointer leading-none text-xs inline-block"
+                            >
+                              {isExpanded ? 'See less' : 'See more'}
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
+              </div>
             </div>
           </Card>
         ))}

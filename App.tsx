@@ -804,9 +804,9 @@ const App: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928] font-khit"
+                <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#2563EB] via-[#7C3AED] to-[#DB2777] dark:from-[#38BDF8] dark:via-[#A78BFA] dark:to-[#F472B6] font-khit"
                       style={{ 
-                        filter: 'drop-shadow(1px 1px 0px #b8860b) drop-shadow(2px 2px 3px rgba(0,0,0,0.15))',
+                        filter: 'drop-shadow(1px 1px 0px rgba(79, 70, 229, 0.4)) drop-shadow(2px 2px 3px rgba(0,0,0,0.12))',
                       }}>
                   {settings.appLogo}
                 </span>
