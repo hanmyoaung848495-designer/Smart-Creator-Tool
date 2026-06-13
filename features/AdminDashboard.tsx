@@ -127,7 +127,11 @@ const AdminDashboard: React.FC<Props> = ({ onBack, session }) => {
     try {
       const { getUsageLimits } = await import('../services/usageService');
       const data = await getUsageLimits();
-      setLimits(data);
+      setLimits({
+        ai_voice_guest_limit: data.ai_voice_guest_limit || 2,
+        transcribe_guest_limit: data.transcribe_guest_limit || 2,
+        transcribe_user_limit: data.transcribe_user_limit || 3
+      });
     } catch (err) {
       console.error(err);
     } finally {

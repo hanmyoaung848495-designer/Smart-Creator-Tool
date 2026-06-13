@@ -44,7 +44,7 @@ const PersistentResults: React.FC<Props> = ({ results, activeType, onDelete, onC
     <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-200 pb-4 gap-4">
         <div className="flex items-center gap-2">
-          <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <span>🕒</span> Recent {activeType ? 'Results' : 'Activity'}
           </h3>
           <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest bg-gray-100 px-2 py-0.5 rounded-md">
@@ -77,7 +77,7 @@ const PersistentResults: React.FC<Props> = ({ results, activeType, onDelete, onC
                      result.type === 'text-to-srt' ? '📄' : '📝'}
                   </div>
                   <div className="truncate max-w-[200px] sm:max-w-md">
-                    <h4 className="font-bold text-gray-900 leading-tight truncate">{result.title}</h4>
+                    <h4 className="font-bold text-gray-900 dark:text-white leading-tight truncate">{result.title}</h4>
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
                       {new Date(result.timestamp).toLocaleString()} • <span className="text-indigo-500">{result.type.replace('-', ' ')}</span>
                     </p>

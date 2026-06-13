@@ -234,7 +234,7 @@ const Transcribe: React.FC<Props> = ({
             onClick={() => setActiveTab('youtube')}
             className={`px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] transition-all ${activeTab === 'youtube' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            📺 Video Link Transcription
+            📺 YouTube Video Transcription
           </button>
         </div>
 
@@ -242,7 +242,7 @@ const Transcribe: React.FC<Props> = ({
           <div className="flex flex-col items-center py-12 gap-6">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Transcribing File...</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Transcribing File...</h3>
               <p className="text-gray-500 text-sm italic">Our specialized AI is listening and transcribing the audio directly into text.</p>
             </div>
             <div className="w-full max-w-md">
@@ -253,7 +253,7 @@ const Transcribe: React.FC<Props> = ({
           <div className="flex flex-col items-center py-12 gap-6">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Transcribing Video link...</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Transcribing Video link...</h3>
               <p className="text-gray-500 text-sm italic">Our specialized AI is extracting and transcribing the video content.</p>
             </div>
             <div className="w-full max-w-md">
@@ -275,7 +275,7 @@ const Transcribe: React.FC<Props> = ({
               </div>
             ) : (
               <div className="flex flex-col gap-6">
-                <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6">
+                <div className="bg-indigo-50 dark:bg-gray-800/40 border border-indigo-100 dark:border-gray-700/50 rounded-2xl p-6">
                   <Input 
                     label="Video Link (YouTube only)" 
                     placeholder="Paste link here..." 

@@ -513,6 +513,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           toast.error('Generation failed: ' + errMsg, {
             style: { borderRadius: '1rem' }
           });
+          window.dispatchEvent(new CustomEvent('api-error', {
+            detail: { message: errMsg, title: 'AI Voice Error' }
+          }));
         }
       }
     });
@@ -792,6 +795,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         toast.error('Preview failed: ' + errMsg, {
           style: { borderRadius: '1rem' }
         });
+        window.dispatchEvent(new CustomEvent('api-error', {
+          detail: { message: errMsg, title: 'AI Voice Error' }
+        }));
       }
     } finally {
       setIsPreviewing(null);
@@ -1065,20 +1071,18 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-4 mt-4">
-              {geminiResult && !activeGeminiTask ? (
-                <div className="w-full">
+            <div className="space-y-4 mt-4">
+              {geminiResult && !activeGeminiTask && (
+                <div className="w-full animate-in fade-in duration-300">
                   <GeminiAudioPlayer 
                     audioUrl={geminiResult.audio_url}
                     fileName={geminiResult.fileName}
                     onDelete={() => setGeminiResult(null)}
                   />
                 </div>
-              ) : (
-                <div className="flex-grow"></div>
               )}
 
-              {!geminiResult && (
+              <div className="flex items-center justify-end gap-4">
                 <Button
                     onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                       e.stopPropagation();
@@ -1103,7 +1107,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                     </>
                   )}
                 </Button>
-              )}
+              </div>
             </div>
           </>
         ) : (
@@ -1449,29 +1453,29 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
       {/* History */}
       <div className="space-y-4">
-        <h3 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2">
+        <h3 className="text-xs font-black text-gray-900 dark:text-gray-100 uppercase tracking-[0.2em] flex items-center gap-2">
           <History size={16} className="text-indigo-600" /> Generation History
         </h3>
         <div className="grid gap-4">
           {history.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-gray-200">
-              <p className="text-gray-400 text-sm italic">No history yet. Start generating voices!</p>
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
+              <p className="text-gray-400 dark:text-gray-500 text-sm italic">No history yet. Start generating voices!</p>
             </div>
           ) : (
             history.map(item => (
               <Card key={item.id} className="p-4 flex flex-col sm:flex-row items-center gap-4 group">
                 <div className="flex w-full items-center gap-4">
-                  <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-950/35 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
                     <Volume2 size={20} />
                   </div>
                   <div className="flex-grow min-w-0">
-                    <h4 className="text-sm font-bold text-gray-900 truncate">{item.title}</h4>
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{item.title}</h4>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-black uppercase text-gray-400 tracking-tighter">
+                      <span className="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-tighter">
                         {item.mode === 'single' ? 'Single' : 'Multi'} {item.voices ? `• ${item.voices.join(', ')}` : ''}
                       </span>
-                      <span className="text-[10px] text-gray-300">•</span>
-                      <span className="text-[10px] text-gray-400">{new Date(item.timestamp).toLocaleString()}</span>
+                      <span className="text-[10px] text-gray-300 dark:text-gray-700">•</span>
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500">{new Date(item.timestamp).toLocaleString()}</span>
                     </div>
                   </div>
                 </div>

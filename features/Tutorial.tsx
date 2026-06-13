@@ -207,7 +207,7 @@ const Tutorial: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       <div className="mt-16 text-center pb-12">
         <p className="text-gray-400 dark:text-gray-500 text-sm font-bold uppercase tracking-widest mb-4">Need more help?</p>
         <a 
-          href="https://t.me/kcteamofficialbot" 
+          href="https://t.me/kcstoreofficialbot" 
           target="_blank" 
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center rounded-full px-8 py-3 border border-gray-200 dark:border-gray-600 font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"

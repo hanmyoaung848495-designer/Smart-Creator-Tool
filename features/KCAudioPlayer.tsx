@@ -107,7 +107,7 @@ export const KCAudioPlayer: React.FC<KCAudioPlayerProps> = ({ audioUrl, srtUrl, 
   };
 
   return (
-    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+    <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-xl border border-gray-200 dark:border-gray-800 space-y-3">
       <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlaying(false)} />
       
       {/* Player */}
@@ -118,57 +118,57 @@ export const KCAudioPlayer: React.FC<KCAudioPlayerProps> = ({ audioUrl, srtUrl, 
         >
           {isPlaying ? <Pause size={18} /> : <Play size={18} />}
         </button>
-        <span className="text-[10px] font-mono text-gray-500 w-9 text-center">{formatTime(progress)}</span>
+        <span className="text-[10px] font-mono text-gray-500 dark:text-gray-400 w-9 text-center">{formatTime(progress)}</span>
         <input 
           type="range" 
           min="0" 
           max={isNaN(duration) ? 0 : duration} 
           value={progress} 
           onChange={handleSeek}
-          className="flex-grow h-1 bg-indigo-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+          className="flex-grow h-1 bg-indigo-200 dark:bg-indigo-950/60 rounded-lg appearance-none cursor-pointer accent-indigo-600"
         />
-        <span className="text-[10px] font-mono text-gray-500 w-9 text-center">{formatTime(isNaN(duration) ? 0 : duration)}</span>
-        <button onClick={onDelete} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition flex-shrink-0">
+        <span className="text-[10px] font-mono text-gray-500 dark:text-gray-400 w-9 text-center">{formatTime(isNaN(duration) ? 0 : duration)}</span>
+        <button onClick={onDelete} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full transition flex-shrink-0">
           <Trash2 size={18} />
         </button>
       </div>
 
       {/* Downloads */}
-      <div className="flex justify-between items-center px-1 pt-1 border-t border-gray-100">
+      <div className="flex justify-between items-center px-1 pt-1 border-t border-gray-100 dark:border-gray-800">
         <button 
           onClick={() => handleDownload(audioUrl, 'wav')}
           disabled={isDownloading !== null}
-          className="flex flex-col items-center gap-1 text-[10px] font-bold text-gray-500 hover:text-indigo-600 disabled:opacity-50"
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50"
         >
           <div className="flex items-center gap-1">
             <Download size={12} className={isDownloading === 'wav' ? 'animate-bounce' : ''} />
             {isDownloading === 'wav' ? 'Down...' : 'WAV'}
           </div>
-          {fileSize && <span className="text-[9px] text-gray-400 font-normal">{fileSize}</span>}
+          {fileSize && <span className="text-[9px] text-gray-400 dark:text-gray-500 font-normal">{fileSize}</span>}
         </button>
 
         <button 
           onClick={() => handleDownload(audioUrl, 'mp3')}
           disabled={isDownloading !== null}
-          className="flex flex-col items-center gap-1 text-[10px] font-bold text-gray-500 hover:text-indigo-600 disabled:opacity-50"
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-50"
         >
           <div className="flex items-center gap-1">
             <Download size={12} className={isDownloading === 'mp3' ? 'animate-bounce' : ''} />
             {isDownloading === 'mp3' ? 'Down...' : 'MP3'}
           </div>
-          {fileSize && <span className="text-[9px] text-gray-400 font-normal">{fileSize}</span>}
+          {fileSize && <span className="text-[9px] text-gray-400 dark:text-gray-500 font-normal">{fileSize}</span>}
         </button>
 
         <button 
           onClick={() => handleDownload(srtUrl, 'srt')}
           disabled={isDownloading !== null}
-          className="flex flex-col items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+          className="flex flex-col items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 disabled:opacity-50"
         >
           <div className="flex items-center gap-1">
             <Download size={12} className={isDownloading === 'srt' ? 'animate-bounce' : ''} />
             {isDownloading === 'srt' ? 'Down...' : 'SRT File'}
           </div>
-          {srtFileSize && <span className="text-[9px] text-gray-400 font-normal">{srtFileSize}</span>}
+          {srtFileSize && <span className="text-[9px] text-gray-400 dark:text-gray-500 font-normal">{srtFileSize}</span>}
         </button>
       </div>
     </div>

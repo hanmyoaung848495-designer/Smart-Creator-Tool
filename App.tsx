@@ -22,6 +22,7 @@ import { getUserTierName } from './lib/tier';
 import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import { FeedbackModal } from './components/FeedbackModal';
+import { BannerCarousel } from './components/BannerCarousel';
 import NativeAd from './components/NativeAd';
 import SocialBarAd from './components/SocialBarAd';
 import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText, Download, Crown } from 'lucide-react';
@@ -40,6 +41,62 @@ const App: React.FC = () => {
   }, [activeFeature]);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    const checkIsStandalone = () => {
+      const isStandaloneMedia = window.matchMedia('(display-mode: standalone)').matches;
+      const isNavigatorStandalone = (window.navigator as any).standalone === true;
+      setIsStandalone(isStandaloneMedia || isNavigatorStandalone);
+    };
+
+    checkIsStandalone();
+
+    const mediaQuery = window.matchMedia('(display-mode: standalone)');
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      setIsStandalone(e.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleMediaChange);
+
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsStandalone(true);
+      toast.success('App ကို အောင်မြင်စွာ Install လုပ်ပြီးပါပြီ။');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      mediaQuery.removeEventListener('change', handleMediaChange);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        setDeferredPrompt(null);
+      } catch (err) {
+        console.error('PWA install error:', err);
+      }
+    } else {
+      toast('အကယ်၍ Install လုပ်ရန် Dialog ပေါ်မလာပါက Chrome/Safari Browser Menu ရှိ "Add to Home Screen" (သို့မဟုတ်) "Install App" ကိုနှိပ်၍ Direct install နိုင်ပါတယ်ခင်ဗျာ။', {
+        duration: 8000
+      });
+    }
+  };
+
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) return saved === 'dark';
@@ -131,6 +188,9 @@ const App: React.FC = () => {
   const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set());
   const [pendingDownload, setPendingDownload] = useState<StoredResult | null>(null);
   const [confirmClear, setConfirmClear] = useState<{ isOpen: boolean, type: FeatureType | null }>({ isOpen: false, type: null });
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorPopupTitle, setErrorPopupTitle] = useState('အမှားဖြစ်ပေါ်မှု / Error occurred');
+  const [errorPopupMessage, setErrorPopupMessage] = useState('');
 
   const handleSystemLogin = async () => {
     try {
@@ -179,8 +239,20 @@ const App: React.FC = () => {
       });
       setTimeout(() => setToastMessage(null), 5000);
     };
+
+    const handleApiError = (e: any) => {
+      const { message, title } = e.detail || {};
+      setErrorPopupMessage(message || 'An unexpected error occurred.');
+      setErrorPopupTitle(title || 'အမှားဖြစ်ပေါ်မှု / Connection Issue');
+      setShowErrorPopup(true);
+    };
+
     window.addEventListener('gemini-fallback', handleFallback);
-    return () => window.removeEventListener('gemini-fallback', handleFallback);
+    window.addEventListener('api-error', handleApiError);
+    return () => {
+      window.removeEventListener('gemini-fallback', handleFallback);
+      window.removeEventListener('api-error', handleApiError);
+    };
   }, []);
 
   useEffect(() => {
@@ -355,6 +427,14 @@ const App: React.FC = () => {
           if (task?.isCanceled) return currentTasks;
           return currentTasks.map(t => t.id === id ? { ...t, status: 'failed', error: err.message || 'Processing error' } : t);
         });
+        
+        let errMsg = err?.message || String(err);
+        // Exclude specific simple user cancellation/action notices if needed
+        if (errMsg !== 'Canceled by user') {
+          window.dispatchEvent(new CustomEvent('api-error', {
+            detail: { message: errMsg, title: `Error: ${title}` }
+          }));
+        }
       }
     })();
   }, [updateTask, session, logActivity, tasks]);
@@ -368,6 +448,18 @@ const App: React.FC = () => {
       return newSession;
     });
   }, []);
+
+  const handleSelectFeature = async (feature: FeatureType) => {
+    if (feature === 'script-writer') {
+      toast.info('COMING SOON သည်းခံပြီး စောင့်ဆိုင်းပေးပါခင်ဗျာ။', {
+        id: 'coming-soon-script-writer',
+        duration: 5000
+      });
+      return;
+    }
+    setActiveFeature(feature);
+    setIsMenuOpen(false);
+  };
 
   const renderActiveFeature = () => {
     const commonProps = { 
@@ -386,7 +478,7 @@ const App: React.FC = () => {
     };
 
     switch (activeFeature) {
-      case 'home': return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
+      case 'home': return <Home onSelect={handleSelectFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
       case 'transcribe': return <Transcribe {...commonProps} />;
       case 'translate': return <Translate {...commonProps} />;
       case 'srt-translate': return <SRTTranslate {...commonProps} />;
@@ -402,18 +494,17 @@ const App: React.FC = () => {
       case 'pricing': return <Pricing onBack={() => setActiveFeature('home')} onToggleMenu={toggleMenu} session={session} />;
       case 'admin': 
         if (session.role !== 'admin') {
-          return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
+          return <Home onSelect={handleSelectFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
         }
         return <AdminDashboard onBack={() => setActiveFeature('home')} session={session} />;
-      default: return <Home onSelect={setActiveFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
+      default: return <Home onSelect={handleSelectFeature} settings={settings} activeTasks={activeTasks} session={session} onUpdateSession={handleUpdateSession} onRequireLogin={() => setShowLoginModal(true)} />;
     }
   };
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   const navigateTo = (feature: FeatureType) => {
-    setActiveFeature(feature);
-    setIsMenuOpen(false);
+    handleSelectFeature(feature);
   };
 
   return (
@@ -567,13 +658,21 @@ const App: React.FC = () => {
                 <Zap size={18} className="text-amber-500" /> API Guide
               </button>
               <a 
-                href="https://t.me/kcteamofficialbot" 
+                href="https://t.me/kcstoreofficialbot" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
               >
                 <Send size={18} className="text-sky-500" /> Contact
               </a>
+              {!isStandalone && (
+                <button 
+                  onClick={handleInstallApp}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 dark:border-indigo-900/40 bg-indigo-50/20 dark:bg-indigo-950/20 hover:bg-indigo-100/30 dark:hover:bg-indigo-900/30 transition-all shadow-sm"
+                >
+                  <Download size={18} className="text-indigo-500 shrink-0" /> App Install လုပ်ရန် (PWA)
+                </button>
+              )}
               {session.role !== 'free' ? (
                   <button 
                   onClick={() => {
@@ -699,7 +798,12 @@ const App: React.FC = () => {
           </div>
           
           <div className="text-center space-y-0.5">
-            <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">Smart Creator Tools</h2>
+            <h2 className="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#2563EB] via-[#7C3AED] to-[#DB2777] dark:from-[#38BDF8] dark:via-[#A78BFA] dark:to-[#F472B6] font-khit"
+                style={{ 
+                  filter: 'drop-shadow(1px 1px 0px rgba(79, 70, 229, 0.4)) drop-shadow(2px 2px 3px rgba(0,0,0,0.12))',
+                }}>
+              Smart Creator Tools
+            </h2>
             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Designed and Developed</p>
             <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">By KC Team</p>
           </div>
@@ -751,6 +855,62 @@ const App: React.FC = () => {
             >
               Add API
             </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showErrorPopup}
+        onClose={() => setShowErrorPopup(false)}
+        title={errorPopupTitle}
+        maxWidth="max-w-md"
+        hideBottomClose={true}
+      >
+        <div className="space-y-4 py-2">
+          <div className="flex items-center gap-3 text-red-500 bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-100 dark:border-red-900/30">
+            <XCircle size={24} className="shrink-0" />
+            <p className="text-sm font-bold">Error Occurred / အမှားဖြစ်ပေါ်ပါသည်</p>
+          </div>
+
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto">
+            <p className="font-mono text-xs text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-all">
+              {errorPopupMessage}
+            </p>
+          </div>
+
+          {(errorPopupMessage.toLowerCase().includes('fetch') || 
+            errorPopupMessage.toLowerCase().includes('network') || 
+            errorPopupMessage.toLowerCase().includes('connect') || 
+            errorPopupMessage.toLowerCase().includes('vpn') || 
+            errorPopupMessage.toLowerCase().includes('blocked') ||
+            errorPopupMessage.toLowerCase().includes('region') ||
+            errorPopupMessage.toLowerCase().includes('location') ||
+            errorPopupMessage.toLowerCase().includes('unsupported') ||
+            errorPopupMessage.toLowerCase().includes('failed') ||
+            errorPopupMessage.toLowerCase().includes('api key') ||
+            errorPopupMessage.toLowerCase().includes('invalid') ||
+            errorPopupMessage.toLowerCase().includes('key')) ? (
+            <div className="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 p-3 rounded-xl border border-amber-100 dark:border-amber-900/30 text-xs font-bold leading-relaxed space-y-1">
+              <p>⚠️ VPN မသုံးလို့ error တက်ခဲ့ရင် VPN ချိတ်ဆက်၍ပြန်လည်အသုံးပြုပေးပါခင်ဗျာ</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 font-normal">
+                (Gemini API အသုံးပြုရန် သင့်ဘက်မှ VPN (USA/Singapore Node) ချိတ်ဆက်ထားရန်လိုအပ်နိုင်ပါသည်)
+              </p>
+            </div>
+          ) : null}
+
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center font-bold">
+            အဆင်မပြေမှုတစ်စုံတရာဖြစ်ပေါ်ပါက Screen shot ရိုက်၍ Admin ထပ်ဆက်သွယ်မေးမြန်းနိုင်ပါတယ်။
+          </p>
+
+          <div className="flex justify-center pt-2">
+            <a 
+              href="https://t.me/kcteamofficialbot" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="inline-flex items-center gap-2 justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 transition-colors shadow-lg shadow-indigo-500/10"
+            >
+              <Send size={16} /> Contact Admin
+            </a>
           </div>
         </div>
       </Modal>
@@ -883,6 +1043,12 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      {activeFeature !== 'teleprompter' && (
+        <div className="max-w-7xl mx-auto px-4 mt-4 w-full">
+          <BannerCarousel />
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 w-full relative h-0">
         <div className="absolute top-2 left-4 z-40">
           <MusicPlayer />
@@ -913,7 +1079,7 @@ const App: React.FC = () => {
                 <FileText size={16} /> Terms
               </button>
               <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
-              <a href="https://t.me/kcteamofficialbot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
+              <a href="https://t.me/kcstoreofficialbot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
                 <Send size={16} /> Contact
               </a>
             </div>
@@ -940,7 +1106,7 @@ const Home: React.FC<{
   const messages = useMemo(() => {
     const list = ["အသက်ရှူတိုင်းငွေဝင်ပါစေ"];
     if (session.role === 'free') {
-      list.push("ကြော်ငြာမပါဘဲ Unlimited Voice တွေ ထုတ်ယူဖို့ Premium Planရယူပါ");
+      list.push("ကြော်ငြာမပါဘဲ Unlimited Voice တွေ ထုတ်ယူဖို့\nPremium Plan ရယူပါ");
     }
     return list;
   }, [session.role]);
@@ -965,7 +1131,7 @@ const Home: React.FC<{
           <p className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Designed and Developed</p>
           <p className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">By KC Team</p>
         </div>
-        <div className="h-12 flex items-center justify-center">
+        <div className="min-h-[5rem] flex items-center justify-center py-2">
           <AnimatePresence mode="wait">
             <motion.p
               key={messageIndex}
@@ -973,7 +1139,11 @@ const Home: React.FC<{
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.5, ease: "easeInOut" }}
-              className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent text-sm md:text-lg font-black uppercase tracking-[0.15em] px-4"
+              className={`bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent font-black px-4 font-khit whitespace-pre-line text-center leading-relaxed ${
+                (messages[messageIndex] || "").length > 30
+                  ? "text-lg md:text-2xl tracking-normal"
+                  : "text-2xl md:text-4xl uppercase tracking-[0.15em]"
+              }`}
             >
               {messages[messageIndex]}
             </motion.p>
