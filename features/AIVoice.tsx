@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { GoogleGenAI, Modality } from "@google/genai";
 import { getAIClient } from '../services/gemini';
 import { Card, Button, TextArea, Input, Select, ProgressBar, TutorialButton } from '../components/Shared';
-import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2, X } from 'lucide-react';
+import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2, X, HelpCircle } from 'lucide-react';
 import { FeatureType, ProcessingTask, UserSession } from '../types';
 import { KCAudioPlayer } from './KCAudioPlayer';
 import { GeminiAudioPlayer } from '../components/GeminiAudioPlayer';
@@ -108,7 +108,11 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [kcVolume, setKcVolume] = useState(0);
   const [kcManualOpen, setKcManualOpen] = useState(false);
   const [kcPronunciationOpen, setKcPronunciationOpen] = useState(false);
-  const [kcManualText, setKcManualText] = useState(`Intro = အင်ထရို\nတူမလေး = တူ မ လေး`);
+  const [showPronunciationHelp, setShowPronunciationHelp] = useState(false);
+  const [kcManualText, setKcManualText] = useState(() => {
+    const saved = localStorage.getItem('kc_manual_text');
+    return saved !== null ? saved : `Intro = အင်ထရို\nတူမလေး = တူ မ လေး`;
+  });
   const [kcLoading, setKcLoading] = useState(false);
   const [timerCount, setTimerCount] = useState(0);
   const [kcResult, setKcResult] = useState<{ status: string; audio_url: string; srt_url: string; fileName?: string } | null>(null);
@@ -148,6 +152,21 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       return;
     }
 
+    let usageIncremented = false;
+    let hasDecremented = false;
+
+    const doDecrement = async () => {
+      if (usageIncremented && !hasDecremented) {
+        hasDecremented = true;
+        try {
+          const { decrementUsage } = await import('../services/usageService');
+          await decrementUsage('ai_voice', session.role !== 'free' ? (session.user?.id || 'logged_in') : null);
+        } catch (decErr) {
+          console.error('Failed to decrement usage:', decErr);
+        }
+      }
+    };
+
     try {
       setIsCheckingUsage(true);
       const { checkAndIncrementUsage } = await import('../services/usageService');
@@ -157,6 +176,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         toast.error(message || 'Daily limit exceeded');
         return;
       }
+      usageIncremented = true;
     } finally {
       setIsCheckingUsage(false);
     }
@@ -174,7 +194,11 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       .replace(/\[\s*C2\s*\]/gi, '[V2]')
       .replace(/\[\s*C3\s*\]/gi, '[V3]');
 
-    let processedText = applyPronunciation(apiCompatibleText, customMap);
+    // Only filter out characters that can cause JSON formatting crashes (like / , " ' ` ( ) { } \ etc.)
+    // Do NOT replace/substitute the custom pronunciation words on the client-side before sending!
+    let processedText = apiCompatibleText
+      .replace(/[\\/"'`\(\){},]/g, ' ')
+      .replace(/[ \t]+/g, ' ');
 
     setKcLoading(true);
     setKcResult(null);
@@ -208,14 +232,20 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         const isCanceled = () => tasksRef.current.find(t => t.id === taskId)?.isCanceled;
 
         if (!response.ok) {
-          if (isCanceled()) return;
+          if (isCanceled()) {
+            await doDecrement();
+            return;
+          }
           const errorText = await response.text();
           console.error('API Error Response:', errorText);
           throw new Error(`Generation failed: ${response.statusText} - ${errorText}`);
         }
         const data = await response.json();
         
-        if (isCanceled()) return;
+        if (isCanceled()) {
+          await doDecrement();
+          return;
+        }
 
         const resultWithFileName = { ...data, fileName: kcFileName };
         setKcResult(resultWithFileName);
@@ -236,6 +266,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         toast.success('Generated successfully!');
         return resultWithFileName;
       } catch (err) {
+        await doDecrement();
         if (tasksRef.current.find(t => t.id === taskId)?.isCanceled) return;
         console.error('Generation Error details:', err);
         const msg = err instanceof Error ? err.message : 'Generation failed.';
@@ -264,6 +295,10 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem('kc_manual_text', kcManualText);
+  }, [kcManualText]);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -1425,18 +1460,57 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         {/* Pronunciation Rules */}
         {voiceEngine === 'kc_tts' && (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm mt-4">
-          <button
-            onClick={() => setKcPronunciationOpen(!kcPronunciationOpen)}
-            className="w-full flex items-center justify-between p-3"
-          >
-            <span className="text-xs font-bold text-gray-700 uppercase tracking-widest flex items-center gap-2">
+          <div className="w-full flex items-center justify-between p-3 border-b border-gray-100">
+            <div className="flex items-center gap-2">
               <span className="bg-indigo-100 p-1 rounded-sm"><span className="text-indigo-600">🔧</span></span>
-              Pronunciation Rules (အသံထွက် ပြင်ဆင်ရန်)
-            </span>
-            <span className="text-indigo-600 font-bold">{kcPronunciationOpen ? '▲' : '▼'}</span>
-          </button>
+              <span className="text-xs font-bold text-gray-700 uppercase tracking-widest flex items-center gap-1.5">
+                Custom Pronunciation (အသံထွက် သတ်မှတ်ရန်)
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowPronunciationHelp(!showPronunciationHelp)}
+                className="text-gray-400 hover:text-indigo-600 transition-colors cursor-pointer p-0.5 rounded-full hover:bg-gray-100 flex items-center justify-center"
+                title="Help Guide"
+              >
+                <HelpCircle size={15} />
+              </button>
+            </div>
+            <button
+              onClick={() => setKcPronunciationOpen(!kcPronunciationOpen)}
+              className="text-indigo-600 font-bold hover:text-indigo-800 p-1 text-sm flex items-center"
+            >
+              {kcPronunciationOpen ? '▲' : '▼'}
+            </button>
+          </div>
+
+          {/* Help Box inside Pronunciation Rules component */}
+          {showPronunciationHelp && (
+            <div className="m-4 p-4 bg-indigo-50/65 border border-indigo-100 rounded-xl text-xs text-gray-700 leading-relaxed shadow-sm">
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-bold flex items-center gap-1 text-indigo-900">
+                  💡 အသံထွက် ပြင်ဆင်ရန် လမ်းညွှန်
+                </span>
+                <button 
+                  onClick={() => setShowPronunciationHelp(false)}
+                  className="text-gray-400 hover:text-gray-600 p-0.5 rounded flex items-center justify-center"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <p className="mb-2 text-gray-600">
+                AI မှ အသံထွက်မှားလေ့ရှိသော စာလုံးများ၊ ဂဏန်းများနှင့် အင်္ဂလိပ်စာလုံးများကို မှန်ကန်စွာ အသံထွက်နိုင်ရန် ဤနေရာတွင် အစားထိုး ပြင်ဆင်နိုင်ပါသည်။
+              </p>
+              <div className="bg-white/80 p-2.5 rounded-lg border border-indigo-100/40 space-y-1">
+                <p className="font-semibold text-indigo-950 mb-1">[ဥပမာများ]</p>
+                <p>• ဂဏန်းများ - "၁၀ရက်" အစား "ဆယ်ရက်" ဟု ထည့်ပါ။</p>
+                <p>• စကားလုံးများ - "တူမလေး" အစား "တူ မ လေး" ဟု ခွဲရေးပါ။</p>
+                <p>• အင်္ဂလိပ်စာလုံးများ - "Intro" အစား "အင်ထရို" ဟု မြန်မာလို အသံထွက်ရေးပါ။</p>
+              </div>
+            </div>
+          )}
+
           {kcPronunciationOpen && (
-            <div className="p-4 border-t border-gray-100">
+            <div className="p-4">
               <TextArea
                 value={kcManualText}
                 onChange={setKcManualText}

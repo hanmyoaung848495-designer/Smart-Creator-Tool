@@ -200,3 +200,51 @@ export const checkAndIncrementUsage = async (
 
   return { allowed: true, remaining: limit - nextCount };
 };
+
+export const decrementUsage = async (
+  toolType: ToolType, 
+  userId?: string | null,
+  isLink?: boolean
+): Promise<void> => {
+  const identifier = userId || getDeviceId();
+  const dbToolType = (toolType === 'transcribe' && isLink) ? 'link_transcribe' : toolType;
+  const isGuest = !userId;
+
+  // Local storage decrement
+  if (isGuest) {
+    const localUsage = getLocalUsage();
+    if (localUsage[dbToolType] && localUsage[dbToolType] > 0) {
+      const newLocal = { ...localUsage, [dbToolType]: Math.max(0, localUsage[dbToolType] - 1) };
+      saveLocalUsage(newLocal);
+    }
+  }
+
+  // Database decrement
+  if (supabase) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('tool_usage')
+        .select('count')
+        .eq('identifier', identifier)
+        .eq('tool_type', dbToolType)
+        .eq('usage_date', today)
+        .single();
+
+      if (!error && data && data.count > 0) {
+        const nextCount = Math.max(0, data.count - 1);
+        await supabase
+          .from('tool_usage')
+          .upsert({
+            identifier,
+            tool_type: dbToolType,
+            usage_date: today,
+            count: nextCount
+          }, { onConflict: 'identifier, tool_type, usage_date' });
+      }
+    } catch (e) {
+      console.error('Database usage decrement error:', e);
+    }
+  }
+};
+

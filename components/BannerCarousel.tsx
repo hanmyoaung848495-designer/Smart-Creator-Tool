@@ -202,22 +202,22 @@ export const BannerCarousel: React.FC = () => {
         return (
           <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-aka07">
             <div className="absolute top-2 left-3 md:top-3 md:left-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-xs font-black tracking-widest uppercase border border-white/25">
-              🇯🇵 JAPAN EXCLUSIVE
+              📱 TIKTOK & BANK SERVICES
             </div>
-            <div className="max-w-2xl px-2 space-y-2 md:space-y-3">
-              <h3 className="text-base sm:text-xl md:text-2xl font-black text-yellow-300 drop-shadow-md">
-                Japan TikTok Acc
+            <div className="max-w-2xl px-2 space-y-3 md:space-y-4">
+              <h3 className="text-lg sm:text-2xl md:text-3xl font-black text-yellow-300 drop-shadow-md tracking-wide leading-normal">
+                TikTok ID တင်ခြင်း
               </h3>
-              <p className="text-sm sm:text-lg md:text-xl font-bold leading-normal">
-                TikTok Id တင်၊ Bank ချိတ်
+              <p className="text-sm sm:text-lg md:text-xl font-bold leading-relaxed text-white drop-shadow-lg">
+                Bank ချိတ် service များအပ်နှံနိုင်ပါပြီ
               </p>
               <span className="inline-flex items-center gap-2 bg-black/35 backdrop-blur-md text-red-200 border border-red-500/30 py-1.5 px-5 rounded-2xl text-xs sm:text-sm font-semibold shadow">
                 <span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block animate-ping"></span>
-                Service Partner များ ဆက်သွယ်နိုင်ပါသည်။
+                စိတ်ချယုံကြည်စွာ အပ်နှံနိုင်ပါသည်။
               </span>
             </div>
             <div className="absolute bottom-2 right-3 md:bottom-3 md:right-4 text-[10px] sm:text-xs text-amber-200 font-semibold uppercase tracking-wider">
-              KC International
+              KC Service Partner
             </div>
           </div>
         );
