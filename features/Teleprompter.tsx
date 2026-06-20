@@ -574,7 +574,11 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
                       />
                       <button 
                         disabled={isGenerating || !aiTopic.trim()}
-                        onClick={handleGenerateScript}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
+                          handleGenerateScript();
+                        }}
                         className="absolute right-2 top-2 p-3 bg-purple-600 text-white rounded-xl hover:bg-purple-500 disabled:opacity-50 transition-all"
                       >
                         {isGenerating ? <RotateCcw size={20} className="animate-spin" /> : <Send size={20} />}
@@ -585,7 +589,11 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
                     <label className="text-sm font-bold text-neutral-500 uppercase tracking-widest">Script Optimization</label>
                     <button 
                       disabled={isGenerating}
-                      onClick={handleRefineScript}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
+                        handleRefineScript();
+                      }}
                       className="w-full py-4 border border-purple-500/30 bg-purple-500/10 text-purple-400 rounded-2xl font-bold hover:bg-purple-500/20 transition-all flex items-center justify-center gap-2"
                     >
                       <Wand2 size={20} />

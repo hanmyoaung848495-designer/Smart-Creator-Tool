@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { triggerAd } from '../lib/ads';
 import { FeatureType, StoredResult, UserSession, ProcessingTask } from '../types';
 import { Card, Button, TextArea, Input, Modal, TutorialButton } from '../components/Shared';
 import PersistentResults from '../components/PersistentResults';
@@ -91,7 +90,6 @@ const TextToSRT: React.FC<Props> = ({
   };
 
   const handleGenerate = () => {
-    triggerAd();
     setTouched(true);
     if (!fileName.trim()) {
       return;
@@ -206,7 +204,11 @@ const TextToSRT: React.FC<Props> = ({
 
           <div className="flex justify-center">
             <Button 
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleGenerate(); }} 
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
+                e.stopPropagation(); 
+                if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
+                handleGenerate(); 
+              }} 
               className="w-full md:w-auto min-w-[200px] h-[46px] text-sm font-bold uppercase tracking-widest"
               disabled={!fileName.trim() || !text.trim()}
             >

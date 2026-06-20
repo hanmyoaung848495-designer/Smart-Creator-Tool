@@ -23,7 +23,9 @@ import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import { FeedbackModal } from './components/FeedbackModal';
 import { BannerCarousel } from './components/BannerCarousel';
-import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText, Download, Crown, Globe, PlayCircle } from 'lucide-react';
+import NativeAd from './components/NativeAd';
+import SocialBarAd from './components/SocialBarAd';
+import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText, Download, Crown } from 'lucide-react';
 import { trackEvent } from './lib/analytics';
 import { Toaster, toast } from 'sonner';
 
@@ -161,7 +163,7 @@ const App: React.FC = () => {
   const [tasks, setTasks] = useState<ProcessingTask[]>([]);
   const [showTutorial, setShowTutorial] = useState(false);
   const [logoError, setLogoError] = useState(false);
-  const [modalType, setModalType] = useState<'privacy' | 'terms' | 'contact' | null>(null);
+  const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(() => {
     // Check if dismissed previously
     return !localStorage.getItem('terms_accepted');
@@ -655,12 +657,14 @@ const App: React.FC = () => {
               >
                 <Zap size={18} className="text-amber-500" /> API Guide
               </button>
-              <button 
-                onClick={() => setModalType('contact')}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-left"
+              <a 
+                href="https://t.me/kcstoreofficialbot" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
               >
                 <Send size={18} className="text-sky-500" /> Contact
-              </button>
+              </a>
               {!isStandalone && (
                 <button 
                   onClick={handleInstallApp}
@@ -819,17 +823,7 @@ const App: React.FC = () => {
           </label>
           
           <div className="w-full pt-2">
-            <Button 
-              onClick={(e) => {
-                e.stopPropagation();
-                if (e.nativeEvent) {
-                  e.nativeEvent.stopPropagation();
-                  e.nativeEvent.stopImmediatePropagation();
-                }
-                handleTermsAgree();
-              }} 
-              className="w-full py-3 rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none text-xs"
-            >
+            <Button onClick={handleTermsAgree} className="w-full py-3 rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none text-xs">
               Agree
             </Button>
           </div>
@@ -909,15 +903,14 @@ const App: React.FC = () => {
           </p>
 
           <div className="flex justify-center pt-2">
-            <button 
-              onClick={() => {
-                setErrorPopupMessage(null);
-                setModalType('contact');
-              }}
+            <a 
+              href="https://t.me/kcteamofficialbot" 
+              target="_blank" 
+              rel="noopener noreferrer" 
               className="inline-flex items-center gap-2 justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 transition-colors shadow-lg shadow-indigo-500/10"
             >
               <Send size={16} /> Contact Admin
-            </button>
+            </a>
           </div>
         </div>
       </Modal>
@@ -925,27 +918,9 @@ const App: React.FC = () => {
       <Modal 
         isOpen={modalType !== null} 
         onClose={() => setModalType(null)} 
-        title={modalType === 'privacy' ? 'Privacy Policy' : modalType === 'contact' ? 'Contact Admin' : 'Terms of Service'}
+        title={modalType === 'privacy' ? 'Privacy Policy' : 'Terms of Service'}
       >
-        {modalType === 'contact' ? (
-          <div className="space-y-6 text-center">
-            <h3 className="text-xl font-black text-gray-900 dark:text-gray-100">Admin Team ထဲဆက်သွယ်ရန်</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              အဆင်မပြေမှုတစ်စုံတရာဖြစ်ပေါ်ပါက သို့မဟုတ် အကြံပြုလိုပါက Admin Team မှတဆင့် ဆက်သွယ်နိုင်ပါသည်။
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
-              <a href="https://t.me/kcteamofficialbot" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white bg-sky-500 hover:bg-sky-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
-                <Send size={18} /> Telegram
-              </a>
-              <a href="https://www.facebook.com/share/1BJkHQXabe/" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
-                <Globe size={18} /> Facebook
-              </a>
-              <a href="https://www.tiktok.com/@mrmovierecap999?_r=1&_t=ZS-97IQUMx7YcJ" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white bg-black hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
-                <PlayCircle size={18} /> TikTok
-              </a>
-            </div>
-          </div>
-        ) : modalType === 'privacy' ? (
+        {modalType === 'privacy' ? (
           <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
             <p>သင်၏ ကိုယ်ရေးအချက်အလက်များကို ကျွန်ုပ်တို့ အထူးဂရုပြုပါသည်။ Smart Creator Tools သည် သင်နှင့် Google AI Studio အကြား ချိတ်ဆက်ပေးသော ကြားခံဝန်ဆောင်မှုတစ်ခုသာဖြစ်ပါသည်။</p>
             <h4 className="font-bold text-gray-900 dark:text-gray-100">၁။ အချက်အလက်များ သိမ်းဆည်းမထားခြင်း</h4>
@@ -1087,6 +1062,12 @@ const App: React.FC = () => {
       {activeFeature !== 'teleprompter' && (
         <>
           <FeedbackModal />
+          {session.role === 'free' && !session.user && (
+            <>
+              <NativeAd />
+              <SocialBarAd />
+            </>
+          )}
           <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-5 mt-auto">
           <div className="max-w-7xl mx-auto px-6 text-center">
             <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[11px] sm:text-[13px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">
@@ -1098,9 +1079,9 @@ const App: React.FC = () => {
                 <FileText size={16} /> Terms
               </button>
               <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
-              <button onClick={() => setModalType('contact')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
+              <a href="https://t.me/kcstoreofficialbot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
                 <Send size={16} /> Contact
-              </button>
+              </a>
             </div>
             <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-300 px-4 leading-relaxed flex items-center justify-center gap-2">
               <span>© 2026 Smart Creator Tools. All rights reserved by KC Team. With best wishes.</span>

@@ -7,7 +7,6 @@ import { Card, Button, TextArea, Input, Select, ProgressBar, TutorialButton } fr
 import { Play, Pause, Download, Trash2, History, ArrowLeft, Mic, Volume2, Users, User, StopCircle, Loader2, X, HelpCircle } from 'lucide-react';
 import { FeatureType, ProcessingTask, UserSession } from '../types';
 import { KCAudioPlayer } from './KCAudioPlayer';
-import { triggerAd } from '../lib/ads';
 import { GeminiAudioPlayer } from '../components/GeminiAudioPlayer';
 import { INITIAL_PRONUNCIATION_MAP, applyPronunciation } from '../lib/pronunciation';
 import { saveVoiceHistoryDB, loadVoiceHistoryDB } from '../services/storage';
@@ -33,7 +32,7 @@ interface AIVoiceProps {
 }
 
 const VOICES = [
-  'Charon', 'Zephyr', 'Kore', 'Fenrir', 'Leda', 'Orus', 'Aoede', 
+  'Zephyr', 'Charon', 'Kore', 'Fenrir', 'Leda', 'Orus', 'Aoede', 
   'Callirrhoe', 'Autonoe', 'Enceladus', 'Umbriel', 
   'Algieba', 'Erinome', 'Algenib', 'Rasalgethi', 
   'Laomedeia', 'Achernar', 'Alnilam', 'Schedar', 
@@ -87,9 +86,9 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   ]);
   const [selectedModel, setSelectedModel] = useState('gemini-3.1-flash-tts-preview');
   const [voiceEngine, setVoiceEngine] = useState<'gemini' | 'kc_tts'>('kc_tts');
-  const [voice1, setVoice1] = useState('Charon');
-  const [voice2, setVoice2] = useState('Zephyr');
-  const [voice3, setVoice3] = useState('Kore');
+  const [voice1, setVoice1] = useState('Kore');
+  const [voice2, setVoice2] = useState('Charon');
+  const [voice3, setVoice3] = useState('Zephyr');
   const [styleInstruction, setStyleInstruction] = useState('Read aloud in a warm and friendly tone: ');
   const [text, setText] = useState('');
   
@@ -148,7 +147,6 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   };
 
   const handleGenerateKCTTS = async () => {
-    triggerAd();
     if (!kcText.trim()) {
       toast.error('Please enter text for KC Voice.');
       return;
@@ -288,28 +286,6 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [pickingVoiceFor, setPickingVoiceFor] = useState<'voice1' | 'voice2' | 'voice3' | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const getAudioElement = () => {
-    if (!audioRef.current) {
-      const audio = new Audio();
-      audio.onended = () => {
-        setIsPlaying(false);
-        setAudioProgress(0);
-        setIsPreviewing(null);
-      };
-      audio.ontimeupdate = () => {
-        if (audioRef.current && audioRef.current.duration > 0) {
-          setAudioProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
-        }
-      };
-      audio.onloadedmetadata = () => {
-        if (audioRef.current) setAudioDuration(audioRef.current.duration);
-      };
-      audioRef.current = audio;
-    }
-    return audioRef.current;
-  };
-
   const tasksRef = useRef<ProcessingTask[]>(tasks);
 
   useEffect(() => {
@@ -382,7 +358,20 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       });
     }, 30000); // Check every 30 seconds
 
-    getAudioElement();
+    audioRef.current = new Audio();
+    audioRef.current.onended = () => {
+      setIsPlaying(false);
+      setAudioProgress(0);
+      setIsPreviewing(null);
+    };
+    audioRef.current.ontimeupdate = () => {
+      if (audioRef.current && audioRef.current.duration > 0) {
+        setAudioProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+      }
+    };
+    audioRef.current.onloadedmetadata = () => {
+      if (audioRef.current) setAudioDuration(audioRef.current.duration);
+    };
 
     return () => {
       clearInterval(cleanupInterval);
@@ -418,7 +407,6 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   };
 
   const handleRun = async () => {
-    triggerAd();
     const isTextEmpty = mode === 'multi' && isDialogMode 
       ? dialogBlocks.every(b => !b.text.trim())
       : !text.trim();
@@ -607,58 +595,30 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     return new Blob([bytes], { type });
   };
 
-  const playAudio = async (url: string, previewId?: string) => {
-    const audio = getAudioElement();
-    if (audio) {
-      audio.pause();
-      
-      audio.src = url;
-      audio.load();
-      
+  const playAudio = async (url: string) => {
+    if (audioRef.current) {
+      audioRef.current.src = url;
       setIsPlaying(true);
-      if (previewId) {
-        audio.oncanplay = () => {
-          // Ready to play
-        };
-        audio.onended = () => {
-          setIsPreviewing(null);
-          setIsPlaying(false);
-        };
-        audio.onerror = (e) => {
-          console.error("Audio error on playing url:", url, e);
-          setIsPreviewing(null);
-          setIsPlaying(false);
-        };
-      } else {
-        audio.oncanplay = null;
-        audio.onended = () => setIsPlaying(false);
-        audio.onerror = (e) => {
-          console.error("Audio error:", e);
-          setIsPlaying(false);
-        };
-      }
       try {
-        await audio.play();
+        await audioRef.current.play();
       } catch (error: any) {
         if (error.name !== 'AbortError') {
           console.error('Audio playback failed:', error);
           setIsPlaying(false);
-          if (previewId) setIsPreviewing(null);
         }
       }
     }
   };
 
   const handlePlayPause = async () => {
-    const audio = getAudioElement();
-    if (audio) {
+    if (audioRef.current) {
       if (isPlaying) {
-        audio.pause();
+        audioRef.current.pause();
         setIsPlaying(false);
       } else {
         setIsPlaying(true);
         try {
-          await audio.play();
+          await audioRef.current.play();
         } catch (error: any) {
           if (error.name !== 'AbortError') {
             console.error('Audio playback failed:', error);
@@ -671,9 +631,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const seekTo = (parseFloat(e.target.value) / 100) * audioDuration;
-    const audio = getAudioElement();
-    if (audio) {
-      audio.currentTime = seekTo;
+    if (audioRef.current) {
+      audioRef.current.currentTime = seekTo;
       setAudioProgress(parseFloat(e.target.value));
     }
   };
@@ -711,52 +670,73 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     }
   };
 
-  const KC_VOICE_FILES: Record<string, string> = {
-    'ဗန်': 'van.mp3',
-    'သူဇာ': 'thuzar.mp3',
-    'သန့်ဇင်': 'thantzin.mp3',
-    'ကြည်ပြာ': 'kyipyar.mp3',
-    'မောင်မှိုင်း': 'mghmaing.mp3',
-    'သီတာ': 'thidar.mp3',
-    'သီရိ': 'thiri.mp3',
-    'အောင်အောင်': 'aungaung.mp3',
-    'အောင်ဒင်': 'aungdin.mp3',
-    'အောင်လှ': 'aungla.mp3',
-    'အောင်လ': 'aungla.mp3',
-    'ချယ်ရီ': 'cherry.mp3',
-    'David': 'david.mp3',
-    'John': 'john.mp3',
-    'Julia': 'julia.mp3',
-    'Monica': 'monica.mp3',
-    'တာတီး': 'tartee (1).mp3',
-    'သက်ထား': 'thethtar.mp3',
-    'ဗျူဟာ': 'byuhar.mp3'
-  };
-
   const previewKCCharacter = async (e: React.MouseEvent, charValue: string, charLabel: string) => {
     e.stopPropagation();
     
     const previewId = `kc_${charValue}`;
     if (isPreviewing === previewId) {
-      const audio = getAudioElement();
-      if (audio && isPlaying) {
-        audio.pause();
+      if (audioRef.current && isPlaying) {
+        audioRef.current.pause();
         setIsPlaying(false);
       }
       setIsPreviewing(null);
       return;
     }
     
+    if (kcPreviewUrls[charValue]) {
+       setIsPreviewing(previewId);
+       playAudio(kcPreviewUrls[charValue]);
+       return;
+    }
+
     setIsPreviewing(previewId);
-    
+
     try {
-      const fileName = KC_VOICE_FILES[charValue];
-      if (fileName) {
-        playAudio(`/kc_voices/${fileName}`, previewId);
+      const apiUrl = '/api/kc-tts/generate';
+      const isEnglish = charLabel.includes('(English)');
+      let spokenLabel = charLabel.replace(/\s*\([^)]*\)/g, '');
+      
+      let previewText = '';
+      if (isEnglish) {
+        previewText = `Hello, I am ${spokenLabel}. If you like my voice, you can use it.`;
       } else {
-        toast.error('Preview audio not found');
-        setIsPreviewing(null);
+        if (spokenLabel === 'မသူဇာ') spokenLabel = 'မတ်သူဇာ';
+        previewText = `မင်္ဂလာပါ ${spokenLabel} ပြောနေပါတယ် အသံကြိုက်ရင် သုံးနိုင်ပါတယ်`;
       }
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: previewText,
+          v1_voice: charValue,
+          style: 'Normal',
+          srt_ratio: '9:16',
+          manual_pitch: 0,
+          manual_rate: 0,
+          volume_boost: 0
+        }),
+      });
+
+      if (!response.ok) {
+        toast.error(`Preview failed`);
+        setIsPreviewing(null);
+        return;
+      }
+      
+      const data = await response.json();
+      const audioUrl = data.audio_url;
+      
+      setKcPreviewUrls(prev => ({...prev, [charValue]: audioUrl}));
+      
+      setIsPreviewing(current => {
+         if (current === previewId) {
+            playAudio(audioUrl);
+            return previewId;
+         }
+         return current;
+      });
+
     } catch (err) {
       console.error(err);
       toast.error('Preview failed');
@@ -764,32 +744,97 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     }
   };
 
-  const GEMINI_VOICE_FILES: Record<string, string> = {
-    'Aoede': 'aoede.wav',
-    'Fenrir': 'fenir.wav',
-    'Kore': 'kore.wav',
-    'Leda': 'leda.wav',
-    'Orus': 'orus.wav'
-  };
-
   const previewVoice = async (voiceName: string) => {
-    if (isPreviewing === voiceName) {
-      const audio = getAudioElement();
-      if (audio && isPlaying) {
-        audio.pause();
-        setIsPlaying(false);
+    const cacheKey = `tts_preview_${voiceName}`;
+    const cachedAudio = localStorage.getItem(cacheKey);
+
+    if (cachedAudio) {
+      setIsPreviewing(voiceName);
+      const wavBlob = base64PcmToWavBlob(cachedAudio, 24000);
+      const url = URL.createObjectURL(wavBlob);
+      playAudio(url);
+      return;
+    }
+
+    setIsPreviewing(voiceName);
+
+    // Check Supabase first (Global Cache)
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('tts_cache')
+          .select('audio_data')
+          .eq('voice_name', voiceName)
+          .single();
+        
+        if (data && data.audio_data) {
+          try {
+            localStorage.setItem(cacheKey, data.audio_data); // Cache locally for next time
+          } catch (e) {}
+          const wavBlob = base64PcmToWavBlob(data.audio_data, 24000);
+          const url = URL.createObjectURL(wavBlob);
+          playAudio(url);
+          return;
+        }
+      } catch (err) {
+        console.warn("Supabase cache check failed:", err);
       }
+    }
+
+    if (!checkApiKey()) {
       setIsPreviewing(null);
       return;
     }
-    setIsPreviewing(voiceName);
+    const apiKey = session.useCustomKey ? session.customApiKey : (session.systemApiKey || process.env.GEMINI_API_KEY);
 
     try {
-      let fileName = GEMINI_VOICE_FILES[voiceName] || `${voiceName}.wav`;
-      playAudio(`/gemini_voices/${fileName}`, voiceName);
+      const ai = getAIClient(apiKey);
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-tts-preview', // Always use flash for preview to save quota
+        contents: [{ parts: [{ text: `Hello, I am ${voiceName}.` }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: { prebuiltVoiceConfig: { voiceName } },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        try {
+          localStorage.setItem(cacheKey, base64Audio);
+        } catch (e) {
+          console.warn('Failed to cache preview audio (storage full?)', e);
+        }
+        
+        // Save to Supabase for others
+        if (supabase) {
+          supabase.from('tts_cache').insert([
+            { voice_name: voiceName, audio_data: base64Audio }
+          ]).then(({error}: any) => {
+            if (error) console.error("Failed to save to Supabase:", error);
+          });
+        }
+
+        const wavBlob = base64PcmToWavBlob(base64Audio, 24000);
+        const url = URL.createObjectURL(wavBlob);
+        playAudio(url);
+      }
     } catch (err) {
       console.error('Preview failed:', err);
-      toast.error('Preview failed');
+      const errMsg = err instanceof Error ? err.message : String(err);
+      if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
+        setIsQuotaModalOpen(true);
+      } else {
+        toast.error('Preview failed: ' + errMsg, {
+          style: { borderRadius: '1rem' }
+        });
+        window.dispatchEvent(new CustomEvent('api-error', {
+          detail: { message: errMsg, title: 'AI Voice Error' }
+        }));
+      }
+    } finally {
       setIsPreviewing(null);
     }
   };
@@ -885,13 +930,10 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                         e.stopPropagation();
                         previewVoice(voice);
                       }}
+                      disabled={isPreviewing !== null}
                       className={`p-1.5 rounded-lg transition-colors ${isSelected ? 'text-white bg-white/20 hover:bg-white/30' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'}`}
                     >
-                      {isPreviewing === voice ? (
-                        isPlaying ? <Pause size={16} /> : <Loader2 size={16} className="animate-spin" />
-                      ) : (
-                        <Volume2 size={16} />
-                      )}
+                      {isPreviewing === voice ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
                     </button>
                   </div>
                 );
@@ -1192,6 +1234,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                               <span className="truncate">{char.label}</span>
                               <button
                                 onClick={(e) => previewKCCharacter(e, char.value, char.label)}
+                                disabled={isPreviewing !== null && isPreviewing !== `kc_${char.value}`}
                                 className={`p-1.5 rounded-md transition-all ${
                                   isPreviewing === `kc_${char.value}`
                                     ? 'bg-indigo-100 text-indigo-600'
@@ -1200,7 +1243,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                                 title="Preview voice"
                               >
                                 {isPreviewing === `kc_${char.value}` ? (
-                                  isPlaying ? <Pause size={14} /> : <Loader2 size={14} className="animate-spin" />
+                                  <Loader2 size={14} className="animate-spin" />
                                 ) : (
                                   <Volume2 size={14} />
                                 )}
@@ -1247,17 +1290,14 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                                   <span className="truncate">{char.label}</span>
                                   <button
                                     onClick={(e) => previewKCCharacter(e, char.value, char.label)}
+                                    disabled={isPreviewing !== null && isPreviewing !== `kc_${char.value}`}
                                     className={`p-1.5 rounded-md transition-all ${
                                       isPreviewing === `kc_${char.value}`
                                         ? 'bg-indigo-100 text-indigo-600'
                                         : 'hover:bg-indigo-100 hover:text-indigo-600 text-gray-400'
                                     }`}
                                   >
-                                    {isPreviewing === `kc_${char.value}` ? (
-                                      isPlaying ? <Pause size={14} /> : <Loader2 size={14} className="animate-spin" />
-                                    ) : (
-                                      <Volume2 size={14} />
-                                    )}
+                                    {isPreviewing === `kc_${char.value}` ? <Loader2 size={14} className="animate-spin" /> : <Volume2 size={14} />}
                                   </button>
                                 </div>
                                 {kcV2Voice === char.value && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0" />}
@@ -1299,17 +1339,14 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                                   <span className="truncate">{char.label}</span>
                                   <button
                                     onClick={(e) => previewKCCharacter(e, char.value, char.label)}
+                                    disabled={isPreviewing !== null && isPreviewing !== `kc_${char.value}`}
                                     className={`p-1.5 rounded-md transition-all ${
                                       isPreviewing === `kc_${char.value}`
                                         ? 'bg-indigo-100 text-indigo-600'
                                         : 'hover:bg-indigo-100 hover:text-indigo-600 text-gray-400'
                                     }`}
                                   >
-                                    {isPreviewing === `kc_${char.value}` ? (
-                                      isPlaying ? <Pause size={14} /> : <Loader2 size={14} className="animate-spin" />
-                                    ) : (
-                                      <Volume2 size={14} />
-                                    )}
+                                    {isPreviewing === `kc_${char.value}` ? <Loader2 size={14} className="animate-spin" /> : <Volume2 size={14} />}
                                   </button>
                                 </div>
                                 {kcV3Voice === char.value && <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 shrink-0" />}
@@ -1413,7 +1450,11 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               </div>
 
               <Button
-                  onClick={activeKCTask || isCheckingUsage ? undefined : handleGenerateKCTTS}
+                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                    e.stopPropagation();
+                    if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
+                    if (!activeKCTask && !isCheckingUsage) handleGenerateKCTTS();
+                  }}
                   className="w-full mt-4"
                   variant={activeKCTask ? 'secondary' : 'gradient'}
                   disabled={!!activeKCTask || isCheckingUsage}

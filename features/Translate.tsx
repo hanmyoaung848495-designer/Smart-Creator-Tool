@@ -3,7 +3,6 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
 import { Card, Button, TextArea, Select, ResultBox, ProgressBar, TutorialButton } from '../components/Shared';
 import { translateText } from '../services/gemini';
-import { triggerAd } from '../lib/ads';
 import PersistentResults from '../components/PersistentResults';
 
 const LANGUAGES = [
@@ -65,7 +64,6 @@ const Translate: React.FC<Props> = ({
   };
 
   const handleTranslate = async () => {
-    triggerAd();
     if (!text || activeTask) return;
     if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
@@ -130,7 +128,11 @@ const Translate: React.FC<Props> = ({
               </div>
               <Button 
                 variant="primary" 
-                onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleTranslate(); }} 
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
+                  e.stopPropagation(); 
+                  if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
+                  handleTranslate(); 
+                }} 
                 disabled={!text}
                 className="py-2.5 w-full sm:w-auto text-xs font-bold uppercase tracking-widest"
               >

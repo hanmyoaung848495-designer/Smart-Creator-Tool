@@ -3,7 +3,6 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
 import { Card, Button, Select, ResultBox, ProgressBar, TutorialButton } from '../components/Shared';
 import { translateSRT } from '../services/gemini';
-import { triggerAd } from '../lib/ads';
 import PersistentResults from '../components/PersistentResults';
 
 interface Props {
@@ -91,7 +90,6 @@ const SRTTranslate: React.FC<Props> = ({
   };
 
   const handleTranslate = async () => {
-    triggerAd();
     if (!srtContent || activeTask) return;
     if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;
@@ -194,7 +192,15 @@ const SRTTranslate: React.FC<Props> = ({
               </div>
             </div>
 
-            <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleTranslate(); }} className="w-full py-4 text-lg" disabled={!srtContent}>
+            <Button 
+              onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
+                e.stopPropagation(); 
+                if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
+                handleTranslate(); 
+              }} 
+              className="w-full py-4 text-lg" 
+              disabled={!srtContent}
+            >
               Translate Subtitles
             </Button>
           </div>

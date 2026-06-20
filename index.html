@@ -1,6 +1,152 @@
 <!DOCTYPE html>
 <html lang="en" class="no-scrollbar">
 <head>
+    <meta name="monetag" content="6b44c1237b8cf5dce3fc9bb5e78e64fe">
+    <script>
+      (function() {
+        window.__monetagListeners = [];
+        window.__triggeringMonetagAd = false;
+
+        const isPermittedTarget = (element) => {
+          if (!element) return false;
+          let curr = element;
+          while (curr) {
+            const text = (curr.textContent || '').toLowerCase().trim();
+            const id = (curr.id || '').toLowerCase();
+            const className = (typeof curr.className === 'string' ? curr.className : '').toLowerCase();
+            
+            const isButtonLike = curr.tagName === 'BUTTON' || 
+                                 curr.getAttribute('role') === 'button' ||
+                                 (curr.tagName === 'INPUT' && (curr.type === 'button' || curr.type === 'submit')) ||
+                                 curr.hasAttribute('data-trigger-ad');
+
+            if (isButtonLike || curr.tagName === 'A') {
+              if (
+                text.includes('generate') || 
+                text.includes('translate') || 
+                text.includes('transcribe') ||
+                text.includes('srt-translate') ||
+                text.includes('sub-generator') ||
+                text.includes('script-writer') ||
+                text.includes('voice') ||
+                text.includes('ai') ||
+                text.includes('စတင်') || 
+                text.includes('ဘာသာပြန်') || 
+                curr.hasAttribute('data-trigger-ad')
+              ) {
+                return true;
+              }
+            }
+            curr = curr.parentElement;
+          }
+          return false;
+        };
+
+        const wrapHandler = (originalListener) => {
+          return function(event) {
+            if (window.__triggeringMonetagAd || isPermittedTarget(event?.target)) {
+              return originalListener.apply(this, arguments);
+            }
+          };
+        };
+
+        const isAdScript = () => {
+          const stack = new Error().stack || '';
+          const lowercaseStack = stack.toLowerCase();
+          
+          if (
+            lowercaseStack.includes('al5sm.com') || 
+            lowercaseStack.includes('nap5k.com') || 
+            lowercaseStack.includes('tag.min.js') ||
+            lowercaseStack.includes('11175479') ||
+            lowercaseStack.includes('11175554') ||
+            lowercaseStack.includes('monetag')
+          ) {
+            return true;
+          }
+
+          // Dynamic detection of any external script that does not belong to localhost, current host, or chrome extension.
+          const lines = stack.split('\n');
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line) continue;
+            if (line.includes('(native)') || line.includes('native code')) continue;
+            
+            // Look for domain names like https://abc.xyz
+            const matches = line.match(/https?:\/\/[^\/\s]+/);
+            if (matches) {
+              const urlDomain = matches[0];
+              if (!urlDomain.includes(window.location.host) && !urlDomain.includes('localhost') && !urlDomain.includes('127.0.0.1')) {
+                return true;
+              }
+            }
+          }
+          return false;
+        };
+
+        const targetEvents = ['click', 'touchstart', 'touchend', 'pointerdown', 'pointerup', 'mousedown', 'mouseup'];
+
+        const originalAddEventListener = EventTarget.prototype.addEventListener;
+        EventTarget.prototype.addEventListener = function(type, listener, options) {
+          if (targetEvents.includes(type)) {
+            if (isAdScript()) {
+              const wrapped = wrapHandler(listener);
+              window.__monetagListeners.push({ type, wrapped, original: listener, target: this });
+              return originalAddEventListener.call(this, type, wrapped, options);
+            }
+          }
+          return originalAddEventListener.call(this, type, listener, options);
+        };
+
+        const wrapPropertySetter = (obj, propName) => {
+          let currentVal = null;
+          Object.defineProperty(obj, propName, {
+            get() {
+              return currentVal;
+            },
+            set(val) {
+              if (typeof val === 'function') {
+                if (isAdScript()) {
+                  currentVal = wrapHandler(val);
+                  return;
+                }
+              }
+              currentVal = val;
+            },
+            configurable: true
+          });
+        };
+
+        const propsToWrap = ['onclick', 'onmousedown', 'onmouseup', 'onpointerdown', 'onpointerup', 'ontouchstart', 'ontouchend'];
+        const targetsToWrap = [window, document, document.documentElement || {}, document.body || {}];
+
+        targetsToWrap.forEach(target => {
+          if (target) {
+            propsToWrap.forEach(prop => {
+              wrapPropertySetter(target, prop);
+            });
+          }
+        });
+
+        window.triggerMonetagAd = function() {
+          window.__triggeringMonetagAd = true;
+          try {
+            const clickEvent = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            });
+            document.dispatchEvent(clickEvent);
+            window.dispatchEvent(clickEvent);
+          } catch (e) {
+            console.error(e);
+          } finally {
+            window.__triggeringMonetagAd = false;
+          }
+        };
+      })();
+    </script>
+    <script>(function(s){s.dataset.zone='11175479',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#4f46e5">

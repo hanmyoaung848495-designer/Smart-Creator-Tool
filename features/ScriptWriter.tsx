@@ -3,7 +3,6 @@ import React, { useState, useMemo } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
 import { Card, Button, Input, Select, ResultBox, ProgressBar, TutorialButton } from '../components/Shared';
 import { writeScript } from '../services/gemini';
-import { triggerAd } from '../lib/ads';
 import PersistentResults from '../components/PersistentResults';
 
 const LANGUAGES = [
@@ -66,7 +65,6 @@ const ScriptWriter: React.FC<Props> = ({
   };
 
   const handleGenerate = async () => {
-    triggerAd();
     if (!topic || activeTask) return;
     if (style === 'custom' && !customStyle) return;
     if (!checkApiKey()) return;
@@ -146,7 +144,15 @@ const ScriptWriter: React.FC<Props> = ({
               options={LANGUAGES} 
             />
             <div className="md:col-span-2">
-              <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleGenerate(); }} disabled={!topic || (style === 'custom' && !customStyle)} className="w-full py-4">
+              <Button 
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
+                  e.stopPropagation(); 
+                  if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
+                  handleGenerate(); 
+                }} 
+                disabled={!topic || (style === 'custom' && !customStyle)} 
+                className="w-full py-4"
+              >
                 Generate Full Script
               </Button>
             </div>
