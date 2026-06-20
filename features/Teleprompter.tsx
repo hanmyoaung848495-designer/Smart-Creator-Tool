@@ -573,6 +573,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
                         className="w-full bg-black border border-neutral-800 rounded-2xl p-4 pr-16 text-white focus:outline-none focus:border-purple-500 transition-all"
                       />
                       <button 
+                        data-trigger-ad="true"
                         disabled={isGenerating || !aiTopic.trim()}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -588,6 +589,7 @@ const TeleprompterFeature: React.FC<TeleprompterProps> = ({ onBack, session, onR
                   <div className="pt-4 border-t border-neutral-800 space-y-4">
                     <label className="text-sm font-bold text-neutral-500 uppercase tracking-widest">Script Optimization</label>
                     <button 
+                      data-trigger-ad="true"
                       disabled={isGenerating}
                       onClick={(e) => {
                         e.stopPropagation();

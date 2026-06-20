@@ -1126,9 +1126,11 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
               <div className="flex items-center justify-end gap-4">
                 <Button
+                    data-trigger-ad="true"
                     onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                       e.stopPropagation();
                       e.preventDefault();
+                      if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
                       if (!activeGeminiTask && !isCheckingUsage) handleRun();
                     }}
                   variant={activeGeminiTask ? 'danger' : 'gradient'}
@@ -1450,6 +1452,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               </div>
 
               <Button
+                  data-trigger-ad="true"
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                     e.stopPropagation();
                     if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();

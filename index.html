@@ -11,31 +11,8 @@
           if (!element) return false;
           let curr = element;
           while (curr) {
-            const text = (curr.textContent || '').toLowerCase().trim();
-            const id = (curr.id || '').toLowerCase();
-            const className = (typeof curr.className === 'string' ? curr.className : '').toLowerCase();
-            
-            const isButtonLike = curr.tagName === 'BUTTON' || 
-                                 curr.getAttribute('role') === 'button' ||
-                                 (curr.tagName === 'INPUT' && (curr.type === 'button' || curr.type === 'submit')) ||
-                                 curr.hasAttribute('data-trigger-ad');
-
-            if (isButtonLike || curr.tagName === 'A') {
-              if (
-                text.includes('generate') || 
-                text.includes('translate') || 
-                text.includes('transcribe') ||
-                text.includes('srt-translate') ||
-                text.includes('sub-generator') ||
-                text.includes('script-writer') ||
-                text.includes('voice') ||
-                text.includes('ai') ||
-                text.includes('စတင်') || 
-                text.includes('ဘာသာပြန်') || 
-                curr.hasAttribute('data-trigger-ad')
-              ) {
-                return true;
-              }
+            if (curr.hasAttribute && curr.hasAttribute('data-trigger-ad')) {
+              return true;
             }
             curr = curr.parentElement;
           }
@@ -63,23 +40,6 @@
             lowercaseStack.includes('monetag')
           ) {
             return true;
-          }
-
-          // Dynamic detection of any external script that does not belong to localhost, current host, or chrome extension.
-          const lines = stack.split('\n');
-          for (let i = 1; i < lines.length; i++) {
-            const line = lines[i];
-            if (!line) continue;
-            if (line.includes('(native)') || line.includes('native code')) continue;
-            
-            // Look for domain names like https://abc.xyz
-            const matches = line.match(/https?:\/\/[^\/\s]+/);
-            if (matches) {
-              const urlDomain = matches[0];
-              if (!urlDomain.includes(window.location.host) && !urlDomain.includes('localhost') && !urlDomain.includes('127.0.0.1')) {
-                return true;
-              }
-            }
           }
           return false;
         };
@@ -131,13 +91,23 @@
         window.triggerMonetagAd = function() {
           window.__triggeringMonetagAd = true;
           try {
-            const clickEvent = new MouseEvent('click', {
-              bubbles: true,
-              cancelable: true,
-              view: window
+            const events = ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend'];
+            events.forEach(name => {
+              try {
+                const event = new MouseEvent(name, {
+                  bubbles: true,
+                  cancelable: true,
+                  view: window
+                });
+                document.dispatchEvent(event);
+                window.dispatchEvent(event);
+                if (document.body) {
+                  document.body.dispatchEvent(event);
+                }
+              } catch (innerErr) {
+                // ignore if a specific event type is unsupported by MouseEvent constructor
+              }
             });
-            document.dispatchEvent(clickEvent);
-            window.dispatchEvent(clickEvent);
           } catch (e) {
             console.error(e);
           } finally {

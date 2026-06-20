@@ -204,6 +204,7 @@ const TextToSRT: React.FC<Props> = ({
 
           <div className="flex justify-center">
             <Button 
+              data-trigger-ad="true"
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
                 e.stopPropagation(); 
                 if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
