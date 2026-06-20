@@ -202,6 +202,10 @@ export const FeedbackModal: React.FC = () => {
                     </motion.div>
                   ) : (
                     <form onSubmit={handleSubmit} className="space-y-3">
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700 leading-relaxed text-center">
+                        စုံစမ်းသိရှိလိုသည်များရှိပါက Facebook, TikTok, Telegram မှတဆင့်တိုက်ရိုက်ဆက်သွယ်ပါ
+                      </p>
+
                       <div className="space-y-1">
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">နာမည်</label>
                         <Input 

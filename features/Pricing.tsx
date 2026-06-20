@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, Crown, Zap, Shield, Star, Sparkles, CreditCard, ArrowLeft, Menu } from 'lucide-react';
+import { Check, Crown, Zap, Shield, Star, Sparkles, CreditCard, ArrowLeft, Menu, X } from 'lucide-react';
 
 interface PricingProps {
   onBack: () => void;
@@ -83,17 +83,37 @@ const PLANS = [
   }
 ];
 
-const ConfirmModal = ({ isOpen, onConfirm, onCancel, planName }: { isOpen: boolean, onConfirm: () => void, onCancel: () => void, planName: string }) => {
+const ConfirmModal = ({ isOpen, onCancel, planName }: { isOpen: boolean, onCancel: () => void, planName: string }) => {
   if (!isOpen) return null;
+
+  const planKey = planName ? planName.toLowerCase().replace(' plan', '').replace(' ', '_') : '';
+  const telegramLink = `https://t.me/kcstoreofficialbot?start=${planKey}_plan`;
+  const facebookLink = `https://www.facebook.com/share/1BJkHQXabe/`;
+  const tiktokLink = `https://www.tiktok.com/@mrmovierecap999?_r=1&_t=ZS-97IQUMx7YcJ`;
+
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onCancel}></div>
       <div className="bg-white dark:bg-gray-800 p-6 rounded-3xl w-full max-w-sm relative z-[1001] shadow-2xl">
-        <h3 className="text-lg font-black text-gray-900 dark:text-white mb-2">ဝယ်ယူမှာသေချာပါသလား?</h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{planName} ကို ဝယ်ယူရန်အတွက် Telegram bot သို့သွားပါမည်။</p>
-        <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 py-3 rounded-xl font-bold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">မလုပ်တော့ပါ</button>
-          <button onClick={onConfirm} className="flex-1 py-3 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700">သေချာပါတယ်</button>
+        <button 
+          onClick={onCancel}
+          className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-700/50 dark:hover:bg-gray-600 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+        >
+          <X size={18} strokeWidth={2.5} />
+        </button>
+        <h3 className="text-lg font-black text-gray-900 dark:text-white mb-6 mt-2 text-center leading-relaxed">
+          {planName} ဝယ်ယူရန်<br />ရွေးချယ်ပါ
+        </h3>
+        <div className="flex flex-col gap-3">
+          <a href={telegramLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold bg-[#0088cc] text-white hover:bg-[#0077b3] transition-colors" onClick={onCancel}>
+            Telegram
+          </a>
+          <a href={facebookLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold bg-[#1877F2] text-white hover:bg-[#166fe5] transition-colors" onClick={onCancel}>
+            Facebook
+          </a>
+          <a href={tiktokLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold bg-black dark:bg-gray-700 text-white hover:bg-gray-900 dark:hover:bg-gray-600 transition-colors" onClick={onCancel}>
+            TikTok
+          </a>
         </div>
       </div>
     </div>
@@ -107,15 +127,6 @@ const Pricing: React.FC<PricingProps> = ({ onBack, onToggleMenu, session }) => {
     setConfirmModal({ isOpen: true, planName: name });
   };
 
-  const executePlanPurchase = () => {
-    let link = 'https://t.me/kcstoreofficialbot';
-    if (confirmModal.planName) {
-      const planKey = confirmModal.planName.toLowerCase().replace(' plan', '').replace(' ', '_');
-      link += `?start=${planKey}_plan`;
-    }
-    window.open(link, '_blank');
-    setConfirmModal({ isOpen: false, planName: '' });
-  };
     // Helper to keep Pricing clean
     const PurchaseButton = ({ planName, popular, color }: { planName: string, popular?: boolean, color: string }) => (
         <button 
@@ -133,7 +144,6 @@ const Pricing: React.FC<PricingProps> = ({ onBack, onToggleMenu, session }) => {
     <div className="min-h-screen bg-white dark:bg-gray-950">
       <ConfirmModal 
         isOpen={confirmModal.isOpen} 
-        onConfirm={executePlanPurchase} 
         onCancel={() => setConfirmModal({ ...confirmModal, isOpen: false })} 
         planName={confirmModal.planName}
       />

@@ -63,7 +63,7 @@ export const BannerCarousel: React.FC = () => {
     switch (index) {
       case 0:
         return (
-          <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-rose-500 via-pink-600 to-amber-500 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-aka07">
+          <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-rose-500 via-pink-600 to-amber-500 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-smartfont3">
             <div className="absolute top-2 left-3 md:top-3 md:left-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-xs font-black tracking-widest uppercase border border-white/25 animate-pulse">
               🎉 SPECIAL BIRTHDAY GIFT 🎉
             </div>
@@ -87,7 +87,7 @@ export const BannerCarousel: React.FC = () => {
         );
       case 1:
         return (
-          <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-blue-700 via-indigo-800 to-purple-900 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-aka07">
+          <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-blue-700 via-indigo-800 to-purple-900 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-smartfont3">
             <div className="absolute top-2 left-3 md:top-3 md:left-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-xs font-black tracking-widest uppercase border border-white/25">
               🛍️ KC STORE OFFICIAL
             </div>
@@ -108,7 +108,7 @@ export const BannerCarousel: React.FC = () => {
         );
       case 2:
         return (
-          <div className="w-full h-full flex flex-col justify-center bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-950 text-white p-5 md:p-8 select-none relative overflow-hidden font-aka07 border-l-4 border-emerald-500">
+          <div className="w-full h-full flex flex-col justify-center bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-950 text-white p-5 md:p-8 select-none relative overflow-hidden font-smartfont3 border-l-4 border-emerald-500">
             <div className="absolute top-2 right-3 md:top-3 md:right-4 bg-emerald-500/20 text-emerald-350 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase border border-emerald-500/30 shadow-inner">
               🔑 LICENSE KEYS
             </div>
@@ -139,7 +139,7 @@ export const BannerCarousel: React.FC = () => {
         );
       case 3:
         return (
-          <div className="w-full h-full flex flex-col justify-center bg-gradient-to-tr from-cyan-950 via-slate-900 to-indigo-950 text-white p-5 md:p-8 select-none relative overflow-hidden font-aka07 border-l-4 border-cyan-400">
+          <div className="w-full h-full flex flex-col justify-center bg-gradient-to-tr from-cyan-950 via-slate-900 to-indigo-950 text-white p-5 md:p-8 select-none relative overflow-hidden font-smartfont3 border-l-4 border-cyan-400">
             <div className="absolute top-2 right-3 md:top-3 md:right-4 bg-cyan-500/20 text-cyan-350 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase border border-cyan-500/30 shadow-inner">
               🛡️ ENDPOINT PROTECTION
             </div>
@@ -167,7 +167,7 @@ export const BannerCarousel: React.FC = () => {
         );
       case 4:
         return (
-          <div className="w-full h-full flex flex-col justify-center bg-gradient-to-tr from-purple-950 via-indigo-950 to-slate-950 text-white p-5 md:p-8 select-none relative overflow-hidden font-aka07 border-l-4 border-purple-500">
+          <div className="w-full h-full flex flex-col justify-center bg-gradient-to-tr from-purple-950 via-indigo-950 to-slate-950 text-white p-5 md:p-8 select-none relative overflow-hidden font-smartfont3 border-l-4 border-purple-500">
             <div className="absolute top-2 right-3 md:top-3 md:right-4 bg-purple-500/20 text-purple-350 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase border border-purple-500/30 shadow-inner">
               💼 PROFESSIONAL SUITE
             </div>
@@ -191,7 +191,7 @@ export const BannerCarousel: React.FC = () => {
                   </li>
                 </ul>
               </div>
-              <div className="text-xs sm:text-sm text-slate-350 font-bold border-t border-purple-950/50 pt-2 flex items-center justify-between mt-1 font-aka07">
+              <div className="text-xs sm:text-sm text-slate-350 font-bold border-t border-purple-950/50 pt-2 flex items-center justify-between mt-1 font-smartfont3">
                 <span className="text-slate-200">လုပ်ငန်းလိုအပ်ချက်တိုင်းအတွက် အကောင်းဆုံး Digital ဝန်ဆောင်မှု</span>
                 <span className="text-purple-400 uppercase tracking-widest text-[10px] sm:text-xs font-black">SOLUTIONS</span>
               </div>
@@ -200,7 +200,7 @@ export const BannerCarousel: React.FC = () => {
         );
       case 5:
         return (
-          <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-aka07">
+          <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-smartfont3">
             <div className="absolute top-2 left-3 md:top-3 md:left-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-xs font-black tracking-widest uppercase border border-white/25">
               📱 TIKTOK & BANK SERVICES
             </div>
@@ -223,7 +223,7 @@ export const BannerCarousel: React.FC = () => {
         );
       case 6:
         return (
-          <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-emerald-600 via-teal-700 to-cyan-800 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-aka07">
+          <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-emerald-600 via-teal-700 to-cyan-800 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-smartfont3">
             <div className="absolute top-2 left-3 md:top-3 md:left-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-xs font-black tracking-widest uppercase border border-white/25">
               🤝 BUSINESS PARTNERSHIP
             </div>

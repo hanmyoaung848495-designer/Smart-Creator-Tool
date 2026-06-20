@@ -25,7 +25,7 @@ import { FeedbackModal } from './components/FeedbackModal';
 import { BannerCarousel } from './components/BannerCarousel';
 import NativeAd from './components/NativeAd';
 import SocialBarAd from './components/SocialBarAd';
-import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText, Download, Crown } from 'lucide-react';
+import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText, Download, Crown, Globe, PlayCircle } from 'lucide-react';
 import { trackEvent } from './lib/analytics';
 import { Toaster, toast } from 'sonner';
 
@@ -163,7 +163,7 @@ const App: React.FC = () => {
   const [tasks, setTasks] = useState<ProcessingTask[]>([]);
   const [showTutorial, setShowTutorial] = useState(false);
   const [logoError, setLogoError] = useState(false);
-  const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
+  const [modalType, setModalType] = useState<'privacy' | 'terms' | 'contact' | null>(null);
   const [showWelcomePopup, setShowWelcomePopup] = useState(() => {
     // Check if dismissed previously
     return !localStorage.getItem('terms_accepted');
@@ -657,14 +657,12 @@ const App: React.FC = () => {
               >
                 <Zap size={18} className="text-amber-500" /> API Guide
               </button>
-              <a 
-                href="https://t.me/kcstoreofficialbot" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+              <button 
+                onClick={() => setModalType('contact')}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-left"
               >
                 <Send size={18} className="text-sky-500" /> Contact
-              </a>
+              </button>
               {!isStandalone && (
                 <button 
                   onClick={handleInstallApp}
@@ -798,7 +796,7 @@ const App: React.FC = () => {
           </div>
           
           <div className="text-center space-y-0.5">
-            <h2 className="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#2563EB] via-[#7C3AED] to-[#DB2777] dark:from-[#38BDF8] dark:via-[#A78BFA] dark:to-[#F472B6] font-khit"
+            <h2 className="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#2563EB] via-[#7C3AED] to-[#DB2777] dark:from-[#38BDF8] dark:via-[#A78BFA] dark:to-[#F472B6] font-smartfont1"
                 style={{ 
                   filter: 'drop-shadow(1px 1px 0px rgba(79, 70, 229, 0.4)) drop-shadow(2px 2px 3px rgba(0,0,0,0.12))',
                 }}>
@@ -809,7 +807,7 @@ const App: React.FC = () => {
           </div>
           
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm text-center font-medium">
-            ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုသည် KC TTS & SRT အတွက်သာအဓိကဖြစ်ပြီး အခြားသော Tool များသည် မေတ္တာလက်ဆောင် အဖြစ်ဖန်တီးပေးထားခြင်းဖြစ်ပါသည်။ "KC TTS & SRT Plan" တွင် KC Voice နှင့် SRT ဝန်ဆောင်မှုတို့သာ သီးသန့်အကျုံးဝင်မည်ဖြစ်ပါသည်။
+            Content Creation အတွက်အဆင်ပြေစေရန်ရည်ရွယ်ဖန်တီးထားခြင်းဖြစ်ပြီး အသုံးပြုခြင်းအတွက် Smart Creator Team ၏စည်းမျဥ်းများကို သဘောတူညီပြီးဖြစ်ပါသည်။
           </p>
           
           <label className="flex items-center gap-2 cursor-pointer">
@@ -903,14 +901,15 @@ const App: React.FC = () => {
           </p>
 
           <div className="flex justify-center pt-2">
-            <a 
-              href="https://t.me/kcteamofficialbot" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <button 
+              onClick={() => {
+                setErrorPopupMessage(null);
+                setModalType('contact');
+              }}
               className="inline-flex items-center gap-2 justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 transition-colors shadow-lg shadow-indigo-500/10"
             >
               <Send size={16} /> Contact Admin
-            </a>
+            </button>
           </div>
         </div>
       </Modal>
@@ -918,9 +917,27 @@ const App: React.FC = () => {
       <Modal 
         isOpen={modalType !== null} 
         onClose={() => setModalType(null)} 
-        title={modalType === 'privacy' ? 'Privacy Policy' : 'Terms of Service'}
+        title={modalType === 'privacy' ? 'Privacy Policy' : modalType === 'contact' ? 'Contact Admin' : 'Terms of Service'}
       >
-        {modalType === 'privacy' ? (
+        {modalType === 'contact' ? (
+          <div className="space-y-6 text-center">
+            <h3 className="text-xl font-black text-gray-900 dark:text-gray-100">Admin Team ထဲဆက်သွယ်ရန်</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              အဆင်မပြေမှုတစ်စုံတရာဖြစ်ပေါ်ပါက သို့မဟုတ် အကြံပြုလိုပါက Admin Team မှတဆင့် ဆက်သွယ်နိုင်ပါသည်။
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-3 pt-2">
+              <a href="https://t.me/kcteamofficialbot" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white bg-sky-500 hover:bg-sky-600 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
+                <Send size={18} /> Telegram
+              </a>
+              <a href="https://www.facebook.com/share/1BJkHQXabe/" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
+                <Globe size={18} /> Facebook
+              </a>
+              <a href="https://www.tiktok.com/@mrmovierecap999?_r=1&_t=ZS-97IQUMx7YcJ" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-white bg-black hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0">
+                <PlayCircle size={18} /> TikTok
+              </a>
+            </div>
+          </div>
+        ) : modalType === 'privacy' ? (
           <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400">
             <p>သင်၏ ကိုယ်ရေးအချက်အလက်များကို ကျွန်ုပ်တို့ အထူးဂရုပြုပါသည်။ Smart Creator Tools သည် သင်နှင့် Google AI Studio အကြား ချိတ်ဆက်ပေးသော ကြားခံဝန်ဆောင်မှုတစ်ခုသာဖြစ်ပါသည်။</p>
             <h4 className="font-bold text-gray-900 dark:text-gray-100">၁။ အချက်အလက်များ သိမ်းဆည်းမထားခြင်း</h4>
@@ -939,8 +956,8 @@ const App: React.FC = () => {
             <p>သင့်ကိုယ်ပိုင် API Keys များ၏ လုံခြုံမှုအတွက် သင်ကိုယ်တိုင်သာ တာဝန်ယူရမည် ဖြစ်ပါသည်။</p>
             <h4 className="font-bold text-gray-900 dark:text-gray-100">၃။ တာဝန်ယူမှု</h4>
             <p>ဤဝန်ဆောင်မှုကို "ရှိသည့်အတိုင်း" သာ ဖန်တီးပေးထားပါသည်။ အနှောင့်အယှက်ကင်းသည့် ဝန်ဆောင်မှု သို့မဟုတ် တိကျသော ရလဒ်များအတွက် အာမခံချက်မပေးနိုင်ပါ။</p>
-            <h4 className="font-bold text-gray-900 dark:text-gray-100">၄။ Service Scope and Plan Coverage</h4>
-            <p>ကျွန်ုပ်တို့၏ ဝန်ဆောင်မှုသည် KC TTS & SRT အတွက်သာအဓိကဖြစ်ပြီး အခြားသော Tool များသည် မေတ္တာလက်ဆောင် အဖြစ်ဖန်တီးပေးထားခြင်းဖြစ်ပါသည်။ "KC TTS & SRT Plan" တွင် KC Voice နှင့် SRT ဝန်ဆောင်မှုတို့သာ သီးသန့်အကျုံးဝင်မည်ဖြစ်ပါသည်။</p>
+            <h4 className="font-bold text-gray-900 dark:text-gray-100">၄။ Service Scope</h4>
+            <p>Content Creation အတွက်အဆင်ပြေစေရန်ရည်ရွယ်ဖန်တီးထားခြင်းဖြစ်ပြီး အသုံးပြုခြင်းအတွက် Smart Creator Team ၏စည်းမျဥ်းများကို သဘောတူညီပြီးဖြစ်ပါသည်။</p>
           </div>
         )}
       </Modal>
@@ -964,7 +981,7 @@ const App: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#2563EB] via-[#7C3AED] to-[#DB2777] dark:from-[#38BDF8] dark:via-[#A78BFA] dark:to-[#F472B6] font-khit"
+                <span className="font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#2563EB] via-[#7C3AED] to-[#DB2777] dark:from-[#38BDF8] dark:via-[#A78BFA] dark:to-[#F472B6] font-smartfont1"
                       style={{ 
                         filter: 'drop-shadow(1px 1px 0px rgba(79, 70, 229, 0.4)) drop-shadow(2px 2px 3px rgba(0,0,0,0.12))',
                       }}>
@@ -1079,9 +1096,9 @@ const App: React.FC = () => {
                 <FileText size={16} /> Terms
               </button>
               <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
-              <a href="https://t.me/kcstoreofficialbot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
+              <button onClick={() => setModalType('contact')} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
                 <Send size={16} /> Contact
-              </a>
+              </button>
             </div>
             <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-300 px-4 leading-relaxed flex items-center justify-center gap-2">
               <span>© 2026 Smart Creator Tools. All rights reserved by KC Team. With best wishes.</span>
@@ -1121,7 +1138,7 @@ const Home: React.FC<{
   return (
     <div className="space-y-12">
       <div className="text-center max-w-3xl mx-auto">
-        <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tighter leading-normal px-4 py-2 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928] font-donut"
+        <h1 className="text-3xl md:text-5xl font-black mb-2 tracking-tighter leading-normal px-4 py-2 bg-clip-text text-transparent bg-gradient-to-b from-[#FFD700] via-[#FDB931] to-[#9f7928] font-smartfont2"
             style={{ 
               filter: 'drop-shadow(2px 2px 0px #b8860b) drop-shadow(4px 4px 4px rgba(0,0,0,0.15))',
             }}>
@@ -1139,7 +1156,7 @@ const Home: React.FC<{
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.5, ease: "easeInOut" }}
-              className={`bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent font-black px-4 font-khit whitespace-pre-line text-center leading-relaxed ${
+              className={`bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent font-black px-4 font-smartfont1 whitespace-pre-line text-center leading-relaxed ${
                 (messages[messageIndex] || "").length > 30
                   ? "text-lg md:text-2xl tracking-normal"
                   : "text-2xl md:text-4xl uppercase tracking-[0.15em]"
