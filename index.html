@@ -9,12 +9,21 @@
 
         const isPermittedTarget = (element) => {
           if (!element) return false;
+          // If terms are accepted, do not allow monetization trigger
+          if (localStorage.getItem('terms_accepted') === 'true' || localStorage.getItem('terms_agreed') === 'true') {
+            return false;
+          }
           let curr = element;
           while (curr) {
             const text = (curr.textContent || '').toLowerCase().trim();
             const id = (curr.id || '').toLowerCase();
             const className = (typeof curr.className === 'string' ? curr.className : '').toLowerCase();
             
+            // Explicitly block "agree" text/element from triggering Monetag ads
+            if (text.includes('agree')) {
+              return false;
+            }
+
             const isButtonLike = curr.tagName === 'BUTTON' || 
                                  curr.getAttribute('role') === 'button' ||
                                  (curr.tagName === 'INPUT' && (curr.type === 'button' || curr.type === 'submit')) ||
@@ -44,6 +53,19 @@
 
         const wrapHandler = (originalListener) => {
           return function(event) {
+            // Explicit check on event target to ignore click if it contains "agree"
+            let targetText = '';
+            if (event && event.target) {
+              targetText = (event.target.textContent || '').toLowerCase().trim();
+            }
+            if (targetText.includes('agree')) {
+              return;
+            }
+
+            if (localStorage.getItem('terms_accepted') === 'true' || localStorage.getItem('terms_agreed') === 'true') {
+              return;
+            }
+
             if (window.__triggeringMonetagAd || isPermittedTarget(event?.target)) {
               return originalListener.apply(this, arguments);
             }
@@ -100,6 +122,9 @@
         wrapPropertySetter(document, 'ontouchstart');
 
         window.triggerMonetagAd = function() {
+          if (localStorage.getItem('terms_accepted') === 'true' || localStorage.getItem('terms_agreed') === 'true') {
+            return;
+          }
           window.__triggeringMonetagAd = true;
           try {
             const clickEvent = new MouseEvent('click', {
