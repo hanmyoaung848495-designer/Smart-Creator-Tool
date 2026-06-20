@@ -11,8 +11,31 @@
           if (!element) return false;
           let curr = element;
           while (curr) {
-            if (curr.hasAttribute && curr.hasAttribute('data-trigger-ad')) {
-              return true;
+            const text = (curr.textContent || '').toLowerCase().trim();
+            const id = (curr.id || '').toLowerCase();
+            const className = (typeof curr.className === 'string' ? curr.className : '').toLowerCase();
+            
+            const isButtonLike = curr.tagName === 'BUTTON' || 
+                                 curr.getAttribute('role') === 'button' ||
+                                 (curr.tagName === 'INPUT' && (curr.type === 'button' || curr.type === 'submit')) ||
+                                 curr.hasAttribute('data-trigger-ad');
+
+            if (isButtonLike || curr.tagName === 'A') {
+              if (
+                text.includes('generate') || 
+                text.includes('translate') || 
+                text.includes('transcribe') ||
+                text.includes('srt-translate') ||
+                text.includes('sub-generator') ||
+                text.includes('script-writer') ||
+                text.includes('voice') ||
+                text.includes('ai') ||
+                text.includes('စတင်') || 
+                text.includes('ဘာသာပြန်') || 
+                curr.hasAttribute('data-trigger-ad')
+              ) {
+                return true;
+              }
             }
             curr = curr.parentElement;
           }
@@ -27,29 +50,17 @@
           };
         };
 
-        const isAdScript = () => {
-          const stack = new Error().stack || '';
-          const lowercaseStack = stack.toLowerCase();
-          
-          if (
-            lowercaseStack.includes('al5sm.com') || 
-            lowercaseStack.includes('nap5k.com') || 
-            lowercaseStack.includes('tag.min.js') ||
-            lowercaseStack.includes('11175479') ||
-            lowercaseStack.includes('11175554') ||
-            lowercaseStack.includes('monetag')
-          ) {
-            return true;
-          }
-          return false;
-        };
-
-        const targetEvents = ['click', 'touchstart', 'touchend', 'pointerdown', 'pointerup', 'mousedown', 'mouseup'];
-
         const originalAddEventListener = EventTarget.prototype.addEventListener;
         EventTarget.prototype.addEventListener = function(type, listener, options) {
-          if (targetEvents.includes(type)) {
-            if (isAdScript()) {
+          if (type === 'click' || type === 'touchstart' || type === 'pointerdown' || type === 'mousedown') {
+            const stack = new Error().stack || '';
+            const isMonetag = stack.includes('al5sm.com') || 
+                              stack.includes('nap5k.com') || 
+                              stack.includes('tag.min.js') ||
+                              stack.includes('11175479') ||
+                              stack.includes('11175554');
+            
+            if (isMonetag) {
               const wrapped = wrapHandler(listener);
               window.__monetagListeners.push({ type, wrapped, original: listener, target: this });
               return originalAddEventListener.call(this, type, wrapped, options);
@@ -66,7 +77,13 @@
             },
             set(val) {
               if (typeof val === 'function') {
-                if (isAdScript()) {
+                const stack = new Error().stack || '';
+                const isMonetag = stack.includes('al5sm.com') || 
+                                  stack.includes('nap5k.com') || 
+                                  stack.includes('tag.min.js') ||
+                                  stack.includes('11175479') ||
+                                  stack.includes('11175554');
+                if (isMonetag) {
                   currentVal = wrapHandler(val);
                   return;
                 }
@@ -77,37 +94,21 @@
           });
         };
 
-        const propsToWrap = ['onclick', 'onmousedown', 'onmouseup', 'onpointerdown', 'onpointerup', 'ontouchstart', 'ontouchend'];
-        const targetsToWrap = [window, document, document.documentElement || {}, document.body || {}];
-
-        targetsToWrap.forEach(target => {
-          if (target) {
-            propsToWrap.forEach(prop => {
-              wrapPropertySetter(target, prop);
-            });
-          }
-        });
+        wrapPropertySetter(window, 'onclick');
+        wrapPropertySetter(window, 'ontouchstart');
+        wrapPropertySetter(document, 'onclick');
+        wrapPropertySetter(document, 'ontouchstart');
 
         window.triggerMonetagAd = function() {
           window.__triggeringMonetagAd = true;
           try {
-            const events = ['click', 'mousedown', 'mouseup', 'pointerdown', 'pointerup', 'touchstart', 'touchend'];
-            events.forEach(name => {
-              try {
-                const event = new MouseEvent(name, {
-                  bubbles: true,
-                  cancelable: true,
-                  view: window
-                });
-                document.dispatchEvent(event);
-                window.dispatchEvent(event);
-                if (document.body) {
-                  document.body.dispatchEvent(event);
-                }
-              } catch (innerErr) {
-                // ignore if a specific event type is unsupported by MouseEvent constructor
-              }
+            const clickEvent = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window
             });
+            document.dispatchEvent(clickEvent);
+            window.dispatchEvent(clickEvent);
           } catch (e) {
             console.error(e);
           } finally {

@@ -145,7 +145,6 @@ const ScriptWriter: React.FC<Props> = ({
             />
             <div className="md:col-span-2">
               <Button 
-                data-trigger-ad="true"
                 onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
                   e.stopPropagation(); 
                   if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();

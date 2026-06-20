@@ -117,7 +117,6 @@ const SubGenerator: React.FC<Props> = ({
             </div>
             {localProgress > 0 && localProgress < 100 && <ProgressBar progress={localProgress} label="Uploading file..." />}
             <Button 
-              data-trigger-ad="true"
               onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
                 e.stopPropagation(); 
                 if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();

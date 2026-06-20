@@ -271,7 +271,6 @@ const Transcribe: React.FC<Props> = ({
                 </div>
                 <Button 
                   variant="primary" 
-                  data-trigger-ad="true"
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
                     e.stopPropagation(); 
                     if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
@@ -317,7 +316,6 @@ const Transcribe: React.FC<Props> = ({
                 </div>
                 <Button 
                   variant="primary" 
-                  data-trigger-ad="true"
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
                     e.stopPropagation(); 
                     if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
