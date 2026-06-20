@@ -3,6 +3,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { UserSession, FeatureType, StoredResult, ProcessingTask } from '../types';
 import { Card, Button, ProgressBar, Input, ResultBox, TutorialButton, Modal } from '../components/Shared';
 import { transcribeMedia, transcribeYoutubeLink } from '../services/gemini';
+import { triggerAd } from '../lib/ads';
 import PersistentResults from '../components/PersistentResults';
 
 interface Props {
@@ -67,6 +68,7 @@ const Transcribe: React.FC<Props> = ({
   };
 
   const processFileUpload = async () => {
+    triggerAd();
     if (!file || activeFileTask || isCheckingUsage) return;
     if (!checkApiKey()) return;
 
@@ -124,6 +126,7 @@ const Transcribe: React.FC<Props> = ({
   };
 
   const processYoutubeLink = async () => {
+    triggerAd();
     if (!ytUrl || activeLinkTask || isCheckingUsage) return;
 
     try {

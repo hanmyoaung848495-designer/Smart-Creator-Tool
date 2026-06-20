@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { UserSession, FeatureType, StoredResult, ProcessingTask } from '../types';
 import { Card, Button, ProgressBar, TextArea, ResultBox, TutorialButton } from '../components/Shared';
 import { generateSubtitles, convertTextToSRT } from '../services/gemini';
+import { triggerAd } from '../lib/ads';
 import PersistentResults from '../components/PersistentResults';
 
 interface Props {
@@ -49,6 +50,7 @@ const SubGenerator: React.FC<Props> = ({
   };
 
   const processMedia = async () => {
+    triggerAd();
     if (!file || activeTask) return;
     if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;

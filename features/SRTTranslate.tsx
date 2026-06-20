@@ -3,6 +3,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
 import { Card, Button, Select, ResultBox, ProgressBar, TutorialButton } from '../components/Shared';
 import { translateSRT } from '../services/gemini';
+import { triggerAd } from '../lib/ads';
 import PersistentResults from '../components/PersistentResults';
 
 interface Props {
@@ -90,6 +91,7 @@ const SRTTranslate: React.FC<Props> = ({
   };
 
   const handleTranslate = async () => {
+    triggerAd();
     if (!srtContent || activeTask) return;
     if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;

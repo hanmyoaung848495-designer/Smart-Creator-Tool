@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { UserSession, StoredResult, ProcessingTask, FeatureType } from '../types';
 import { Card, Button, Input, Select, ResultBox, ProgressBar, TutorialButton } from '../components/Shared';
 import { writeScript } from '../services/gemini';
+import { triggerAd } from '../lib/ads';
 import PersistentResults from '../components/PersistentResults';
 
 const LANGUAGES = [
@@ -65,6 +66,7 @@ const ScriptWriter: React.FC<Props> = ({
   };
 
   const handleGenerate = async () => {
+    triggerAd();
     if (!topic || activeTask) return;
     if (style === 'custom' && !customStyle) return;
     if (!checkApiKey()) return;

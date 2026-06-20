@@ -23,8 +23,6 @@ import MusicPlayer from './components/MusicPlayer';
 import PersistentResults from './components/PersistentResults';
 import { FeedbackModal } from './components/FeedbackModal';
 import { BannerCarousel } from './components/BannerCarousel';
-import NativeAd from './components/NativeAd';
-import SocialBarAd from './components/SocialBarAd';
 import { Menu, X, BookOpen, User, Home as HomeIcon, Zap, Send, Sun, Moon, CheckCircle, XCircle, Eye, EyeOff, Shield, FileText, Download, Crown, Globe, PlayCircle } from 'lucide-react';
 import { trackEvent } from './lib/analytics';
 import { Toaster, toast } from 'sonner';
@@ -821,7 +819,17 @@ const App: React.FC = () => {
           </label>
           
           <div className="w-full pt-2">
-            <Button onClick={handleTermsAgree} className="w-full py-3 rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none text-xs">
+            <Button 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (e.nativeEvent) {
+                  e.nativeEvent.stopPropagation();
+                  e.nativeEvent.stopImmediatePropagation();
+                }
+                handleTermsAgree();
+              }} 
+              className="w-full py-3 rounded-xl shadow-lg shadow-indigo-100 dark:shadow-none text-xs"
+            >
               Agree
             </Button>
           </div>
@@ -1079,12 +1087,6 @@ const App: React.FC = () => {
       {activeFeature !== 'teleprompter' && (
         <>
           <FeedbackModal />
-          {session.role === 'free' && !session.user && (
-            <>
-              <NativeAd />
-              <SocialBarAd />
-            </>
-          )}
           <footer className="bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 py-5 mt-auto">
           <div className="max-w-7xl mx-auto px-6 text-center">
             <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 mb-8 text-[11px] sm:text-[13px] font-black uppercase tracking-[0.1em] sm:tracking-[0.2em]">

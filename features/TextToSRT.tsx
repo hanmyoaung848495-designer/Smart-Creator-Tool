@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { toast } from 'sonner';
+import { triggerAd } from '../lib/ads';
 import { FeatureType, StoredResult, UserSession, ProcessingTask } from '../types';
 import { Card, Button, TextArea, Input, Modal, TutorialButton } from '../components/Shared';
 import PersistentResults from '../components/PersistentResults';
@@ -90,6 +91,7 @@ const TextToSRT: React.FC<Props> = ({
   };
 
   const handleGenerate = () => {
+    triggerAd();
     setTouched(true);
     if (!fileName.trim()) {
       return;
