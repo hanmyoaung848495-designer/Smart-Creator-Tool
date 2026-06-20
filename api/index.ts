@@ -5,16 +5,10 @@ process.env.NTBA_FIX_350 = "1";
 import express from "express";
 import { botService } from '../services/botService.js';
 import TelegramBot from "node-telegram-bot-api";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from '../services/sharedSupabase.js';
 
 const app = express();
 app.use(express.json());
-
-// Initialize Supabase
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-// IMPORTANT: Use SUPABASE_SERVICE_ROLE_KEY to bypass Row Level Security (RLS) for admin operations.
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Admin Verification Middleware
 const verifyAdmin = async (req: any, res: any, next: any) => {
