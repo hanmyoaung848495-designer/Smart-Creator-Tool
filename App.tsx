@@ -1043,12 +1043,8 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {activeFeature !== 'teleprompter' && (
-        <div className="max-w-7xl mx-auto px-4 mt-4 w-full">
-          <BannerCarousel />
-        </div>
-      )}
-
+      <BannerCarousel />
+      
       <div className="max-w-7xl mx-auto px-4 w-full relative h-0">
         <div className="absolute top-2 left-4 z-40">
           <MusicPlayer />

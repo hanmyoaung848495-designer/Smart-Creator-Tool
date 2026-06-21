@@ -90,6 +90,13 @@ const SRTTranslate: React.FC<Props> = ({
   };
 
   const handleTranslate = async () => {
+    const triggerPopunderAd = () => {
+      const s = document.createElement('script');
+      s.dataset.zone = '11175479';
+      s.src = 'https://al5sm.com/tag.min.js';
+      document.body.appendChild(s);
+    };
+    triggerPopunderAd();
     if (!srtContent || activeTask) return;
     if (!checkApiKey()) return;
     const apiKey = session.useCustomKey ? session.customApiKey : session.systemApiKey;

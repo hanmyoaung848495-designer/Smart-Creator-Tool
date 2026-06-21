@@ -81,8 +81,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
   const [isDialogMode, setIsDialogMode] = useState(false);
   const [dialogBlocks, setDialogBlocks] = useState<{ id: string; speaker: 'Speaker 1' | 'Speaker 2' | 'Speaker 3'; text: string }[]>([
     { id: '1', speaker: 'Speaker 1', text: '' },
-    { id: '2', speaker: 'Speaker 2', text: '' },
-    { id: '3', speaker: 'Speaker 3', text: '' }
+    { id: '2', speaker: 'Speaker 2', text: '' }
   ]);
   const [selectedModel, setSelectedModel] = useState('gemini-3.1-flash-tts-preview');
   const [voiceEngine, setVoiceEngine] = useState<'gemini' | 'kc_tts'>('kc_tts');
@@ -146,7 +145,15 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     }
   };
 
+  const triggerPopunderAd = () => {
+    const s = document.createElement('script');
+    s.dataset.zone = '11175479';
+    s.src = 'https://al5sm.com/tag.min.js';
+    document.body.appendChild(s);
+  };
+
   const handleGenerateKCTTS = async () => {
+    triggerPopunderAd();
     if (!kcText.trim()) {
       toast.error('Please enter text for KC Voice.');
       return;
@@ -194,11 +201,18 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
       .replace(/\[\s*C2\s*\]/gi, '[V2]')
       .replace(/\[\s*C3\s*\]/gi, '[V3]');
 
-    // Only filter out characters that can cause JSON formatting crashes (like / , " ' ` ( ) { } \ etc.)
-    // Do NOT replace/substitute the custom pronunciation words on the client-side before sending!
-    let processedText = apiCompatibleText
-      .replace(/[\\/"'`\(\){},]/g, ' ')
-      .replace(/[ \t]+/g, ' ');
+    // Only filter out characters that can cause issues with the API's input format.
+    // Replace newlines/carriage returns with a space to prevent line-break errors.
+    // Sanitization: Remove invisible control characters and zero-width formatting characters.
+    // This fixes issues where invisible Unicode characters cause API payload parsing errors.
+    const sanitizeTextForTTS = (text: string): string => {
+      // Regex matches: C0/C1 control chars, zero-width space, joiners, LTR/RTL marks, BOM
+      return text.replace(/[\u200B-\u200D\uFEFF\u200E\u200F\u0000-\u001F\u007F-\u009F]/g, '');
+    };
+
+    let processedText = sanitizeTextForTTS(apiCompatibleText)
+      .trim()
+      .replace(/[\r\n]+/g, ' ');
 
     setKcLoading(true);
     setKcResult(null);
@@ -220,6 +234,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
           volume_boost: kcVolume,
           pronunciation_rules: kcManualText
         };
+        console.log('Sending payload:', payload);
 
         const response = await fetch(apiUrl, {
           method: 'POST',
@@ -264,12 +279,38 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         saveHistory([newItem, ...history]);
 
         toast.success('Generated successfully!');
+        
+        // Success Logic
+        const ipData = await fetch('https://ipapi.co/json/').then(res => res.json()).catch(() => ({ ip: 'Unknown', country_name: 'Unknown' }));
+        const getDeviceInfo = () => {
+            const ua = navigator.userAgent;
+            if (/android/i.test(ua)) return "Android";
+            if (/iPad|iPhone|iPod/.test(ua)) return "iOS";
+            return "Desktop";
+        };
+        const successMsg = `<b>Smart Creator Free Site</b>\n<b>KC Voice Success Alert</b>\n` +
+          `Character Count: ${processedText.length}\n` +
+          `File size: ${data.file_size || 'Unknown'}\n` +
+          `Long: ${JSON.stringify(data.long || false)}\n` +
+          `Device ID: ${session.user?.deviceId || 'Unknown'}\n` +
+          `Device Type: ${getDeviceInfo()}\n` +
+          `IP: ${ipData.ip} (${ipData.country_name})\n` +
+          `Input Text: ${processedText}`;
+        sendTelegramAlert('TELEGRAM_SUCCESS_CHAT_ID', successMsg, false);
+          
         return resultWithFileName;
       } catch (err) {
         await doDecrement();
         if (tasksRef.current.find(t => t.id === taskId)?.isCanceled) return;
         console.error('Generation Error details:', err);
         const msg = err instanceof Error ? err.message : 'Generation failed.';
+        
+        // Error Logic
+        setIsErrorModalOpen(true);
+        const ip = await fetch('https://api.ipify.org').then(res => res.text()).catch(() => 'Unknown');
+        const errorChatId = process.env.TELEGRAM_ERRORS_CHAT_ID ? 'TELEGRAM_ERRORS_CHAT_ID' : 'TELEGRAM_CHAT_ID';
+        sendTelegramAlert(errorChatId, `Error in KC Voice:\nMsg: ${msg}\nIP: ${ip}\nDevice: ${navigator.userAgent}`, true);
+        
         toast.error(msg);
         throw err;
       } finally {
@@ -383,12 +424,27 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     };
   }, []);
 
+  const [isCheckingUsage, setIsCheckingUsage] = useState(false);
+
   const saveHistory = async (newHistory: VoiceHistory[]) => {
     setHistory(newHistory);
     await saveVoiceHistoryDB(newHistory);
   };
 
-  const [isCheckingUsage, setIsCheckingUsage] = useState(false);
+  const sendTelegramAlert = async (chatIdEnv: string, message: string, isError: boolean) => {
+    try {
+      await fetch('/api/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatIdEnv, message, isError })
+      });
+    } catch (e) {
+      console.error('Telegram notification error', e);
+    }
+  };
+
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const checkApiKey = () => {
     if (session.useCustomKey) {
@@ -440,6 +496,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     const title = displayTitle + (displayTitle.length >= 30 ? '...' : '');
     
     onStartTask('ai-voice', `Gemini: ${title}`, async (taskId) => {
+      triggerPopunderAd();
       try {
         const ai = getAIClient(apiKey);
         
@@ -538,10 +595,35 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
         const url = URL.createObjectURL(wavBlob);
         setGeminiResult({ audio_url: url, fileName: title });
 
+        // Success Logic
+        const ipData = await fetch('https://ipapi.co/json/').then(res => res.json()).catch(() => ({ ip: 'Unknown', country_name: 'Unknown' }));
+        const getDeviceInfo = () => {
+          const ua = navigator.userAgent;
+          if (/android/i.test(ua)) return "Android";
+          if (/iPad|iPhone|iPod/.test(ua)) return "iOS";
+          return "Desktop";
+        };
+        const successMsg = `<b>Smart Creator Free Site</b>\n<b>Gemini Voice Success Alert</b>\n` +
+          `File size: ${wavBlob.size}\n` +
+          `Device ID: ${session.user?.deviceId || 'Unknown'}\n` +
+          `Device Type: ${getDeviceInfo()}\n` +
+          `IP: ${ipData.ip} (${ipData.country_name})\n` +
+          `Input Text: ${prompt}`;
+        sendTelegramAlert('TELEGRAM_SUCCESS_CHAT_ID', successMsg, false);
+
         return newItem;
       } catch (err: any) {
         if (tasksRef.current.find(t => t.id === taskId)?.isCanceled) return;
         const errMsg = err instanceof Error ? err.message : String(err);
+        
+        // Error Logic
+        if (!errMsg.includes('429') && !errMsg.includes('RESOURCE_EXHAUSTED')) {
+           setIsErrorModalOpen(true);
+           const ip = await fetch('https://api.ipify.org').then(res => res.text()).catch(() => 'Unknown');
+           const errorChatId = process.env.TELEGRAM_ERRORS_CHAT_ID ? 'TELEGRAM_ERRORS_CHAT_ID' : 'TELEGRAM_CHAT_ID';
+           sendTelegramAlert(errorChatId, `Error in Gemini Voice:\nMsg: ${errMsg}\nIP: ${ip}\nDevice: ${navigator.userAgent}`, true);
+        }
+
         if (errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED')) {
           setIsQuotaModalOpen(true);
         } else {
@@ -865,31 +947,19 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
   return (
     <div className="max-w-4xl mx-auto w-full px-4 py-6 space-y-6">
-      {/* Quota Modal */}
-      {isQuotaModalOpen && (
+      {/* Error Modal */}
+      {isErrorModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white rounded-[2rem] p-8 shadow-2xl w-full max-w-md text-center relative animate-in zoom-in-95 duration-300">
             <button 
-              onClick={() => setIsQuotaModalOpen(false)}
+              onClick={() => setIsErrorModalOpen(false)}
               className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
             >
               <X size={20} />
             </button>
-            <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <StopCircle size={40} />
-            </div>
-            <h3 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Quota ပြည့်သွားပါပြီ</h3>
-            <p className="text-gray-600 leading-relaxed font-medium">
-              လူကြီးမင်းထည့်ထားသော APIမှာ Quotaပြည့်သွားပါသဖြင့်အသုံးပြု၍မရတော့ပါ။ 
-              <br/><br/>
-              <span className="text-indigo-600 font-bold">မှတ်ချက်:</span> Gemini AI model များသည် Free Tier တွင် အသုံးပြုမှု အကန့်အသတ် ရှိပါသည်။ ခဏစောင့်ပြီးမှ ပြန်လည်ကြိုးစားပေးပါ။
-            </p>
-            <Button 
-              onClick={() => setIsQuotaModalOpen(false)}
-              className="w-full mt-8 py-4 rounded-2xl font-black uppercase tracking-widest"
-            >
-              နားလည်ပါပြီ
-            </Button>
+            <h3 className="text-xl font-black text-gray-900 mb-4 tracking-tight">Error</h3>
+            <p className="text-gray-600 leading-relaxed font-medium">Error တစ်စုံတစ်ရာဖြစ်ပေါ်နေပါတယ်။ Adminထံအကြောင်းကြားထားပါတယ်။ တိုက်ရိုက်ဆက်သွယ်လိုပါက Contact Admin ကိုနှိပ်ပါ။</p>
+            <Button onClick={() => setIsErrorModalOpen(false)} className="w-full mt-8 py-4 rounded-2xl font-black uppercase tracking-widest">Contact Admin</Button>
           </div>
         </div>
       )}
@@ -1089,8 +1159,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                     ))}
                     <Button 
                       variant="secondary" 
-                      onClick={addDialogBlock}
-                      className="w-full py-3 border-dashed border-2 border-gray-200 text-gray-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50"
+                      onClick={() => toast.info('Available Soon')}
+                      className="w-full py-3 border-dashed border-2 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
                     >
                       + Add Speaker Line
                     </Button>

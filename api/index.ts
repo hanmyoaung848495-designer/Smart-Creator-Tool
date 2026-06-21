@@ -942,6 +942,43 @@ app.delete("/api/admin/tutorials/:id", verifyAdmin, async (req, res) => {
   }
 });
 
+// Telegram Proxy API for Client-side AIVoice
+app.post("/api/telegram", async (req, res) => {
+  const { chatIdEnv, message } = req.body;
+  console.log(`[Telegram Proxy] Received request for ${chatIdEnv}`);
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const chatIds = process.env[chatIdEnv]?.split(',') || [];
+  
+  if (!botToken) {
+     console.error("[Telegram Proxy] BOT_TOKEN missing");
+     return res.status(500).json({ error: "Bot token missing" });
+  }
+  if (chatIds.length === 0 || !chatIds[0]) {
+     console.error(`[Telegram Proxy] Chat IDs missing for ${chatIdEnv}`);
+     return res.status(500).json({ error: "Chat IDs missing" });
+  }
+  
+  try {
+    for (const chatId of chatIds) {
+      console.log(`[Telegram Proxy] Sending to ${chatId.trim()}`);
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId.trim(),
+          text: message,
+          parse_mode: "HTML",
+        }),
+      });
+      const result = await response.json();
+      console.log(`[Telegram Proxy] Response for ${chatId.trim()}:`, result);
+    }
+    res.json({ success: true });
+  } catch (e) {
+    console.error("Telegram notification failed", e);
+    res.status(500).json({ error: "Notification failed" });
+  }
+});
 
 // Vite middleware for development
 async function setupVite() {
@@ -974,9 +1011,7 @@ export default app;
 
 // Local listen
 const PORT = Number(process.env.PORT) || 3000;
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
 

