@@ -171,8 +171,9 @@ const App: React.FC = () => {
   const [doNotShowAgain, setDoNotShowAgain] = useState(false);
 
   const handleTermsAgree = () => {
-    localStorage.setItem('terms_accepted', 'true');
-    localStorage.setItem('terms_agreed', 'true');
+    if (doNotShowAgain) {
+      localStorage.setItem('terms_accepted', 'true');
+    }
     setShowWelcomePopup(false);
   };
   const [showApiKeyPopup, setShowApiKeyPopup] = useState(false);

@@ -269,16 +269,7 @@ const Transcribe: React.FC<Props> = ({
                   <div className="text-5xl mb-4">📁</div>
                   <p className="text-gray-700 font-bold">{file ? file.name : "Click or drag to upload audio/video"}</p>
                 </div>
-                <Button 
-                  variant="primary" 
-                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
-                    e.stopPropagation(); 
-                    if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
-                    processFileUpload(); 
-                  }} 
-                  disabled={!file || activeFileTask !== undefined || isCheckingUsage} 
-                  className="w-full py-4 text-xs font-bold uppercase tracking-widest"
-                >
+                <Button variant="primary" onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); processFileUpload(); }} disabled={!file || activeFileTask !== undefined || isCheckingUsage} className="w-full py-4 text-xs font-bold uppercase tracking-widest">
                   {isCheckingUsage ? 'Checking...' : 'Transcribe File'}
                 </Button>
               </div>
@@ -314,16 +305,7 @@ const Transcribe: React.FC<Props> = ({
                     Fast and accurate transcription of video content directly into text.
                   </p>
                 </div>
-                <Button 
-                  variant="primary" 
-                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
-                    e.stopPropagation(); 
-                    if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
-                    processYoutubeLink(); 
-                  }} 
-                  disabled={!ytUrl || activeLinkTask !== undefined || isCheckingUsage} 
-                  className="w-full py-4 text-xs font-bold uppercase tracking-widest"
-                >
+                <Button variant="primary" onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); processYoutubeLink(); }} disabled={!ytUrl || activeLinkTask !== undefined || isCheckingUsage} className="w-full py-4 text-xs font-bold uppercase tracking-widest">
                   {isCheckingUsage ? 'Checking...' : 'Transcribe Video Link'}
                 </Button>
               </div>

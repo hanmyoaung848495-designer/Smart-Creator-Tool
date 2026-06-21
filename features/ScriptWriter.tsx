@@ -144,15 +144,7 @@ const ScriptWriter: React.FC<Props> = ({
               options={LANGUAGES} 
             />
             <div className="md:col-span-2">
-              <Button 
-                onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
-                  e.stopPropagation(); 
-                  if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
-                  handleGenerate(); 
-                }} 
-                disabled={!topic || (style === 'custom' && !customStyle)} 
-                className="w-full py-4"
-              >
+              <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleGenerate(); }} disabled={!topic || (style === 'custom' && !customStyle)} className="w-full py-4">
                 Generate Full Script
               </Button>
             </div>

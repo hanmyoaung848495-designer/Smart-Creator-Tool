@@ -1450,11 +1450,7 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               </div>
 
               <Button
-                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                    e.stopPropagation();
-                    if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
-                    if (!activeKCTask && !isCheckingUsage) handleGenerateKCTTS();
-                  }}
+                  onClick={activeKCTask || isCheckingUsage ? undefined : handleGenerateKCTTS}
                   className="w-full mt-4"
                   variant={activeKCTask ? 'secondary' : 'gradient'}
                   disabled={!!activeKCTask || isCheckingUsage}

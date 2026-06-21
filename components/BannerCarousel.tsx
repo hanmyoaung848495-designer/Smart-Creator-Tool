@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const BANNERS = [
+  '/promotion.png',
   '/ads_bannar.png',
   '/ads_bannar1.png',
   '/ads_bannar2.png',
@@ -62,6 +63,30 @@ export const BannerCarousel: React.FC = () => {
     switch (index) {
       case 0:
         return (
+          <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-rose-500 via-pink-600 to-amber-500 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-smartfont3">
+            <div className="absolute top-2 left-3 md:top-3 md:left-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-xs font-black tracking-widest uppercase border border-white/25 animate-pulse">
+              🎉 SPECIAL BIRTHDAY GIFT 🎉
+            </div>
+            <div className="max-w-2xl px-2 space-y-2 md:space-y-3">
+              <h3 className="text-sm sm:text-lg md:text-xl font-bold tracking-wide leading-relaxed drop-shadow-md">
+                Jun 16 - Jun 20 အတွင်း <span className="text-yellow-250 underline underline-offset-4 decoration-yellow-400 font-extrabold">@kcteamofficialbot</span> သို့
+              </h3>
+              <div className="inline-block bg-white/10 backdrop-blur-md px-4 py-1 rounded-2xl border border-white/20 transform scale-105 hover:scale-110 transition-transform">
+                <span className="text-base sm:text-xl md:text-2xl font-black text-yellow-300 tracking-wider">
+                  "Happy Birthday"
+                </span>
+              </div>
+              <p className="text-sm sm:text-lg md:text-xl font-bold tracking-wide text-white drop-shadow-lg">
+                ဟု ပေးပို့ကာ <span className="text-yellow-300 font-black text-lg sm:text-2xl drop-shadow-md">30% Discount</span> ဖြင့် Premium Plan ရယူပါ
+              </p>
+            </div>
+            <div className="absolute bottom-2 right-3 md:bottom-3 md:right-4 bg-black/30 backdrop-blur-sm text-[10px] sm:text-xs px-3 py-1 rounded-full font-bold border border-white/10">
+              ⚡ KC Team
+            </div>
+          </div>
+        );
+      case 1:
+        return (
           <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-blue-700 via-indigo-800 to-purple-900 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-smartfont3">
             <div className="absolute top-2 left-3 md:top-3 md:left-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-xs font-black tracking-widest uppercase border border-white/25">
               🛍️ KC STORE OFFICIAL
@@ -81,7 +106,7 @@ export const BannerCarousel: React.FC = () => {
             </div>
           </div>
         );
-      case 1:
+      case 2:
         return (
           <div className="w-full h-full flex flex-col justify-center bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-950 text-white p-5 md:p-8 select-none relative overflow-hidden font-smartfont3 border-l-4 border-emerald-500">
             <div className="absolute top-2 right-3 md:top-3 md:right-4 bg-emerald-500/20 text-emerald-350 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase border border-emerald-500/30 shadow-inner">
@@ -112,7 +137,7 @@ export const BannerCarousel: React.FC = () => {
             </div>
           </div>
         );
-      case 2:
+      case 3:
         return (
           <div className="w-full h-full flex flex-col justify-center bg-gradient-to-tr from-cyan-950 via-slate-900 to-indigo-950 text-white p-5 md:p-8 select-none relative overflow-hidden font-smartfont3 border-l-4 border-cyan-400">
             <div className="absolute top-2 right-3 md:top-3 md:right-4 bg-cyan-500/20 text-cyan-350 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase border border-cyan-500/30 shadow-inner">
@@ -140,7 +165,7 @@ export const BannerCarousel: React.FC = () => {
             </div>
           </div>
         );
-      case 3:
+      case 4:
         return (
           <div className="w-full h-full flex flex-col justify-center bg-gradient-to-tr from-purple-950 via-indigo-950 to-slate-950 text-white p-5 md:p-8 select-none relative overflow-hidden font-smartfont3 border-l-4 border-purple-500">
             <div className="absolute top-2 right-3 md:top-3 md:right-4 bg-purple-500/20 text-purple-350 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black tracking-widest uppercase border border-purple-500/30 shadow-inner">
@@ -153,16 +178,16 @@ export const BannerCarousel: React.FC = () => {
                 </h3>
                 <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-white font-bold text-xs sm:text-sm md:text-base">
                   <li className="flex items-center gap-1.5 py-1.5 px-2.5 bg-purple-900/35 rounded-xl border border-purple-800/30 hover:bg-purple-900/60 transition-colors shadow-sm">
-                    <span className="text-purple-450 font-extrabold text-sm sm:text-base">▪</span> Autodesk (AutoCAD & Revit 2024-2027 Edu)
+                    <span className="text-purple-400 font-extrabold text-sm sm:text-base">▪</span> Autodesk (AutoCAD & Revit 2024-2027 Edu)
                   </li>
                   <li className="flex items-center gap-1.5 py-1.5 px-2.5 bg-purple-900/35 rounded-xl border border-purple-800/30 hover:bg-purple-900/60 transition-colors shadow-sm">
-                    <span className="text-purple-450 font-extrabold text-sm sm:text-base">▪</span> Microsoft Project & Visio (2016, 2019, 2021)
+                    <span className="text-purple-400 font-extrabold text-sm sm:text-base">▪</span> Microsoft Project & Visio (2016, 2019, 2021)
                   </li>
                   <li className="flex items-center gap-1.5 py-1.5 px-2.5 bg-purple-900/35 rounded-xl border border-purple-800/30 hover:bg-purple-900/60 transition-colors shadow-sm">
-                    <span className="text-purple-450 font-extrabold text-sm sm:text-base">▪</span> Windows Server (2012 R2 - 2022 Standard & DC)
+                    <span className="text-purple-400 font-extrabold text-sm sm:text-base">▪</span> Windows Server (2012 R2 - 2022 Standard & DC)
                   </li>
                   <li className="flex items-center gap-1.5 py-1.5 px-2.5 bg-purple-900/35 rounded-xl border border-purple-800/30 hover:bg-purple-900/60 transition-colors shadow-sm">
-                    <span className="text-purple-450 font-extrabold text-sm sm:text-base">▪</span> SQL Server (2010 - 2019 Standard)
+                    <span className="text-purple-400 font-extrabold text-sm sm:text-base">▪</span> SQL Server (2010 - 2019 Standard)
                   </li>
                 </ul>
               </div>
@@ -173,7 +198,7 @@ export const BannerCarousel: React.FC = () => {
             </div>
           </div>
         );
-      case 4:
+      case 5:
         return (
           <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-smartfont3">
             <div className="absolute top-2 left-3 md:top-3 md:left-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-xs font-black tracking-widest uppercase border border-white/25">
@@ -196,7 +221,7 @@ export const BannerCarousel: React.FC = () => {
             </div>
           </div>
         );
-      case 5:
+      case 6:
         return (
           <div className="w-full h-full flex flex-col justify-center items-center bg-gradient-to-r from-emerald-600 via-teal-700 to-cyan-800 text-white p-4 md:p-6 text-center select-none relative overflow-hidden font-smartfont3">
             <div className="absolute top-2 left-3 md:top-3 md:left-4 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-xs font-black tracking-widest uppercase border border-white/25">

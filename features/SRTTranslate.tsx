@@ -192,15 +192,7 @@ const SRTTranslate: React.FC<Props> = ({
               </div>
             </div>
 
-            <Button 
-              onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
-                e.stopPropagation(); 
-                if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
-                handleTranslate(); 
-              }} 
-              className="w-full py-4 text-lg" 
-              disabled={!srtContent}
-            >
+            <Button onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleTranslate(); }} className="w-full py-4 text-lg" disabled={!srtContent}>
               Translate Subtitles
             </Button>
           </div>

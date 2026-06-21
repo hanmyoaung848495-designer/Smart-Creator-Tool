@@ -128,11 +128,7 @@ const Translate: React.FC<Props> = ({
               </div>
               <Button 
                 variant="primary" 
-                onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
-                  e.stopPropagation(); 
-                  if ((window as any).triggerMonetagAd) (window as any).triggerMonetagAd();
-                  handleTranslate(); 
-                }} 
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); handleTranslate(); }} 
                 disabled={!text}
                 className="py-2.5 w-full sm:w-auto text-xs font-bold uppercase tracking-widest"
               >
