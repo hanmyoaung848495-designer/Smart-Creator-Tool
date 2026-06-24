@@ -1043,6 +1043,15 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      <div className="bg-amber-550/10 dark:bg-amber-500/10 border-b border-amber-500/20 py-2 select-none">
+        <div className="max-w-7xl mx-auto px-4 flex items-center gap-2 text-xs md:text-sm">
+          <span className="flex-shrink-0 bg-amber-600 dark:bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider">NOTICE</span>
+          <marquee scrollamount="4" className="text-amber-800 dark:text-amber-300 font-bold font-smartfont3">
+            လတ်တလောတွင် error တက်နေပါသဖြင့်website အသုံးပြုရာတွင်အဆင်မပြေမှုများဖြစ်ပေါ်နိုင်ပါတယ်။Contactမှတဆင့် Admin Teamထံဆက်သွယ်၍ Premium Website ၃ရက်အစမ်းအသုံးပြူခွင်ရယူနိုင်ပါတယ်
+          </marquee>
+        </div>
+      </div>
+
       <BannerCarousel />
       
       <div className="max-w-7xl mx-auto px-4 w-full relative h-0">
