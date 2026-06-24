@@ -59,7 +59,7 @@ export const FeedbackModal: React.FC = () => {
       "လီပဲ", "လးပဲ", "လီးဘဲ", "လိုးမလို့", "လိုးမာလား", "စောက်ရူူး",
 
       // New user requested additions
-      "kmkl", "mal", "mmsp", "stt", "lee", "ngarloe", "minmayloe", "farthal", "ftmt", "flmt", "fayloemathar", "maaloe", "phin",
+      "kmkl", "mal", "mmsp", "stt", "lee", "ngarloe", "minmayloe", "farthal", "ftmt", "flmt", "fayloemathar", "maaloe", "phin", "sout", "mml", "loe", "ခိုး",
       "aungzabu", "bubu", "sanyaymoe", "phonechit",
       "လဥ", "လအု", "ဠီး", "ငါဠိုး", "မေနိုး", "မြေနိုး", "မအေယိုး", "ငါယိုး", "နာလိုး", "နာယိုး", "နာရိုး", "ဠိုး", "မအေ-ိုး", "မအေ -ိုး", "-ီး", "အောင်ဇမ္ဗူ",
       "ဖိုးချစ်", "စမ်းရေမိုး", "မင်းအဖေ", "မင်းအမေလင်", "မင်းအမေယောက်ျား", "မင်းအစ်မယောက်ျား", "မင်းပထွေး", "မင်းနှမလင်", "မင်းအမလင်", "မင်းအစ်မလင်", "မင်းညီမလင်", "မလင်",

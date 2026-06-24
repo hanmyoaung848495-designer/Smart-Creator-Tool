@@ -164,6 +164,7 @@ const App: React.FC = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
   const [showWelcomePopup, setShowWelcomePopup] = useState(() => {
     // Check if dismissed previously
     return !localStorage.getItem('terms_accepted');
@@ -657,14 +658,12 @@ const App: React.FC = () => {
               >
                 <Zap size={18} className="text-amber-500" /> API Guide
               </button>
-              <a 
-                href="https://t.me/kcstoreofficialbot" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+              <button 
+                onClick={() => { setShowContactModal(true); setIsMenuOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all text-left"
               >
                 <Send size={18} className="text-sky-500" /> Contact
-              </a>
+              </button>
               {!isStandalone && (
                 <button 
                   onClick={handleInstallApp}
@@ -903,14 +902,12 @@ const App: React.FC = () => {
           </p>
 
           <div className="flex justify-center pt-2">
-            <a 
-              href="https://t.me/kcteamofficialbot" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+            <button 
+              onClick={() => { setShowErrorPopup(false); setShowContactModal(true); }}
               className="inline-flex items-center gap-2 justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 transition-colors shadow-lg shadow-indigo-500/10"
             >
               <Send size={16} /> Contact Admin
-            </a>
+            </button>
           </div>
         </div>
       </Modal>
@@ -943,6 +940,49 @@ const App: React.FC = () => {
             <p>Content Creation အတွက်အဆင်ပြေစေရန်ရည်ရွယ်ဖန်တီးထားခြင်းဖြစ်ပြီး အသုံးပြုခြင်းအတွက် Smart Creator Team ၏စည်းမျဥ်းများကို သဘောတူညီပြီးဖြစ်ပါသည်။</p>
           </div>
         )}
+      </Modal>
+
+      <Modal 
+        isOpen={showContactModal} 
+        onClose={() => setShowContactModal(false)} 
+        title="Contact Admin"
+        maxWidth="max-w-sm"
+        hideBottomClose={true}
+      >
+        <div className="space-y-4">
+          <p className="text-sm font-bold text-gray-600 dark:text-gray-300 text-center leading-relaxed font-smartfont3">
+            စုံစမ်းမေးမြန်းရန် သို့မဟုတ် ဝန်ဆောင်မှုရယူရန် အောက်ပါ Social Media များမှတစ်ဆင့် တိုက်ရိုက်ဆက်သွယ်နိုင်ပါသည်ခင်ဗျာ။
+          </p>
+          <div className="flex flex-col gap-3">
+            <a 
+              href="https://t.me/kcteamofficialbot?start=hi" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold bg-[#0088cc] text-white hover:bg-[#0077b3] transition-colors text-center"
+              onClick={() => setShowContactModal(false)}
+            >
+              Telegram
+            </a>
+            <a 
+              href="https://www.facebook.com/share/1BJkHQXabe/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold bg-[#1877F2] text-white hover:bg-[#166fe5] transition-colors text-center"
+              onClick={() => setShowContactModal(false)}
+            >
+              Facebook
+            </a>
+            <a 
+              href="https://www.tiktok.com/@mrmovierecap999?_r=1&_t=ZS-97IQUMx7YcJ" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold bg-black dark:bg-gray-700 text-white hover:bg-gray-900 dark:hover:bg-gray-600 text-white transition-colors text-center"
+              onClick={() => setShowContactModal(false)}
+            >
+              TikTok
+            </a>
+          </div>
+        </div>
       </Modal>
 
       <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 sticky top-0 z-50">
@@ -1044,10 +1084,10 @@ const App: React.FC = () => {
       </header>
 
       <div className="bg-amber-550/10 dark:bg-amber-500/10 border-b border-amber-500/20 py-2 select-none">
-        <div className="max-w-7xl mx-auto px-4 flex items-center gap-2 text-xs md:text-sm">
+        <div className="max-w-7xl mx-auto px-4 flex items-center gap-2 text-sm md:text-base">
           <span className="flex-shrink-0 bg-amber-600 dark:bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider">NOTICE</span>
-          <marquee scrollamount="4" className="text-amber-800 dark:text-amber-300 font-bold font-smartfont3">
-            လတ်တလောတွင် error တက်နေပါသဖြင့်website အသုံးပြုရာတွင်အဆင်မပြေမှုများဖြစ်ပေါ်နိုင်ပါတယ်။Contactမှတဆင့် Admin Teamထံဆက်သွယ်၍ Premium Website ၃ရက်အစမ်းအသုံးပြူခွင်ရယူနိုင်ပါတယ်
+          <marquee scrollamount="4" className="text-amber-800 dark:text-amber-300 font-bold font-smartfont3 text-sm md:text-base lg:text-lg">
+            လတ်တလောတွင်Free planအတွက် စာလုံးရေ ၃၅၀၀သာခွင့်ပြုမှာဖြစ်ပြီး စာလုံးရေအကန့်အသတ်မဲ့စမ်းသပ်လိုပါက Contactမှတဆင့် Admin Teamထံဆက်သွယ်၍ Premium Website ၃ရက်အစမ်းအသုံးပြူခွင်ရယူနိုင်ပါတယ်
           </marquee>
         </div>
       </div>
@@ -1084,9 +1124,9 @@ const App: React.FC = () => {
                 <FileText size={16} /> Terms
               </button>
               <div className="w-1 h-1 bg-gray-200 rounded-full shrink-0" />
-              <a href="https://t.me/kcstoreofficialbot" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
+              <button onClick={() => setShowContactModal(true)} className="text-blue-600 hover:text-blue-700 transition-colors whitespace-nowrap flex items-center gap-2">
                 <Send size={16} /> Contact
-              </a>
+              </button>
             </div>
             <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-gray-300 px-4 leading-relaxed flex items-center justify-center gap-2">
               <span>© 2026 Smart Creator Tools. All rights reserved by KC Team. With best wishes.</span>

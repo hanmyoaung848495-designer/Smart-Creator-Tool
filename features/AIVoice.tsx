@@ -69,7 +69,7 @@ const KC_CHARACTERS = [
 
 const KC_STYLES = [
   { label: 'Normal', value: 'normal' },
-  { label: 'Movie Recap (ဇာတ်လမ်းပြော)', value: 'Movie Recap (ဇာတ်လမ်းပြော)' },
+  { label: 'Movie Recap', value: 'Movie Recap (ဇာတ်လမ်းပြော)' },
   { label: 'Storytelling', value: 'storytelling' },
   { label: 'Documentary', value: 'documentary' },
   { label: 'Sad', value: 'sad' },
@@ -156,6 +156,10 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
     triggerPopunderAd();
     if (!kcText.trim()) {
       toast.error('Please enter text for KC Voice.');
+      return;
+    }
+    if (kcText.length > 3500) {
+      toast.error('KC Voice တွင် စာလုံးရေ ၃၅၀၀ ထက်မပိုရပါ။ (Maximum 3500 characters)');
       return;
     }
 
@@ -469,6 +473,17 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
 
     if (isTextEmpty) {
       toast.error('Please enter some text!', {
+        style: { borderRadius: '1rem' }
+      });
+      return;
+    }
+
+    const totalLength = mode === 'multi' && isDialogMode
+      ? dialogBlocks.reduce((acc, b) => acc + b.text.length, 0)
+      : text.length;
+
+    if (totalLength > 3500) {
+      toast.error('Gemini Voice တွင် စာလုံးရေ ၃၅၀၀ ထက်မပိုရပါ။ (Maximum 3500 characters)', {
         style: { borderRadius: '1rem' }
       });
       return;
@@ -1115,6 +1130,11 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Text to Speak</label>
                   {mode === 'multi' && (
                     <div className="flex items-center gap-2">
+                      {isDialogMode && (
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border shadow-sm ${dialogBlocks.reduce((acc, b) => acc + b.text.length, 0) > 3500 ? 'text-red-500 bg-red-50 border-red-200 animate-pulse' : 'text-gray-500 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+                          Total ({dialogBlocks.reduce((acc, b) => acc + b.text.length, 0)}/3500)
+                        </span>
+                      )}
                       <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Dialog Mode</span>
                       <button 
                         onClick={() => setIsDialogMode(!isDialogMode)}
@@ -1168,8 +1188,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
                 ) : (
                   <div className="flex flex-col gap-1">
                     <div className="flex justify-end">
-                      <span className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm">
-                        Count ({text.length})
+                      <span className={`text-xs font-bold px-2 py-1 rounded-md border shadow-sm transition ${text.length > 3500 ? 'text-red-500 bg-red-50 border-red-200 animate-pulse' : 'text-gray-500 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+                        Count ({text.length}/3500)
                       </span>
                     </div>
                     <TextArea
@@ -1258,8 +1278,8 @@ const AIVoice: React.FC<AIVoiceProps> = ({ session, onStartTask, tasks, onBack, 
               />
               <div className="flex flex-col gap-1">
                 <div className="flex justify-end">
-                  <span className="text-xs font-bold text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md border border-gray-200 dark:border-gray-700 shadow-sm transition">
-                    Count ({kcText.length})
+                  <span className={`text-xs font-bold px-2 py-1 rounded-md border shadow-sm transition ${kcText.length > 3500 ? 'text-red-500 bg-red-50 border-red-200 animate-pulse' : 'text-gray-500 bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+                    Count ({kcText.length}/3500)
                   </span>
                 </div>
                 <TextArea
