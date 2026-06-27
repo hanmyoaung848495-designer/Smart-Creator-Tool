@@ -165,6 +165,7 @@ const App: React.FC = () => {
   const [logoError, setLogoError] = useState(false);
   const [modalType, setModalType] = useState<'privacy' | 'terms' | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showRedirectModal, setShowRedirectModal] = useState(true);
   const [showWelcomePopup, setShowWelcomePopup] = useState(() => {
     // Check if dismissed previously
     return !localStorage.getItem('terms_accepted');
@@ -980,6 +981,32 @@ const App: React.FC = () => {
               onClick={() => setShowContactModal(false)}
             >
               TikTok
+            </a>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal 
+        isOpen={showRedirectModal} 
+        onClose={() => setShowRedirectModal(false)} 
+        title="Website အသစ်သို့ ပြောင်းရွှေ့ခြင်း"
+        maxWidth="max-w-sm"
+        hideBottomClose={true}
+        hideClose={true}
+        containerClassName="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl border border-white/40 dark:border-gray-700/40 shadow-[0_20px_50px_rgba(0,0,0,0.25),_inset_0_2px_4px_rgba(255,255,255,0.3)]"
+      >
+        <div className="space-y-4">
+          <p className="text-sm font-bold text-gray-600 dark:text-gray-300 text-center leading-relaxed font-smartfont3">
+            Update လုပ်ထားသော Website တွင်အသုံးပြုပေးပါ
+          </p>
+          <div className="flex flex-col gap-3">
+            <a 
+              href="https://smartcreatortool.xyz" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors text-center shadow-[0_4px_10px_rgba(79,70,229,0.3)] hover:shadow-[0_6px_15px_rgba(79,70,229,0.5)] active:shadow-none active:translate-y-0.5 transition-all"
+            >
+              Website သို့သွားရန်
             </a>
           </div>
         </div>

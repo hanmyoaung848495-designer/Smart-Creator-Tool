@@ -366,11 +366,12 @@ export const Modal: React.FC<{
   maxWidth?: string;
   compact?: boolean;
   contentClassName?: string;
-}> = ({ isOpen, onClose, title, children, hideClose, hideBottomClose, maxWidth = "max-w-2xl", compact, contentClassName = "" }) => {
+  containerClassName?: string;
+}> = ({ isOpen, onClose, title, children, hideClose, hideBottomClose, maxWidth = "max-w-2xl", compact, contentClassName = "", containerClassName = "" }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div className={`bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full ${maxWidth} max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300`}>
+      <div className={`bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full ${maxWidth} max-h-[95vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ${containerClassName}`}>
         <div className={`flex items-center justify-between ${compact ? 'p-3 px-6' : 'p-6'} border-b border-gray-100 dark:border-gray-700`}>
           <h3 className={`${compact ? 'text-xs uppercase tracking-widest' : 'text-xl'} font-bold text-gray-900 dark:text-gray-100`}>{title}</h3>
           {!hideClose && (
